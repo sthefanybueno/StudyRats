@@ -38,6 +38,16 @@ Este arquivo registra as atividades realizadas pelas alunas Maria Clara Miguel e
 | `sthefany` | Sthefany |
 | `clara` | Clara |
 
+### Automação via Git Hook
+
+Um hook `post-commit` em `.git/hooks/post-commit` registra automaticamente os metadados de cada commit numa fila em `.git/pending_diary_entries.jsonl`. Quando a IA iniciar uma nova conversa, deve:
+
+1. Verificar se existe `.git/pending_diary_entries.jsonl`
+2. Se existir, processar cada entrada pendente e criar os registros correspondentes neste diário
+3. Após processar, limpar o arquivo de fila
+
+Dentro de uma conversa ativa, a IA deve reagir diretamente aos commits que observar nas ações do usuário, sem depender da fila.
+
 ---
 
 ## Atividades
