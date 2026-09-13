@@ -1,1 +1,0 @@
-Arquivo base que norteia o desenvolvimento do MVP do App StudyRats.
