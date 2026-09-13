@@ -17,6 +17,11 @@
   - [2.1 Atores](#21-atores)
   - [2.2 Diagrama (Mermaid)](#22-diagrama-mermaid)
   - [2.3 Descrição Textual dos Casos de Uso Críticos](#23-descrição-textual-dos-casos-de-uso-críticos)
+- [3. Modelagem de Dados (Fase 2)](#3-modelagem-de-dados-fase-2)
+  - [3.1 Diagrama de Classes (Domínio)](#31-diagrama-de-classes-domínio)
+  - [3.2 Modelo Relacional Local (DER SQLite)](#32-modelo-relacional-local-der-sqlite)
+  - [3.3 Modelo Relacional Remoto (DER Supabase)](#33-modelo-relacional-remoto-der-supabase)
+  - [3.4 Diagrama de Objetos (Cenário de Sincronização Parcial)](#34-diagrama-de-objetos-cenário-de-sincronização-parcial)
 
 ---
 
@@ -289,4 +294,305 @@ flowchart LR
 
 ---
 
-> **Próxima fase:** Fase 2 — Modelagem de Dados (Diagrama de Classes, DER local/remoto, Diagrama de Objetos)
+> **Próxima fase:** Fase 3 — Arquitetura e UI
+
+---
+
+## 3. Modelagem de Dados (Fase 2)
+
+### 3.1 Diagrama de Classes (Domínio)
+
+Este diagrama reflete as entidades de domínio do aplicativo, incorporando os campos necessários para o padrão Offline-First (UUID, timestamps e controle de sincronização). 
+
+```mermaid
+classDiagram
+    class Usuario {
+        +String id (UUID)
+        +String email
+        +String nome_exibicao
+        +Int xp_total
+        +Int xp_semanal
+        +Int streak_atual
+    }
+
+    class Disciplina {
+        +String id (UUID)
+        +String usuario_id
+        +String nome
+        +DateTime created_at
+        +DateTime updated_at
+        +DateTime deleted_at
+        +String sync_status
+    }
+
+    class Topico {
+        +String id (UUID)
+        +String disciplina_id
+        +String nome
+        +DateTime created_at
+        +DateTime updated_at
+        +DateTime deleted_at
+        +String sync_status
+    }
+
+    class ResumoIA {
+        +String id (UUID)
+        +String topico_id
+        +String conteudo
+        +DateTime gerado_em
+        +String sync_status
+    }
+
+    class SessaoEstudo {
+        +String id (UUID)
+        +String usuario_id
+        +String disciplina_id
+        +String topico_id
+        +Int duracao_minutos
+        +Float latitude
+        +Float longitude
+        +DateTime created_at
+        +String sync_status
+    }
+
+    class FotoSessao {
+        +String id (UUID)
+        +String sessao_id
+        +String uri_local
+        +String url_remota
+        +String upload_status
+    }
+
+    class SyncQueueItem {
+        +String id (UUID)
+        +String entidade
+        +String operacao
+        +String payload_json
+        +Int tentativas
+        +String erro_msg
+        +String status
+        +DateTime created_at
+    }
+
+    Usuario "1" -- "*" Disciplina : possui
+    Disciplina "1" -- "*" Topico : contem
+    Topico "1" -- "1" ResumoIA : possui
+    Usuario "1" -- "*" SessaoEstudo : realiza
+    Disciplina "1" -- "*" SessaoEstudo : categoriza
+    Topico "1" -- "*" SessaoEstudo : foca
+    SessaoEstudo "1" -- "0..1" FotoSessao : evidencia
+```
+
+### 3.2 Modelo Relacional Local (DER SQLite)
+
+O banco local atua como a única fonte da verdade (Single Source of Truth) para o app quando offline. O ORM Drizzle fará a interface com estas tabelas. O tipo `sync_status` suporta valores: `pending`, `synced`, `error`.
+
+```mermaid
+erDiagram
+    DISCIPLINAS {
+        string id PK "UUID"
+        string nome
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "Soft delete"
+        string sync_status "enum"
+    }
+
+    TOPICOS {
+        string id PK "UUID"
+        string disciplina_id FK
+        string nome
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "Soft delete"
+        string sync_status "enum"
+    }
+
+    RESUMOS_IA {
+        string id PK "UUID"
+        string topico_id FK
+        text conteudo
+        datetime gerado_em
+        string sync_status "enum"
+    }
+
+    SESSOES_ESTUDO {
+        string id PK "UUID"
+        string disciplina_id FK
+        string topico_id FK
+        int duracao_minutos
+        float latitude "nullable"
+        float longitude "nullable"
+        datetime created_at
+        string sync_status "enum"
+    }
+
+    FOTOS_SESSAO {
+        string id PK "UUID"
+        string sessao_id FK
+        string uri_local
+        string url_remota "nullable"
+        string upload_status "enum"
+    }
+
+    SYNC_QUEUE {
+        string id PK "UUID"
+        string entidade "Nome da tabela"
+        string operacao "INSERT/UPDATE/DELETE"
+        text payload_json
+        string status "pending/error"
+        int tentativas
+        datetime created_at
+    }
+
+    DISCIPLINAS ||--o{ TOPICOS : "contem"
+    DISCIPLINAS ||--o{ SESSOES_ESTUDO : "categoriza"
+    TOPICOS ||--o{ SESSOES_ESTUDO : "foca"
+    TOPICOS ||--o| RESUMOS_IA : "possui"
+    SESSOES_ESTUDO ||--o| FOTOS_SESSAO : "evidencia"
+```
+
+### 3.3 Modelo Relacional Remoto (DER Supabase)
+
+O esquema remoto recebe apenas dados que o Supabase Auth validar, utilizando Row Level Security (RLS) `auth.uid() = profile_id`. Note a ausência da `sync_queue` (exclusiva do ambiente local) e os relacionamentos obrigatórios com `profile_id`.
+
+```mermaid
+erDiagram
+    PROFILES {
+        uuid id PK "FK para auth.users"
+        string email
+        string nome_exibicao
+        int xp_total
+        int xp_semanal
+        int streak_atual
+        datetime updated_at
+    }
+
+    DISCIPLINAS {
+        uuid id PK
+        uuid profile_id FK
+        string nome
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "Soft delete"
+    }
+
+    TOPICOS {
+        uuid id PK
+        uuid profile_id FK
+        uuid disciplina_id FK
+        string nome
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "Soft delete"
+    }
+
+    RESUMOS_IA {
+        uuid id PK
+        uuid profile_id FK
+        uuid topico_id FK
+        text conteudo
+        datetime gerado_em
+    }
+
+    SESSOES_ESTUDO {
+        uuid id PK
+        uuid profile_id FK
+        uuid disciplina_id FK
+        uuid topico_id FK
+        int duracao_minutos
+        float latitude "nullable"
+        float longitude "nullable"
+        datetime created_at
+    }
+
+    FOTOS_SESSAO {
+        uuid id PK
+        uuid profile_id FK
+        uuid sessao_id FK
+        string url_remota
+        datetime created_at
+    }
+
+    PROFILES ||--o{ DISCIPLINAS : "possui"
+    PROFILES ||--o{ TOPICOS : "possui"
+    PROFILES ||--o{ SESSOES_ESTUDO : "possui"
+    DISCIPLINAS ||--o{ TOPICOS : "contem"
+    DISCIPLINAS ||--o{ SESSOES_ESTUDO : "categoriza"
+    TOPICOS ||--o{ SESSOES_ESTUDO : "foca"
+    TOPICOS ||--o| RESUMOS_IA : "possui"
+    SESSOES_ESTUDO ||--o| FOTOS_SESSAO : "evidencia"
+```
+
+### 3.4 Diagrama de Objetos (Cenário de Sincronização Parcial)
+
+Este diagrama ilustra um momento no aplicativo onde o estudante (Clara) tem uma sessão sincronizada com sucesso e acabou de criar uma nova sessão de estudo (ainda offline), gerando registros na `SyncQueue` local.
+
+```mermaid
+objectDiagram
+    %% Instância de Usuário logado
+    object Clara_App_State {
+        id = "user-uuid-123"
+        xp_total = 120
+        streak = 5
+        conexao = "offline"
+    }
+
+    %% Sessão 1: Sincronizada no passado
+    object Sessao_1 {
+        id = "sessao-uuid-001"
+        disciplina = "Matemática"
+        duracao = 45
+        sync_status = "synced"
+    }
+
+    %% Sessão 2: Recém criada (offline)
+    object Sessao_2 {
+        id = "sessao-uuid-002"
+        disciplina = "Física"
+        duracao = 60
+        latitude = -23.5505
+        longitude = -46.6333
+        sync_status = "pending"
+    }
+
+    %% Foto da Sessão 2: Capturada localmente
+    object Foto_Sessao_2 {
+        id = "foto-uuid-001"
+        uri_local = "file:///data/user/0/app/image.jpg"
+        url_remota = null
+        upload_status = "pending"
+    }
+
+    %% Item da Fila para Sessão 2
+    object SyncItem_Sessao {
+        id = "queue-uuid-001"
+        entidade = "sessoes_estudo"
+        operacao = "INSERT"
+        status = "pending"
+    }
+
+    %% Item da Fila para Foto da Sessão 2
+    object SyncItem_Foto {
+        id = "queue-uuid-002"
+        entidade = "fotos_sessao"
+        operacao = "UPLOAD"
+        status = "pending"
+    }
+
+    Clara_App_State -- Sessao_1 : "histórico"
+    Clara_App_State -- Sessao_2 : "histórico"
+    Sessao_2 -- Foto_Sessao_2 : "evidencia"
+    SyncItem_Sessao -- Sessao_2 : "aponta_para"
+    SyncItem_Foto -- Foto_Sessao_2 : "aponta_para"
+```
+
+---
+
+## Checklist da Fase 2
+
+- [x] Diagrama de Classes contendo entidades do domínio (Usuario, Disciplina, Topico, SessaoEstudo, FotoSessao, ResumoIA, SyncQueueItem).
+- [x] Atributos Offline-First detalhados (UUIDs no cliente, sync_status, created_at, updated_at, deleted_at para soft deletes).
+- [x] DER Local (SQLite) modelado sem dados de auth, mas com fila de sync (Outbox).
+- [x] DER Remoto (Supabase) modelado contendo referências diretas a `profile_id` em todas as tabelas filhas para aplicar regras rígidas de Row Level Security (RLS).
+- [x] Diagrama de Objetos construído com Mermaid comprovando a existência de estado misto (itens `synced` misturados com `pending`).
