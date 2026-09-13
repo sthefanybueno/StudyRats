@@ -75,3 +75,24 @@ Este arquivo registra as atividades realizadas pelas alunas Maria Clara Miguel e
 >
 > O próximo passo é iniciar a **Fase 1 — Fundações** do Documento de Software (`docs/documento-software.md`): tabela de Requisitos Funcionais (RF) e Não Funcionais (RNF) + Diagrama de Casos de Uso (UML Mermaid). Use as diretrizes do `projeto2026-SKILLs/mobile-design-doc/SKILL.md` para formatação.
 
+---
+
+### Criação da proposta de produto e Fase 1 (Requisitos + Casos de Uso)
+
+- **Quando:** 13/09/2026
+- **Quem:** Clara
+- **O que:** Criação do documento centralizador de proposta de produto (`docs/proposta-produto.md`) com visão executiva, público-alvo, dores mapeadas, 3 pilares de valor (IA + gamificação + evidência nativa) e matriz de escopo do MVP. Em seguida, geração da Fase 1 completa do documento de software (`docs/documento-software.md`) contendo: 21 Requisitos Funcionais rastreáveis (RF01–RF21), 8 Requisitos Não Funcionais com categorias mobile obrigatórias (RNF01–RNF08), Diagrama de Casos de Uso em Mermaid com 6 atores e relacionamentos include/extend, e descrição textual de 5 casos de uso críticos com fluxos alternativos (offline e permissão negada). Também reorganizada a estrutura de pastas do repositório (movidos arquivos de referência para `docs_ref/` e `base_infos/`).
+- **Resultados:**
+  - `docs/proposta-produto.md` — visão executiva e conceitual do StudyRats (pitch, dores, mecânicas, escopo MVP)
+  - `docs/documento-software.md` — Fase 1: engenharia de requisitos (RF01–RF21 + RNF01–RNF08) + diagrama de casos de uso UML + descrição textual de 5 UCs críticos
+  - `base_infos/implementation_plan.md` — plano de implementação (movido de raiz para `base_infos/`)
+  - `base_infos/sintese_arquitetural.md` — síntese de alinhamento arquitetural consolidada
+  - `diario_bordo.md` — diário de bordo com convenções de registro definidas
+
+> **Prompt de retomada:**
+> Olá! Retomando o projeto StudyRats. Na sessão de 13/Set/2026, concluímos a **Fase 1 — Fundações** do Documento de Software. Os entregáveis foram:
+> 1. `docs/proposta-produto.md` — proposta conceitual e executiva completa.
+> 2. `docs/documento-software.md` — Fase 1 com 21 RFs, 8 RNFs e Diagrama de Casos de Uso (Mermaid) com 6 atores e 5 UCs detalhados.
+>
+> O próximo passo é a **Fase 2 — Modelagem de Dados**: Diagrama de Classes (com atributos de sync: UUID, updated_at, deleted_at, sync_status), DER local (SQLite) e DER remoto (Supabase/Postgres com RLS), e Diagrama de Objetos validando cenário de estado misto (parcialmente sincronizado). Use `docs/documento-software.md` como destino e as diretrizes de `projeto2026-SKILLs/mobile-design-doc/SKILL.md`.
+
