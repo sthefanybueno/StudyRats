@@ -1,7 +1,7 @@
 # Documento de Especificação de Software — StudyRats
 
-> **Versão:** 1.0 — Fase 1 (Fundações)  
-> **Data:** 13 de Setembro de 2026  
+> **Versão:** 1.3 — Fases 1 a 3 (Fundações + Modelagem + Arquitetura)  
+> **Data:** 16 de Setembro de 2026  
 > **Equipe:** Maria Clara Miguel, Sthefany Bueno  
 > **Referência metodológica:** [`mobile-design-doc/SKILL.md`](../projeto2026-SKILLs/mobile-design-doc/SKILL.md)  
 > **Proposta conceitual:** [`proposta-produto.md`](proposta-produto.md)
@@ -22,6 +22,22 @@
   - [3.2 Modelo Relacional Local (DER SQLite)](#32-modelo-relacional-local-der-sqlite)
   - [3.3 Modelo Relacional Remoto (DER Supabase)](#33-modelo-relacional-remoto-der-supabase)
   - [3.4 Diagrama de Objetos (Cenário de Sincronização Parcial)](#34-diagrama-de-objetos-cenário-de-sincronização-parcial)
+- [4. Diagrama de Estados (Fase 3)](#4-diagrama-de-estados-fase-3)
+  - [4.1 Ciclo de Sincronização — Entidades de Dados](#41-ciclo-de-sincronização--entidades-de-dados)
+  - [4.2 Ciclo de Upload — Foto de Sessão](#42-ciclo-de-upload--foto-de-sessão)
+- [5. Classes de Fronteira, Controle e Entidade — BCE (Fase 3)](#5-classes-de-fronteira-controle-e-entidade--bce-fase-3)
+  - [5.1 Classificação](#51-classificação)
+  - [5.2 Tabela de Mapeamento por Caso de Uso](#52-tabela-de-mapeamento-por-caso-de-uso)
+  - [5.3 Diagrama de Robustez — UC08](#53-diagrama-de-robustez--uc08-registrar-sessão-de-estudo)
+  - [5.4 Diagrama de Robustez — UC06](#54-diagrama-de-robustez--uc06-gerar-resumo-via-ia)
+- [6. Diagrama de Sequência (Fase 3)](#6-diagrama-de-sequência-fase-3)
+  - [6.1 UC08 — Registrar Sessão de Estudo](#61-uc08--registrar-sessão-de-estudo-fluxo-offlineonline)
+  - [6.2 UC06 — Gerar Resumo via IA](#62-uc06--gerar-resumo-via-ia)
+  - [6.3 UC14 — Sincronizar Fila Pendente](#63-uc14--sincronizar-fila-pendente)
+- [7. Diagrama de Atividades (Fase 3)](#7-diagrama-de-atividades-fase-3)
+  - [7.1 UC08 — Registrar Sessão de Estudo](#71-uc08--registrar-sessão-de-estudo-decisões-de-permissão--conectividade)
+  - [7.2 Sync Engine Ponta-a-Ponta](#72-processo-de-sincronização-ponta-a-ponta-sync-engine)
+- [8. Diagrama de Componentes (Fase 3)](#8-diagrama-de-componentes-fase-3)
 
 ---
 
@@ -596,3 +612,486 @@ objectDiagram
 - [x] DER Local (SQLite) modelado sem dados de auth, mas com fila de sync (Outbox).
 - [x] DER Remoto (Supabase) modelado contendo referências diretas a `profile_id` em todas as tabelas filhas para aplicar regras rígidas de Row Level Security (RLS).
 - [x] Diagrama de Objetos construído com Mermaid comprovando a existência de estado misto (itens `synced` misturados com `pending`).
+
+---
+
+> **Próxima fase:** Fase 4 — Implementação (DDD + Clean Architecture + TDD)
+
+---
+
+## 4. Diagrama de Estados (Fase 3)
+
+### 4.1 Ciclo de Sincronização — Entidades de Dados
+
+Aplica-se a toda entidade sincronizável: `Disciplina`, `Topico`, `ResumoIA`, `SessaoEstudo`. O atributo controlado é `sync_status`.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pendente : criado/editado localmente
+    Pendente --> Sincronizando : conexão disponível + worker processa fila
+    Sincronizando --> Sincronizado : servidor confirma (2xx)
+    Sincronizando --> Erro : falha de rede / erro de validação
+    Erro --> Sincronizando : retry automático (backoff exponencial)
+    Sincronizado --> Pendente : nova edição local pelo estudante
+    Pendente --> ExcluidoLocalmente : estudante exclui (soft delete)
+    ExcluidoLocalmente --> Sincronizando : propaga DELETE para Supabase
+    Sincronizando --> [*] : delete confirmado no servidor → remove sync_queue item
+```
+
+### 4.2 Ciclo de Upload — Foto de Sessão
+
+Aplica-se à entidade `FotoSessao`. O atributo controlado é `upload_status`. O upload é separado do sync de dados tabulares.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Capturada : foto tirada via câmera, salva localmente
+    Capturada --> ComprimindoUpload : conexão disponível + worker de mídia
+    ComprimindoUpload --> Enviando : foto comprimida (≤800px, 70%)
+    Enviando --> Enviada : Supabase Storage confirma upload
+    Enviada --> URLAtualizada : url_remota preenchida no registro local
+    URLAtualizada --> [*]
+    Enviando --> ErroUpload : falha de rede / timeout
+    ErroUpload --> ComprimindoUpload : retry (backoff)
+    Capturada --> ExcluidaLocal : estudante remove foto antes de upload
+    ExcluidaLocal --> [*]
+```
+
+---
+
+## 5. Classes de Fronteira, Controle e Entidade — BCE (Fase 3)
+
+### 5.1 Classificação
+
+| Tipo | Papel | Exemplos no StudyRats |
+|------|-------|-----------------------|
+| **Boundary (UI)** | Telas Expo Router — ponto de contato com o estudante | `LoginScreen`, `CadastroScreen`, `OnboardingScreen`, `DisciplinaFormScreen`, `TopicoFormScreen`, `ResumoScreen`, `SessaoFormScreen`, `HistoricoSessoesScreen`, `StreakXPScreen`, `RankingScreen`, `PerfilScreen` |
+| **Boundary (Nativo/Externo)** | Wrappers de SDK que implementam interfaces do domínio | `CameraGateway`, `LocationGateway`, `AuthGateway`, `SyncGateway`, `AIGateway` |
+| **Control** | Orquestram casos de uso — não guardam estado persistente, não conhecem SDKs | `CadastrarDisciplinaUseCase`, `CadastrarTopicoUseCase`, `GerarResumoUseCase`, `RegistrarSessaoUseCase`, `AutenticarUsuarioUseCase`, `ConsultarRankingUseCase`, `SincronizarFilaUseCase` |
+| **Entity** | Dados de domínio persistentes (do Diagrama de Classes, Seção 3) | `Usuario`, `Disciplina`, `Topico`, `ResumoIA`, `SessaoEstudo`, `FotoSessao`, `SyncQueueItem` |
+
+### 5.2 Tabela de Mapeamento por Caso de Uso
+
+| Caso de Uso | Boundary (UI) | Boundary (Nativo/Externo) | Control | Entities |
+|---|---|---|---|---|
+| UC01 Fazer Cadastro | `CadastroScreen` | `AuthGateway` | `AutenticarUsuarioUseCase` | `Usuario` |
+| UC02 Fazer Login | `LoginScreen` | `AuthGateway` | `AutenticarUsuarioUseCase` | `Usuario` |
+| UC03 Completar Onboarding | `OnboardingScreen` | — | — | — |
+| UC04 Gerenciar Disciplinas | `DisciplinaFormScreen` | — | `CadastrarDisciplinaUseCase` | `Disciplina` |
+| UC05 Gerenciar Tópicos | `TopicoFormScreen` | — | `CadastrarTopicoUseCase` | `Topico` |
+| UC06 Gerar Resumo via IA | `ResumoScreen` | `AIGateway` | `GerarResumoUseCase` | `Topico`, `ResumoIA` |
+| UC08 Registrar Sessão | `SessaoFormScreen` | `CameraGateway`, `LocationGateway` | `RegistrarSessaoUseCase` | `SessaoEstudo`, `FotoSessao` |
+| UC09 Consultar Histórico | `HistoricoSessoesScreen` | — | — | `SessaoEstudo`, `FotoSessao` |
+| UC10 Visualizar Streak e XP | `StreakXPScreen` | — | — | `Usuario` |
+| UC11 Consultar Ranking | `RankingScreen` | `SyncGateway` | `ConsultarRankingUseCase` | `Usuario` |
+| UC12 Visualizar Perfil | `PerfilScreen` | — | — | `Usuario` |
+| UC13 Fazer Logout | `PerfilScreen` | `AuthGateway` | `AutenticarUsuarioUseCase` | `Usuario` |
+| UC14 Sincronizar Fila | *(background)* | `SyncGateway` | `SincronizarFilaUseCase` | `Disciplina`, `Topico`, `SessaoEstudo`, `FotoSessao`, `SyncQueueItem` |
+
+### 5.3 Diagrama de Robustez — UC08 Registrar Sessão de Estudo
+
+```mermaid
+flowchart LR
+    Ator((Estudante))
+    B[SessaoFormScreen\n«boundary-ui»]
+    Cam[CameraGateway\n«boundary-nativo»]
+    Loc[LocationGateway\n«boundary-nativo»]
+    C[RegistrarSessaoUseCase\n«control»]
+    E1[SessaoEstudo\n«entity»]
+    E2[FotoSessao\n«entity»]
+    R[SessaoRepository\n«boundary-saída»]
+    Q[SyncQueue\n«boundary-saída»]
+
+    Ator --> B
+    B --> Cam
+    B --> Loc
+    B --> C
+    C --> E1
+    C --> E2
+    C --> R
+    C --> Q
+```
+
+### 5.4 Diagrama de Robustez — UC06 Gerar Resumo via IA
+
+```mermaid
+flowchart LR
+    Ator((Estudante))
+    B[ResumoScreen\n«boundary-ui»]
+    AI[AIGateway\n«boundary-externo»]
+    C[GerarResumoUseCase\n«control»]
+    E1[Topico\n«entity»]
+    E2[ResumoIA\n«entity»]
+    R[ResumoRepository\n«boundary-saída»]
+
+    Ator --> B
+    B --> C
+    C --> AI
+    C --> E1
+    C --> E2
+    C --> R
+```
+
+---
+
+## 6. Diagrama de Sequência (Fase 3)
+
+### 6.1 UC08 — Registrar Sessão de Estudo (fluxo offline/online)
+
+```mermaid
+sequenceDiagram
+    actor Estudante
+    participant B as SessaoFormScreen<br/>«boundary»
+    participant Loc as LocationGateway<br/>«boundary»
+    participant Cam as CameraGateway<br/>«boundary»
+    participant C as RegistrarSessaoUseCase<br/>«control»
+    participant E as SessaoEstudo<br/>«entity»
+    participant R as SessaoRepository<br/>«local, SQLite»
+    participant Q as SyncQueue<br/>«local»
+    participant S as SyncGateway<br/>«Supabase»
+
+    Estudante ->> B: preencher (disciplina, tópico, duração) e confirmar
+    B ->> Loc: obterLocalizacaoAtual()
+    alt Permissão concedida + GPS ativo
+        Loc -->> B: {lat, lng}
+    else Permissão negada ou timeout
+        Loc -->> B: null (sessão sem coordenadas)
+    end
+
+    opt Estudante opta por anexar foto
+        B ->> Cam: capturarFoto()
+        alt Permissão concedida
+            Cam -->> B: {uri_local}
+        else Permissão negada
+            Cam -->> B: null (sessão sem foto)
+        end
+    end
+
+    B ->> C: registrar(dados, coordenada, foto)
+    C ->> E: criar(UUID, dados, lat, lng)
+    E -->> C: sessaoEstudo (sync_status=pending)
+    C ->> C: calcularXP(+10 XP, checar streak 7d → +50 bônus)
+    C ->> R: salvar(sessaoEstudo)
+    R -->> C: ok
+    C ->> Q: enfileirar(sessaoEstudo)
+    C -->> B: sucesso
+    B -->> Estudante: "Sessão registrada ✓ +10 XP"
+
+    par Processamento assíncrono da fila (quando há rede)
+        Q ->> S: enviar(sessaoEstudo)
+        alt Sync bem-sucedido
+            S -->> Q: 200 ok
+            Q ->> R: marcarSincronizado(sessaoEstudo.id)
+        else Falha (sem rede / erro servidor)
+            S -->> Q: erro
+            Q ->> Q: reagendar retry (backoff 2^n, max 5min)
+        end
+    end
+```
+
+### 6.2 UC06 — Gerar Resumo via IA
+
+```mermaid
+sequenceDiagram
+    actor Estudante
+    participant B as ResumoScreen<br/>«boundary»
+    participant C as GerarResumoUseCase<br/>«control»
+    participant R as ResumoRepository<br/>«local, SQLite»
+    participant AI as AIGateway<br/>«externo»
+
+    Estudante ->> B: selecionar tópico + "Gerar Resumo"
+    B ->> C: gerarResumo(topicoId)
+
+    C ->> C: verificarLimiteDiario()
+    alt Limite atingido (≥10/dia)
+        C -->> B: erro "Limite de 10 resumos/dia atingido"
+        B -->> Estudante: feedback de limite
+    else Dentro do limite
+        C ->> C: verificarConexao()
+        alt Sem conexão
+            C -->> B: erro "Sem internet"
+            B -->> Estudante: "Conecte-se para gerar resumo"
+        else Com conexão
+            C ->> AI: gerarResumo(topico.nome, disciplina.nome)
+            AI -->> C: resumoTexto
+            C ->> R: salvarResumo(topicoId, resumoTexto)
+            R -->> C: ok
+            C -->> B: resumoGerado
+            B -->> Estudante: exibe resumo
+        end
+    end
+```
+
+### 6.3 UC14 — Sincronizar Fila Pendente
+
+```mermaid
+sequenceDiagram
+    participant NI as NetInfo<br/>«listener»
+    participant SE as SyncEngine<br/>«infra»
+    participant Q as SyncQueue<br/>«local»
+    participant R as Repository<br/>«local, SQLite»
+    participant S as SyncGateway<br/>«Supabase»
+    participant ST as StorageGateway<br/>«Supabase Storage»
+
+    NI ->> SE: onConectado()
+    SE ->> Q: obterPendentes(orderBy: created_at)
+    Q -->> SE: [item1, item2, ..., itemN]
+
+    loop Para cada item da fila
+        SE ->> S: enviar(item.entidade, item.operacao, item.payload)
+        alt 2xx — sucesso
+            S -->> SE: ok
+            SE ->> R: atualizarSyncStatus(item.entidadeId, "synced")
+            SE ->> Q: remover(item.id)
+        else Conflito (409)
+            S -->> SE: conflito(remote_updated_at)
+            SE ->> SE: compararUpdatedAt(local vs remoto)
+            Note over SE: Last-write-wins: updated_at mais recente prevalece
+            SE ->> R: resolver(item, vencedor)
+            SE ->> Q: remover(item.id)
+        else Erro (5xx / timeout)
+            S -->> SE: erro
+            SE ->> Q: incrementarTentativas(item.id)
+            SE ->> SE: reagendar(backoff = 2^tentativas, max 5min)
+        end
+    end
+
+    SE ->> Q: obterFotosPendentes()
+    Q -->> SE: [foto1, foto2, ...]
+
+    loop Para cada foto pendente
+        SE ->> SE: comprimir(foto, maxWidth=800, quality=0.7)
+        SE ->> ST: upload(foto.uri_local)
+        alt Upload OK
+            ST -->> SE: url_remota
+            SE ->> R: atualizarFoto(foto.id, url_remota, "synced")
+        else Falha
+            ST -->> SE: erro
+            SE ->> Q: reagendar upload (backoff)
+        end
+    end
+```
+
+---
+
+## 7. Diagrama de Atividades (Fase 3)
+
+### 7.1 UC08 — Registrar Sessão de Estudo (decisões de permissão + conectividade)
+
+```mermaid
+flowchart TD
+    Start((Início)) --> A1[Estudante preenche formulário\ndisciplina + tópico + duração]
+    A1 --> D1{Permissão de\nlocalização concedida?}
+
+    D1 -- Não --> A2[Solicitar permissão ao SO]
+    A2 --> D1b{Concedida agora?}
+    D1b -- Sim --> A3[Capturar localização GPS]
+    D1b -- Não --> A3b[Prosseguir SEM coordenadas\nlat/lng = null]
+    D1 -- Sim --> A3
+
+    A3 --> D4{Estudante quer\nanexar foto?}
+    A3b --> D4
+
+    D4 -- Sim --> D5{Permissão de\ncâmera concedida?}
+    D5 -- Não --> A6[Solicitar permissão ao SO]
+    A6 --> D5b{Concedida agora?}
+    D5b -- Sim --> A7[Capturar foto via câmera]
+    D5b -- Não --> A7b[Prosseguir SEM foto]
+    D5 -- Sim --> A7
+    D4 -- Não --> A8
+
+    A7 --> A8[Criar SessaoEstudo com UUID]
+    A7b --> A8
+
+    A8 --> A9[Salvar localmente em SQLite\nsync_status = pending]
+    A9 --> A10[Calcular XP + atualizar streak]
+    A10 --> A11[Enfileirar na sync_queue]
+    A11 --> A12[Exibir feedback\n'Sessão registrada ✓ +10 XP']
+
+    A12 --> D6{Há conexão\nde rede?}
+    D6 -- Não --> A13[Aguardar reconexão\nlistener NetInfo]
+    A13 --> D6
+    D6 -- Sim --> A14[Enviar para Supabase]
+    A14 --> D7{Envio\nconfirmado?}
+    D7 -- Sim --> A15[Marcar como synced]
+    D7 -- Não --> A16[Reagendar retry\nbackoff exponencial]
+    A16 --> D6
+    A15 --> End((Fim))
+```
+
+### 7.2 Processo de Sincronização Ponta-a-Ponta (Sync Engine)
+
+```mermaid
+flowchart TD
+    Start((NetInfo detecta\nconexão)) --> A1[Consultar sync_queue\nORDER BY created_at]
+    A1 --> D1{Fila vazia?}
+    D1 -- Sim --> End1((Fim — nada a sincronizar))
+    D1 -- Não --> A2[Pegar próximo item da fila]
+    A2 --> A3[Enviar para Supabase]
+    A3 --> D2{Resposta?}
+
+    D2 -- 2xx OK --> A4[Marcar entidade como synced]
+    A4 --> A5[Remover item da sync_queue]
+    A5 --> D1
+
+    D2 -- 409 Conflito --> A6[Comparar updated_at\nlocal vs remoto]
+    A6 --> A7[Aplicar last-write-wins]
+    A7 --> A5
+
+    D2 -- 5xx/Timeout --> A8[Incrementar tentativas]
+    A8 --> D3{tentativas > 5?}
+    D3 -- Sim --> A9[Marcar como error\nnotificar usuário]
+    A9 --> D1
+    D3 -- Não --> A10[Reagendar com backoff\n2^tentativas segundos]
+    A10 --> D1
+
+    D1 -- Fotos pendentes --> A11[Comprimir foto\n800px, 70%]
+    A11 --> A12[Upload para Supabase Storage]
+    A12 --> D4{Upload OK?}
+    D4 -- Sim --> A13[Atualizar url_remota + upload_status=synced]
+    A13 --> End2((Fim))
+    D4 -- Não --> A14[Reagendar upload\nbackoff]
+    A14 --> A11
+```
+
+---
+
+## 8. Diagrama de Componentes (Fase 3)
+
+Visão estrutural do app em camadas Clean Architecture, mapeando diretamente as interfaces e implementações documentadas nas seções anteriores.
+
+```mermaid
+flowchart TB
+    subgraph UI["UI / Expo Router (Boundary de Entrada)"]
+        LoginScreen[LoginScreen]
+        CadastroScreen[CadastroScreen]
+        OnboardingScreen[OnboardingScreen]
+        DisciplinaScreen[DisciplinaFormScreen]
+        TopicoScreen[TopicoFormScreen]
+        ResumoScreen[ResumoScreen]
+        SessaoScreen[SessaoFormScreen]
+        HistoricoScreen[HistoricoSessoesScreen]
+        StreakScreen[StreakXPScreen]
+        RankingScreen[RankingScreen]
+        PerfilScreen[PerfilScreen]
+    end
+
+    subgraph Application["Application (Use Cases)"]
+        UCAuth[AutenticarUsuarioUseCase]
+        UCDisciplina[CadastrarDisciplinaUseCase]
+        UCTopico[CadastrarTopicoUseCase]
+        UCResumo[GerarResumoUseCase]
+        UCSessao[RegistrarSessaoUseCase]
+        UCRanking[ConsultarRankingUseCase]
+        UCSync[SincronizarFilaUseCase]
+    end
+
+    subgraph Domain["Domain (Regras de Negócio Puras)"]
+        direction TB
+        subgraph Entities["Entidades"]
+            Usuario[Usuario]
+            Disciplina[Disciplina]
+            Topico[Topico]
+            ResumoIA[ResumoIA]
+            SessaoEstudo[SessaoEstudo]
+            FotoSessao[FotoSessao]
+        end
+        subgraph ValueObjects["Value Objects"]
+            Coordenada[Coordenada]
+            StatusSync[StatusSincronizacao]
+            EmailVO[Email]
+        end
+        subgraph Ports["Interfaces (Ports)"]
+            ITopicoRepo[[TopicoRepository]]
+            ISessaoRepo[[SessaoRepository]]
+            IDisciplinaRepo[[DisciplinaRepository]]
+            ICameraGW[[CameraGateway]]
+            ILocationGW[[LocationGateway]]
+            IAuthGW[[AuthGateway]]
+            ISyncGW[[SyncGateway]]
+            IAIGW[[AIGateway]]
+        end
+    end
+
+    subgraph Adapters["Adapters (Implementações)"]
+        TopicoRepoSQL[TopicoRepositorySQLite]
+        SessaoRepoSQL[SessaoRepositorySQLite]
+        DisciplinaRepoSQL[DisciplinaRepositorySQLite]
+        CameraExpo[CameraGatewayExpo]
+        LocationExpo[LocationGatewayExpo]
+        AuthSupa[AuthGatewaySupabase]
+        SyncSupa[SyncGatewaySupabase]
+        AIImpl[AIGatewayLLM]
+    end
+
+    subgraph Infra["Frameworks & Drivers"]
+        SQLite[(expo-sqlite\n+ Drizzle ORM)]
+        ExpoCam[expo-camera\nexpo-image-picker]
+        ExpoLoc[expo-location]
+        SupaClient[supabase-js]
+        NetInfo[NetInfo]
+        SyncEngine[SyncEngine\nloop + retry + backoff]
+    end
+
+    %% UI → Application
+    LoginScreen --> UCAuth
+    CadastroScreen --> UCAuth
+    DisciplinaScreen --> UCDisciplina
+    TopicoScreen --> UCTopico
+    ResumoScreen --> UCResumo
+    SessaoScreen --> UCSessao
+    RankingScreen --> UCRanking
+
+    %% Application → Domain Ports
+    UCAuth --> IAuthGW
+    UCDisciplina --> IDisciplinaRepo
+    UCTopico --> ITopicoRepo
+    UCResumo --> IAIGW
+    UCResumo --> ITopicoRepo
+    UCSessao --> ISessaoRepo
+    UCSessao --> ICameraGW
+    UCSessao --> ILocationGW
+    UCRanking --> ISyncGW
+    UCSync --> ISyncGW
+    UCSync --> ISessaoRepo
+    UCSync --> ITopicoRepo
+
+    %% Adapters -.implementa.-> Ports
+    TopicoRepoSQL -.implementa.-> ITopicoRepo
+    SessaoRepoSQL -.implementa.-> ISessaoRepo
+    DisciplinaRepoSQL -.implementa.-> IDisciplinaRepo
+    CameraExpo -.implementa.-> ICameraGW
+    LocationExpo -.implementa.-> ILocationGW
+    AuthSupa -.implementa.-> IAuthGW
+    SyncSupa -.implementa.-> ISyncGW
+    AIImpl -.implementa.-> IAIGW
+
+    %% Adapters → Infra
+    TopicoRepoSQL --> SQLite
+    SessaoRepoSQL --> SQLite
+    DisciplinaRepoSQL --> SQLite
+    CameraExpo --> ExpoCam
+    LocationExpo --> ExpoLoc
+    AuthSupa --> SupaClient
+    SyncSupa --> SupaClient
+    SyncEngine --> NetInfo
+    SyncEngine --> UCSync
+```
+
+> [!IMPORTANT]
+> **Regra de dependência:** Setas sempre apontam de quem depende para quem é dependido. `Domain` **nunca** tem seta saindo em direção a `Adapters`/`Infra` — só recebe implementações via interface. `expo-camera`, `expo-location`, `supabase-js` e `drizzle-orm` **nunca** aparecem importados em `Domain` ou `Application`.
+
+---
+
+## Checklist da Fase 3
+
+- [x] Diagrama de Estados do ciclo de sincronização (`pending` → `sincronizando` → `sincronizado` / `erro`) para entidades de dados.
+- [x] Diagrama de Estados do ciclo de upload para `FotoSessao` (`capturada` → `comprimindo` → `enviando` → `enviada`).
+- [x] Classificação BCE: Boundary (UI + Nativo/Externo), Control (Use Cases), Entity (Domínio).
+- [x] Tabela de mapeamento BCE por caso de uso (14 UCs mapeados).
+- [x] Diagramas de robustez para UC08 (Registrar Sessão) e UC06 (Gerar Resumo).
+- [x] Diagrama de Sequência UC08 com fluxo offline/online, `par`/`alt`, permissões de câmera e GPS.
+- [x] Diagrama de Sequência UC06 com verificação de limite diário e conexão.
+- [x] Diagrama de Sequência UC14 (Sincronizar Fila) com loop de processamento, conflito, retry e upload de fotos.
+- [x] Diagrama de Atividades UC08 com decisão de permissão (localização + câmera) e conectividade.
+- [x] Diagrama de Atividades do Sync Engine ponta-a-ponta.
+- [x] Diagrama de Componentes com todas as camadas Clean Architecture, gateways nativos e regra de dependência documentada.

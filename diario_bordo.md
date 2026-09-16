@@ -106,3 +106,37 @@ Dentro de uma conversa ativa, a IA deve reagir diretamente aos commits que obser
 >
 > O próximo passo é a **Fase 2 — Modelagem de Dados**: Diagrama de Classes (com atributos de sync: UUID, updated_at, deleted_at, sync_status), DER local (SQLite) e DER remoto (Supabase/Postgres com RLS), e Diagrama de Objetos validando cenário de estado misto (parcialmente sincronizado). Use `docs/documento-software.md` como destino e as diretrizes de `projeto2026-SKILLs/mobile-design-doc/SKILL.md`.
 
+---
+
+### Fase 2: Modelagem de Dados
+
+- **Quando:** 13/09/2026
+- **Quem:** Clara
+- **O que:** add: fase 2 de modelagem de dados. Adicionadas as modelagens de dados ao `docs/documento-software.md`. Isso inclui o Diagrama de Classes (Domínio), Modelo Relacional Local (DER SQLite) garantindo suporte ao offline-first, Modelo Relacional Remoto (DER Supabase) com foco em segurança (RLS) e o Diagrama de Objetos evidenciando cenário de estado misto de sincronização.
+- **Resultados:**
+  - `docs/documento-software.md` — atualização com inserção da Seção 3 (Fase 2).
+
+> **Prompt de retomada:**
+> Olá! Retomando o projeto StudyRats. Na última sessão (13/Set/2026), concluímos a **Fase 2 — Modelagem de Dados** no `docs/documento-software.md`.
+>
+> O próximo passo é a **Fase 3 — Arquitetura e UI**. Precisamos iniciar a elaboração da arquitetura limpa e da interface do usuário de acordo com as diretrizes do projeto.
+
+---
+
+### Fase 3: Arquitetura — Estados, BCE, Sequência, Atividades e Componentes
+
+- **Quando:** 16/09/2026
+- **Quem:** Clara
+- **O que:** Adicionadas 5 seções ao `docs/documento-software.md` cobrindo toda a Fase 3 do SKILL.md: (1) Diagrama de Estados com dois ciclos — sincronização de dados e upload de foto, (2) Classificação BCE com tabela de mapeamento para 14 casos de uso e diagramas de robustez para UC08 e UC06, (3) Três diagramas de sequência (Registrar Sessão com par/alt/opt, Gerar Resumo com limite diário, Sincronizar Fila com loop/conflito/retry), (4) Dois diagramas de atividades (Registrar Sessão com decisões de permissão + conectividade, Sync Engine ponta-a-ponta), (5) Diagrama de Componentes mapeando todas as 5 camadas Clean Architecture com 11 telas, 7 use cases, 8 ports e 8 adapters. Versão do documento atualizada para 1.3. Sumário expandido com todas as subseções novas.
+- **Resultados:**
+  - `docs/documento-software.md` — atualizado com Seções 4 a 8 (Fase 3), versão 1.3, ~1100 linhas totais
+
+> **Prompt de retomada:**
+> Olá! Retomando o projeto StudyRats. Na sessão de 16/Set/2026, concluímos a **Fase 3 — Arquitetura** no `docs/documento-software.md` (versão 1.3). Todas as seções exigidas pelo SKILL.md foram produzidas:
+> - §4: Diagrama de Estados (sync de dados + upload de foto)
+> - §5: BCE — tabela de 14 UCs + diagramas de robustez (UC08, UC06)
+> - §6: 3 Diagramas de Sequência (UC08, UC06, UC14) com fluxo offline/online
+> - §7: 2 Diagramas de Atividades (UC08 com permissões, Sync Engine)
+> - §8: Diagrama de Componentes (Clean Architecture completa)
+>
+> O próximo passo é a **Fase 4 — Implementação (DDD + Clean Architecture + TDD)**: mapeamento de Aggregates/Value Objects/Repositories/Gateways, estrutura de diretórios `src/` com camadas, e plano de testes TDD (domínio → use case → adapter → componente). Use `docs/documento-software.md` como destino e a seção 10 do `projeto2026-SKILLs/mobile-design-doc/SKILL.md` como referência.
