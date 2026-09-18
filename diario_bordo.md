@@ -140,3 +140,17 @@ Dentro de uma conversa ativa, a IA deve reagir diretamente aos commits que obser
 > - §8: Diagrama de Componentes (Clean Architecture completa)
 >
 > O próximo passo é a **Fase 4 — Implementação (DDD + Clean Architecture + TDD)**: mapeamento de Aggregates/Value Objects/Repositories/Gateways, estrutura de diretórios `src/` com camadas, e plano de testes TDD (domínio → use case → adapter → componente). Use `docs/documento-software.md` como destino e a seção 10 do `projeto2026-SKILLs/mobile-design-doc/SKILL.md` como referência.
+
+---
+
+### Apresentação Formal (Slide Deck Interativo)
+
+- **Quando:** 18/09/2026
+- **Quem:** Clara
+- **O que:** Desenvolvimento completo do deck interativo da apresentação formal (31 slides divididos em 12 seções/7 blocos temáticos). O material validado na auditoria foi compilado via um script Node (`build.js`) em um arquivo único Web (`index.html`) usando React via CDN e TailwindCSS. Foram aplicadas diretrizes de usabilidade gamificada (cores bento blocks, bordas squircle e tipografia Plus Jakarta Sans) além de componentes customizados como o Sidebar retrátil (Índice), o Visualizador de Diagramas em tela cheia e os painéis de destaque ("Guia da Apresentadora").
+- **Resultados:**
+  - `apresentacao/build.js` — script de compilação contendo os 31 slides em JSX mapeados para temas e conteúdo
+  - `apresentacao/index.html` — artefato final gerado contendo o player Web React interativo
+
+> **Prompt de retomada:**
+> Olá! Retomando o projeto StudyRats. Na sessão de 18/Set/2026, concluímos a geração da **Apresentação Formal Interativa (Slide Deck Web)** na pasta `apresentacao/`, fechando todo o ciclo de engenharia de software e projeto conceitual para a banca. O próximo passo é iniciar a construção do app de fato ou refinar outras fases.

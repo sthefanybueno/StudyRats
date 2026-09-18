@@ -131,9 +131,35 @@ gantt
 
 ---
 
-## 6. Checklist de Rastreabilidade Final
+## 6. Matriz de Rastreabilidade — RF → UC → Teste
 
-- [ ] Cada RF (RF01–RF21) tem ≥1 teste de aceitação
+| RF | Caso de Uso | Teste de Aceitação Planejado |
+|---|---|---|
+| **RF01** — Cadastro de usuário | UC01 Fazer Cadastro | `AutenticarUsuarioUseCase.test.ts` — cadastro com email+senha+nome cria profile no Supabase |
+| **RF02** — Onboarding 3 telas | UC03 Completar Onboarding | `OnboardingScreen.test.tsx` — exibe 3 telas após primeiro cadastro (disciplinas, meta, tutorial) |
+| **RF03** — Login com persistência | UC02 Fazer Login | `AutenticarUsuarioUseCase.test.ts` — login persiste token em SecureStore |
+| **RF04** — Logout seguro | UC13 Fazer Logout | `AutenticarUsuarioUseCase.test.ts` — logout limpa credenciais de SecureStore |
+| **RF05** — CRUD Disciplinas | UC04 Gerenciar Disciplinas | `CadastrarDisciplinaUseCase.test.ts` — criar, editar e soft-delete disciplina (sync_status=pending) |
+| **RF06** — CRUD Tópicos | UC05 Gerenciar Tópicos | `CadastrarTopicoUseCase.test.ts` — criar, editar e soft-delete tópico vinculado a disciplina |
+| **RF07** — Gerar resumo via IA | UC06 Gerar Resumo via IA | `GerarResumoUseCase.test.ts` — geração com conexão retorna resumo textual do AIGateway |
+| **RF08** — Salvar resumo localmente | UC06 (`<<include>>` Salvar Resumo) | `GerarResumoUseCase.test.ts` — resumo persiste em SQLite via ResumoRepository |
+| **RF09** — Limite 10 resumos/dia | UC06 (`<<include>>` Verificar Limite) | `GerarResumoUseCase.test.ts` — rejeita 11ª geração com mensagem de limite |
+| **RF10** — Consulta offline de resumos | UC07 Consultar Resumos | `ResumoRepositorySQLite.test.ts` — consulta resumos salvos localmente sem rede (NetInfo mock: `isConnected: false`) |
+| **RF11** — Registro de sessão | UC08 Registrar Sessão | `RegistrarSessaoUseCase.test.ts` — registro com disciplina, tópico e duração cria SessaoEstudo |
+| **RF12** — Foto via câmera | UC08 (`<<extend>>` Anexar Foto) | `RegistrarSessaoUseCase.test.ts` — sessão com foto via CameraGateway fake; sem foto quando permissão negada |
+| **RF13** — Coordenadas GPS | UC08 (`<<include>>` Capturar Localização) | `RegistrarSessaoUseCase.test.ts` — sessão captura lat/lng via LocationGateway fake; null quando permissão negada |
+| **RF14** — Streak de dias consecutivos | UC10 Visualizar Streak e XP | `SessaoEstudo.test.ts` — streak incrementa com sessão diária; zera ao pular dia |
+| **RF15** — XP por sessão e bônus streak | UC08 (`<<include>>` Calcular XP) | `SessaoEstudo.test.ts` — +10 XP base; +50 bônus no 7º dia consecutivo |
+| **RF16** — Ranking Top 50 | UC11 Consultar Ranking | `ConsultarRankingUseCase.test.ts` — retorna Top 50 ordenado por xp_semanal DESC |
+| **RF17** — Reset semanal do XP | UC11 (sistema) | Verificação manual + Supabase cron job: `xp_semanal` zera segunda-feira 00:00 UTC |
+| **RF18** — Perfil do usuário | UC12 Visualizar Perfil | `PerfilScreen.test.tsx` — exibe nome de exibição, XP total acumulado e streak atual |
+| **RF19** — Offline-first (enfileirar) | UC04, UC05, UC08 | `RegistrarSessaoUseCase.test.ts` — operação offline enfileira em sync_queue (NetInfo mock: `isConnected: false`) |
+| **RF20** — Sync automático | UC14 Sincronizar Fila | `SincronizarFilaUseCase.test.ts` — processa fila ao detectar conexão; marca synced após 2xx |
+| **RF21** — Histórico de sessões | UC09 Consultar Histórico | `HistoricoSessoesScreen.test.tsx` — lista sessões com data, disciplina, tópico, duração, foto e localização |
+
+### Checklist de Validação
+
+- [ ] Cada RF (RF01–RF21) tem ≥1 teste de aceitação na tabela acima
 - [ ] Cada UC (UC01–UC14) aparece na tabela BCE e no diagrama de sequência
 - [ ] Cada entity sincronizável tem diagrama de estados (sync + upload)
 - [ ] Cada gateway tem interface no domínio e implementação no adapter

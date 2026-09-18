@@ -399,6 +399,18 @@ classDiagram
     SessaoEstudo "1" -- "0..1" FotoSessao : evidencia
 ```
 
+### 3.1.1 Matriz de Persistência — Local (SQLite) vs. Remota (Supabase)
+
+| Classe | Local (SQLite) | Remota (Supabase) | Estratégia |
+|--------|----------------|-------------------|------------|
+| **Usuario** | Sim — cache de sessão, XP e streak | Sim — `auth.users` + tabela `profiles` | Fonte da verdade: Supabase Auth; cache local para sessão offline e cálculo de XP/streak |
+| **Disciplina** | Sim — tabela `disciplinas` (Drizzle ORM) | Sim — tabela `disciplinas` (Postgres) | Fonte da verdade: local até sync; conflito resolvido por last-write-wins (`updated_at`) |
+| **Topico** | Sim — tabela `topicos` (Drizzle ORM) | Sim — tabela `topicos` (Postgres) | Fonte da verdade: local até sync; conflito resolvido por last-write-wins (`updated_at`) |
+| **ResumoIA** | Sim — tabela `resumos_ia` (Drizzle ORM) | Sim — tabela `resumos_ia` (Postgres) | Gerado online (API de IA) → salvo localmente imediatamente → sync posterior |
+| **SessaoEstudo** | Sim — tabela `sessoes_estudo` (Drizzle ORM) | Sim — tabela `sessoes_estudo` (Postgres) | Fonte da verdade: local até sync; conflito resolvido por last-write-wins (`updated_at`) |
+| **FotoSessao** | Sim — arquivo no filesystem + linha em `fotos_sessao` | Sim — Supabase Storage (binário) + linha espelho em `fotos_sessao` | Upload de binário assíncrono, separado do sync de dados tabulares; compressão obrigatória (≤800px, 70%) |
+| **SyncQueueItem** | Sim — tabela `sync_queue` | Não | Efêmera, exclusivamente local; registros apagados após sync confirmado |
+
 ### 3.2 Modelo Relacional Local (DER SQLite)
 
 O banco local atua como a única fonte da verdade (Single Source of Truth) para o app quando offline. O ORM Drizzle fará a interface com estas tabelas. O tipo `sync_status` suporta valores: `pending`, `synced`, `error`.
