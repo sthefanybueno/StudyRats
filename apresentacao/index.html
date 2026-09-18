@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyRats - Apresentação Formal</title>
+    <!-- Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            coral: '#FF6B6B',
+                            coralLight: '#FFEAEA',
+                            orange: '#FA8231',
+                            orangeLight: '#FFF2E5',
+                            yellow: '#FFD32A',
+                            yellowLight: '#FFFCEB',
+                            green: '#20BF6B',
+                            greenLight: '#E8F8F0',
+                            blue: '#3867D6',
+                            blueLight: '#EBF2FF',
+                            purple: '#8854D0',
+                            purpleLight: '#F3EDFC',
+                            black: '#19191B',
+                            bg: '#F6F7F9'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #F6F7F9; color: #19191B; } 
+        .squircle { border-radius: 28px; }
+        /* Scrollbar customizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Ajuste do container para crescer com o conteúdo */
+        .slide-container { min-height: 70vh; display: flex; flex-direction: column; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const DiagramViewer = ({ src, alt }) => {
+            const [open, setOpen] = useState(false);
+            return (
+                <div className="relative w-full h-full bg-white rounded-3xl border border-gray-100 flex items-center justify-center overflow-hidden group shadow-sm p-4">
+                    <img src={src} alt={alt} className="max-h-full max-w-full object-contain" />
+                    <button onClick={() => setOpen(true)} className="absolute bottom-6 right-6 bg-brand-black text-white px-6 py-3 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-xl flex items-center gap-2 hover:scale-105 font-medium">
+                        <i data-lucide="maximize-2" style={{width: 20, height: 20}}></i> Expandir Diagrama
+                    </button>
+                    {open && (
+                        <div className="fixed inset-0 z-50 bg-brand-bg/95 flex items-center justify-center p-8 backdrop-blur-md">
+                            <button onClick={() => setOpen(false)} className="absolute top-8 right-8 bg-white p-4 rounded-full shadow-lg hover:bg-gray-100 transition-colors">
+                                <i data-lucide="x" style={{width: 28, height: 28}} className="text-brand-black"></i>
+                            </button>
+                            <img src={src} alt={alt} className="max-h-full max-w-full object-contain drop-shadow-2xl rounded-xl" />
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- DADOS DA APRESENTAÇÃO ---
+        const slides = [
+            // BLOCO 1
+            {
+                id: "capa", section: "Bloco 1", title: "Capa - StudyRats",
+                theme: "blue",
+                content: (
+                    <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+                        <div className="w-32 h-32 bg-brand-blueLight rounded-full flex items-center justify-center mb-4">
+                            <i data-lucide="graduation-cap" className="w-16 h-16 text-brand-blue"></i>
+                        </div>
+                        <h1 className="text-6xl font-extrabold text-brand-blue">StudyRats</h1>
+                        <p className="text-3xl font-medium text-gray-600 max-w-3xl leading-relaxed">
+                            Inteligência Artificial e Gamificação para combater a procrastinação e estruturar a rotina de estudos.
+                        </p>
+                        <div className="mt-8 pt-8 border-t border-gray-200 w-full max-w-md">
+                            <p className="text-lg font-bold">Equipe:</p>
+                            <p className="text-xl">Maria Clara Miguel & Sthefany Bueno</p>
+                            <p className="text-md text-gray-500 mt-2">Laboratório de Desenvolvimento Mobile - 2026.2</p>
+                        </div>
+                        <div className="mt-8 text-sm text-gray-400 bg-gray-100 px-4 py-2 rounded-full">
+                            <strong>Lembrete:</strong> Focar no pitch de que o app resolve a desmotivação crônica através da gamificação e IA.
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "agenda", section: "Bloco 1", title: "Agenda",
+                theme: "blue",
+                content: (
+                    <div className="flex flex-col justify-center h-full max-w-4xl mx-auto w-full">
+                        <h2 className="text-4xl font-bold mb-8 text-brand-blue">O que veremos hoje</h2>
+                        <ul className="grid grid-cols-2 gap-x-8 gap-y-6 text-2xl">
+                            <li className="flex items-center gap-4 bg-white p-4 squircle shadow-sm"><span className="w-10 h-10 rounded-full bg-brand-blueLight text-brand-blue flex items-center justify-center font-bold">1</span> Contexto e Escopo (MVP)</li>
+                            <li className="flex items-center gap-4 bg-white p-4 squircle shadow-sm"><span className="w-10 h-10 rounded-full bg-brand-greenLight text-brand-green flex items-center justify-center font-bold">2</span> Requisitos Funcionais e Mobile</li>
+                            <li className="flex items-center gap-4 bg-white p-4 squircle shadow-sm"><span className="w-10 h-10 rounded-full bg-brand-orangeLight text-brand-orange flex items-center justify-center font-bold">3</span> Casos de Uso (Atores e Fluxos)</li>
+                            <li className="flex items-center gap-4 bg-white p-4 squircle shadow-sm"><span className="w-10 h-10 rounded-full bg-brand-purpleLight text-brand-purple flex items-center justify-center font-bold">4</span> Modelagem de Dados (DER)</li>
+                            <li className="flex items-center gap-4 bg-white p-4 squircle shadow-sm"><span className="w-10 h-10 rounded-full bg-brand-yellowLight text-yellow-800 flex items-center justify-center font-bold">5</span> Estados e Ciclos de Sync</li>
+                            <li className="flex items-center gap-4 bg-white p-4 squircle shadow-sm"><span className="w-10 h-10 rounded-full bg-brand-coralLight text-brand-coral flex items-center justify-center font-bold">6</span> BCE e Fluxos Assíncronos</li>
+                            <li className="flex items-center gap-4 bg-white p-4 squircle shadow-sm col-span-2"><span className="w-10 h-10 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center font-bold">7</span> Arquitetura Clean, TDD e Rastreabilidade</li>
+                        </ul>
+                    </div>
+                )
+            },
+            {
+                id: "contexto", section: "Bloco 1", title: "Contexto e Decisões de Escopo",
+                theme: "blue",
+                content: (
+                    <div className="flex flex-col h-full max-w-5xl mx-auto w-full justify-center">
+                        <h2 className="text-4xl font-bold text-brand-blue mb-8">O Problema e o MVP (60h)</h2>
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="bg-brand-coralLight p-8 squircle">
+                                <h3 className="text-2xl font-bold text-brand-coral mb-4 flex items-center gap-3"><i data-lucide="alert-circle" className="w-8 h-8"></i> A Dor</h3>
+                                <ul className="list-disc pl-6 space-y-3 text-lg">
+                                    <li>Abandono de rotinas e procrastinação crônica</li>
+                                    <li>Estudo puramente reativo (véspera de prova)</li>
+                                    <li>Dificuldade em produzir materiais de revisão</li>
+                                </ul>
+                            </div>
+                            <div className="bg-brand-greenLight p-8 squircle flex flex-col justify-between">
+                                <div>
+                                    <h3 className="text-2xl font-bold text-brand-green mb-4 flex items-center gap-3"><i data-lucide="check-circle" className="w-8 h-8"></i> O MVP</h3>
+                                    <ul className="list-disc pl-6 space-y-3 text-lg">
+                                        <li><strong>Mobile 100%</strong> com abordagem <strong>Offline-First</strong>.</li>
+                                        <li><strong>IA Direcionada:</strong> Geração de resumos de tópicos.</li>
+                                        <li><strong>Registro Completo:</strong> Sessões com foto e localização (GPS).</li>
+                                        <li><strong>Gamificação:</strong> Ranking global semanal + Streaks (XP).</li>
+                                    </ul>
+                                </div>
+                                <div className="mt-6 text-sm text-brand-green bg-white p-3 rounded-xl shadow-sm border border-brand-greenLight">
+                                    <strong>MVP Restrito:</strong> Decidimos focar as 60h na IA + Constância, cortando recursos periféricos (como Quizzes complexos e sistema de amizades) para garantir entrega de valor com alta qualidade no tempo disponível.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "stack", section: "Bloco 1", title: "Stack de Referência",
+                theme: "blue",
+                content: (
+                    <div className="bg-white p-8 squircle shadow-sm h-full flex flex-col">
+                        <h2 className="text-4xl font-bold text-brand-blue mb-8">Tecnologias Adotadas</h2>
+                        <table className="w-full text-left text-lg flex-1">
+                            <thead>
+                                <tr className="border-b-2 border-gray-200">
+                                    <th className="py-4 px-4">Camada</th>
+                                    <th className="py-4 px-4">Tecnologia</th>
+                                    <th className="py-4 px-4">Por quê?</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                <tr><td className="py-4 px-4 font-bold">Framework</td><td className="py-4 px-4"><span className="bg-gray-100 px-3 py-1 rounded-full">Expo SDK 57 + RN</span></td><td className="py-4 px-4">Velocidade em iOS/Android.</td></tr>
+                                <tr><td className="py-4 px-4 font-bold">Persistência Local</td><td className="py-4 px-4"><span className="bg-gray-100 px-3 py-1 rounded-full">SQLite + Drizzle ORM</span></td><td className="py-4 px-4">Schema tipado, ideal p/ offline.</td></tr>
+                                <tr><td className="py-4 px-4 font-bold">Backend (BaaS)</td><td className="py-4 px-4"><span className="bg-gray-100 px-3 py-1 rounded-full">Supabase</span></td><td className="py-4 px-4">Postgres + RLS + Auth + Storage integrados.</td></tr>
+                                <tr><td className="py-4 px-4 font-bold">Sincronização</td><td className="py-4 px-4"><span className="bg-gray-100 px-3 py-1 rounded-full">Outbox Pattern</span></td><td className="py-4 px-4">Fila local resiliente (LWW).</td></tr>
+                                <tr><td className="py-4 px-4 font-bold">Geoloc / Câmera</td><td className="py-4 px-4"><span className="bg-gray-100 px-3 py-1 rounded-full">expo-location/camera</span></td><td className="py-4 px-4">APIs nativas do SDK.</td></tr>
+                                <tr><td className="py-4 px-4 font-bold">Inteligência Art.</td><td className="py-4 px-4"><span className="bg-gray-100 px-3 py-1 rounded-full">Gemini via Edge Func</span></td><td className="py-4 px-4">Oculta API Key no backend seguro.</td></tr>
+                            </tbody>
+                        </table>
+                        <div className="mt-4 grid grid-cols-2 gap-4 text-xs text-gray-500 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <p><strong>*Outbox Pattern:</strong> Padrão onde salvamos a intenção de sincronizar numa "fila" local antes de enviar à nuvem, garantindo resiliência offline.</p>
+                            <p><strong>*LWW (Last-Write-Wins):</strong> Regra de conflito onde a atualização mais recente (baseada na data 'updated_at') vence, simplificando o merge de dados.</p>
+                        </div>
+                    </div>
+                )
+            },
+
+            // BLOCO 2
+            {
+                id: "rf1", section: "Bloco 2", title: "Requisitos Funcionais (1/2)",
+                theme: "green",
+                content: (
+                    <div className="flex flex-col justify-center h-full max-w-5xl mx-auto w-full">
+                        <h2 className="text-4xl font-bold text-brand-green mb-8">Core e Domínio</h2>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="bg-white p-6 squircle shadow-sm">
+                                <h3 className="font-bold text-2xl mb-4 text-gray-800 border-b pb-2">Identidade e Estrutura</h3>
+                                <ul className="space-y-3 text-lg">
+                                    <li><span className="font-bold">RF01-04:</span> Gestão de conta, onboarding e login (sessão segura).</li>
+                                    <li><span className="font-bold">RF05-06:</span> CRUD de Disciplinas e Tópicos.</li>
+                                    <li><span className="font-bold">RF21:</span> Histórico consultável offline.</li>
+                                </ul>
+                            </div>
+                            <div className="bg-white p-6 squircle shadow-sm">
+                                <h3 className="font-bold text-2xl mb-4 text-brand-purple border-b pb-2">Inteligência Artificial</h3>
+                                <ul className="space-y-3 text-lg">
+                                    <li><span className="font-bold">RF07:</span> Geração de resumo textual de um tópico.</li>
+                                    <li><span className="font-bold">RF08:</span> Salvar resumo localmente.</li>
+                                    <li><span className="font-bold">RF09:</span> Limite de 10 gerações/dia.</li>
+                                    <li><span className="font-bold">RF10:</span> Consulta offline liberada.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="mt-6 text-sm text-brand-green bg-white p-3 rounded-xl shadow-sm text-center">
+                            São 21 RFs no total. Focaremos nos mais críticos, divididos em Core (acima) e Ação/Gamificação (próximo slide).
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "rf2", section: "Bloco 2", title: "Requisitos Funcionais (2/2)",
+                theme: "green",
+                content: (
+                    <div className="flex flex-col justify-center h-full max-w-5xl mx-auto w-full">
+                        <h2 className="text-4xl font-bold text-brand-green mb-8">Ação e Gamificação</h2>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="bg-white p-6 squircle shadow-sm">
+                                <h3 className="font-bold text-2xl mb-4 text-brand-coral border-b pb-2">Registro de Sessão</h3>
+                                <ul className="space-y-3 text-lg">
+                                    <li><span className="font-bold">RF11:</span> Registro com duração, tópico e disciplina.</li>
+                                    <li><span className="font-bold">RF12:</span> Evidência via câmera (foto local).</li>
+                                    <li><span className="font-bold">RF13:</span> Captura de GPS (lat/lng).</li>
+                                </ul>
+                            </div>
+                            <div className="bg-white p-6 squircle shadow-sm">
+                                <h3 className="font-bold text-2xl mb-4 text-brand-yellow border-b pb-2">Gamificação e Sync</h3>
+                                <ul className="space-y-3 text-lg">
+                                    <li><span className="font-bold">RF14-15:</span> XP e bônus por Streak de 7 dias.</li>
+                                    <li><span className="font-bold">RF16-17:</span> Ranking Global Top 50 (reset semanal).</li>
+                                    <li><span className="font-bold">RF19-20:</span> Sync em background com fila offline.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "rnf", section: "Bloco 2", title: "Requisitos Não Funcionais (Mobile)",
+                theme: "green",
+                content: (
+                    <div className="bg-white p-8 squircle shadow-sm h-full flex flex-col">
+                        <h2 className="text-4xl font-bold text-brand-green mb-8">Restrições e Qualidade</h2>
+                        <ul className="space-y-6 text-xl flex-1">
+                            <li className="flex gap-4">
+                                <i data-lucide="wifi-off" className="text-gray-500 w-8 h-8 shrink-0 mt-1"></i>
+                                <div><span className="font-bold block">RNF01 (Offline-First):</span> Todas as telas de CRUD e consulta devem funcionar em modo avião sem crashes.</div>
+                            </li>
+                            <li className="flex gap-4">
+                                <i data-lucide="shield-alert" className="text-gray-500 w-8 h-8 shrink-0 mt-1"></i>
+                                <div><span className="font-bold block">RNF02 (Permissões):</span> Pedir GPS/Câmera apenas no uso. Se negadas, o registro completa sem os dados (non-blocking).</div>
+                            </li>
+                            <li className="flex gap-4">
+                                <i data-lucide="battery-charging" className="text-gray-500 w-8 h-8 shrink-0 mt-1"></i>
+                                <div><span className="font-bold block">RNF03 (Recursos):</span> GPS apenas em foreground; fotos comprimidas a ≤800px e 70% qualidade.</div>
+                            </li>
+                            <li className="flex gap-4">
+                                <i data-lucide="refresh-cw" className="text-gray-500 w-8 h-8 shrink-0 mt-1"></i>
+                                <div><span className="font-bold block">RNF05 (Consistência de Sync):</span> Last-write-wins por updated_at. Processar fila de 50 itens em ≤30s.</div>
+                            </li>
+                        </ul>
+                        <div className="mt-6 text-sm text-brand-green bg-brand-greenLight p-4 rounded-xl border border-brand-green">
+                            <strong>Destaque RNF02 e RNF03:</strong> O RNF02 é vital para usabilidade — o app não pode impedir o estudo caso o usuário negue o GPS. A compressão do RNF03 economiza dados do Supabase Storage.
+                        </div>
+                    </div>
+                )
+            },
+
+            // BLOCO 3
+            {
+                id: "atores", section: "Bloco 3", title: "Atores e Papéis",
+                theme: "orange",
+                content: (
+                    <div className="flex flex-col justify-center h-full max-w-5xl mx-auto w-full">
+                        <h2 className="text-4xl font-bold text-brand-orange mb-8">Quem interage com o sistema?</h2>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="bg-white p-6 squircle border-l-8 border-brand-orange shadow-sm">
+                                <h3 className="font-bold text-2xl mb-2">1. Visitante</h3>
+                                <p className="text-lg text-gray-600">Acesso restrito (login/cadastro).</p>
+                            </div>
+                            <div className="bg-white p-6 squircle border-l-8 border-brand-orange shadow-sm">
+                                <h3 className="font-bold text-2xl mb-2">2. Estudante</h3>
+                                <p className="text-lg text-gray-600">Ator primário. Herda de Visitante.</p>
+                            </div>
+                            <div className="bg-white p-6 squircle border-l-8 border-gray-600 shadow-sm">
+                                <h3 className="font-bold text-2xl mb-2">3. Sis. Sincronização</h3>
+                                <p className="text-lg text-gray-600">Ator de tempo/background (Outbox).</p>
+                            </div>
+                            <div className="bg-white p-6 squircle border-l-8 border-brand-purple shadow-sm">
+                                <h3 className="font-bold text-2xl mb-2">4. Gateway de IA</h3>
+                                <p className="text-lg text-gray-600">Sistema externo abstrato.</p>
+                            </div>
+                            <div className="bg-white p-6 squircle border-l-8 border-brand-green col-span-2 shadow-sm">
+                                <h3 className="font-bold text-2xl mb-2">5 e 6. Câmera e GPS (Hardware)</h3>
+                                <p className="text-lg text-gray-600">Atores externos nativos acionados durante a sessão.</p>
+                            </div>
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "todos_usecases", section: "Bloco 3", title: "Todos os Casos de Uso",
+                theme: "orange",
+                content: (
+                    <div className="bg-white p-8 squircle shadow-sm h-full flex flex-col justify-center max-w-5xl mx-auto w-full">
+                        <h2 className="text-4xl font-bold text-brand-orange mb-8">Lista Completa de UCs (14 no total)</h2>
+                        <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-lg">
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC01:</span> Fazer Cadastro</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC02:</span> Fazer Login</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC03:</span> Recuperar Senha</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC04:</span> Gerenciar Disciplinas</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC05:</span> Gerenciar Tópicos</div>
+                            <div className="flex gap-3 bg-brand-orangeLight/50 p-2 rounded-lg -mx-2"><span className="text-brand-orange font-bold">UC06:</span> Gerar Resumo via IA</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC07:</span> Histórico de Sessões</div>
+                            <div className="flex gap-3 bg-brand-orangeLight/50 p-2 rounded-lg -mx-2"><span className="text-brand-orange font-bold">UC08:</span> Registrar Sessão de Estudo</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC09:</span> Anexar Evidência (Foto)</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC10:</span> Consultar Ranking</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC11:</span> Visualizar Perfil e Streaks</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC12:</span> Configurar App</div>
+                            <div className="flex gap-3 bg-brand-orangeLight/50 p-2 rounded-lg -mx-2"><span className="text-brand-orange font-bold">UC13:</span> Sincronizar Fila Local</div>
+                            <div className="flex gap-3"><span className="text-brand-orange font-bold">UC14:</span> Processar Conflitos LWW</div>
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "guia_usecases", section: "Bloco 3", title: "Guia: Diagrama de Casos de Uso",
+                theme: "orange",
+                content: (
+                    <div className="bg-brand-orangeLight p-8 squircle shadow-sm h-full flex flex-col justify-center max-w-4xl mx-auto w-full border border-brand-orange">
+                        <h2 className="text-3xl font-bold text-brand-orange mb-6 flex items-center gap-3"><i data-lucide="mic" className="w-8 h-8"></i> Destaques para o Diagrama a seguir</h2>
+                        <ul className="space-y-6 text-xl text-gray-800">
+                            <li className="flex gap-4 items-start">
+                                <span className="text-brand-orange font-bold text-2xl mt-1">•</span>
+                                <span>Mostrar a <strong>herança</strong> clara entre o ator Visitante e o ator Estudante.</span>
+                            </li>
+                            <li className="flex gap-4 items-start">
+                                <span className="text-brand-orange font-bold text-2xl mt-1">•</span>
+                                <span>Explicar as dependências (<strong>includes</strong>) do UC08: Ele sempre aciona a Localização, o Cálculo de XP e o Registro na Fila de Sync.</span>
+                            </li>
+                            <li className="flex gap-4 items-start">
+                                <span className="text-brand-orange font-bold text-2xl mt-1">•</span>
+                                <span>Ressaltar o <strong>extend</strong> "Anexar Foto", que é um fluxo opcional do registro de sessão.</span>
+                            </li>
+                        </ul>
+                    </div>
+                )
+            },
+            {
+                id: "diagrama_usecases", section: "Bloco 3", title: "Diagrama de Casos de Uso",
+                theme: "orange",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-orange mb-4">Visão Geral do Sistema</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/03-diagrama-casos-de-uso-dia1.png" alt="Casos de Uso" />
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "ucs_criticos", section: "Bloco 3", title: "Casos de Uso Críticos",
+                theme: "orange",
+                content: (
+                    <div className="bg-white p-8 squircle shadow-sm h-full flex flex-col">
+                        <h2 className="text-4xl font-bold text-brand-orange mb-8">Detalhamento dos Core Flows</h2>
+                        <div className="space-y-6">
+                            <div className="bg-brand-orangeLight/30 p-6 rounded-2xl border border-brand-orangeLight">
+                                <h3 className="text-2xl font-bold mb-3 flex items-center gap-2"><i data-lucide="book-open" className="text-brand-orange"></i> UC08: Registrar Sessão</h3>
+                                <p className="text-lg mb-2">Fluxo principal: Duração + Disciplina + Tópico → Tenta GPS → Tenta Câmera → Salva SQLite → Calcula XP → Enfileira para Sync.</p>
+                                <p className="text-md text-brand-orange font-bold">Fluxos alternativos: Funciona sem GPS, sem Câmera e Sem Internet.</p>
+                            </div>
+                            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                                <h3 className="text-2xl font-bold mb-3 flex items-center gap-2"><i data-lucide="sparkles" className="text-brand-purple"></i> UC06: Gerar Resumo</h3>
+                                <p className="text-lg">Valida cota diária (10/dia) → Requer internet → Chama AIGateway → Salva local.</p>
+                            </div>
+                            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                                <h3 className="text-2xl font-bold mb-3 flex items-center gap-2"><i data-lucide="refresh-ccw" className="text-gray-500"></i> UC13: Sincronizar Fila</h3>
+                                <p className="text-lg">Processamento assíncrono. Resolve conflitos (409) aplicando Last-Write-Wins. Após sucesso, trata uploads pendentes de fotos.</p>
+                            </div>
+                        </div>
+                    </div>
+                )
+            },
+
+            // BLOCO 4
+            {
+                id: "guia_classes", section: "Bloco 4", title: "Guia: Diagrama de Classes",
+                theme: "purple",
+                content: (
+                    <div className="bg-brand-purpleLight p-8 squircle shadow-sm h-full flex flex-col justify-center max-w-4xl mx-auto w-full border border-brand-purple">
+                        <h2 className="text-3xl font-bold text-brand-purple mb-6 flex items-center gap-3"><i data-lucide="mic" className="w-8 h-8"></i> Destaques para o Diagrama a seguir</h2>
+                        <ul className="space-y-6 text-xl text-gray-800">
+                            <li className="flex gap-4 items-start">
+                                <span className="text-brand-purple font-bold text-2xl mt-1">•</span>
+                                <span>Destacar que <strong>UUIDs (IDs únicos)</strong> são gerados diretamente no aplicativo cliente, evitando a dependência de IDs sequenciais (auto-incremento) do banco remoto.</span>
+                            </li>
+                            <li className="flex gap-4 items-start">
+                                <span className="text-brand-purple font-bold text-2xl mt-1">•</span>
+                                <span>Mencionar a presença massiva dos atributos de sincronização (<code>sync_status</code>, <code>updated_at</code>) em quase todas as entidades para permitir o funcionamento da fila.</span>
+                            </li>
+                        </ul>
+                    </div>
+                )
+            },
+            {
+                id: "diagrama_classes", section: "Bloco 4", title: "Diagrama de Classes (Domínio)",
+                theme: "purple",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-purple mb-4">Estrutura Orientada a Objetos</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/04-diagrama-de-classes-persistencia-dia1.png" alt="Classes" />
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "matriz_persistencia", section: "Bloco 4", title: "Matriz de Persistência",
+                theme: "purple",
+                content: (
+                    <div className="bg-white p-8 squircle shadow-sm h-full flex flex-col">
+                        <h2 className="text-3xl font-bold text-brand-purple mb-6">Local vs. Remoto</h2>
+                        <table className="w-full text-left text-lg flex-1">
+                            <thead>
+                                <tr className="border-b-2 border-brand-purple">
+                                    <th className="py-3 px-3">Classe</th>
+                                    <th className="py-3 px-3 bg-brand-purpleLight">Local (SQLite)</th>
+                                    <th className="py-3 px-3 bg-blue-50">Remota (Supabase)</th>
+                                    <th className="py-3 px-3">Estratégia</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                <tr><td className="py-3 px-3 font-bold">Usuario</td><td className="py-3 px-3 bg-brand-purpleLight/30">Cache sessão</td><td className="py-3 px-3 bg-blue-50/50">auth.users + profiles</td><td className="py-3 px-3 text-sm">Supabase é fonte p/ auth</td></tr>
+                                <tr><td className="py-3 px-3 font-bold">Disciplina / Tópico</td><td className="py-3 px-3 bg-brand-purpleLight/30">Drizzle ORM</td><td className="py-3 px-3 bg-blue-50/50">Postgres</td><td className="py-3 px-3 text-sm">Local até sync. LWW (updated_at)</td></tr>
+                                <tr><td className="py-3 px-3 font-bold">ResumoIA</td><td className="py-3 px-3 bg-brand-purpleLight/30">Drizzle ORM</td><td className="py-3 px-3 bg-blue-50/50">Postgres</td><td className="py-3 px-3 text-sm">Gerado online, cacheado local</td></tr>
+                                <tr><td className="py-3 px-3 font-bold">SessaoEstudo</td><td className="py-3 px-3 bg-brand-purpleLight/30">Drizzle ORM</td><td className="py-3 px-3 bg-blue-50/50">Postgres</td><td className="py-3 px-3 text-sm">Local é fonte da verdade.</td></tr>
+                                <tr><td className="py-3 px-3 font-bold">FotoSessao</td><td className="py-3 px-3 bg-brand-purpleLight/30">Filesystem</td><td className="py-3 px-3 bg-blue-50/50">Storage</td><td className="py-3 px-3 text-sm">Upload assíncrono (binário)</td></tr>
+                                <tr><td className="py-3 px-3 font-bold text-brand-coral">SyncQueueItem</td><td className="py-3 px-3 bg-brand-purpleLight/30">sync_queue</td><td className="py-3 px-3 bg-blue-50/50">-</td><td className="py-3 px-3 text-sm font-bold text-brand-coral">Efêmera (exclusiva local)</td></tr>
+                            </tbody>
+                        </table>
+                        <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <strong>*Entidade Efêmera:</strong> SyncQueueItem existe apenas no banco de dados local do celular e serve para dizer ao motor de sync quais registros precisam ser enviados para a nuvem.
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "der_local", section: "Bloco 4", title: "DER Local (SQLite)",
+                theme: "purple",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-purple mb-4">Modelo Relacional Offline</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/05-der-local-remoto-rls-dia1.png" alt="DER Local" />
+                        </div>
+                        <div className="mt-4 text-sm text-brand-purple bg-white p-3 rounded-xl shadow-sm text-center font-medium border border-brand-purpleLight">
+                            <strong>Dica:</strong> Observe a tabela SYNC_QUEUE e como as colunas de status ('pending', 'error') permitem dar feedback visual ao usuário sobre o que já foi pra nuvem.
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "der_remoto", section: "Bloco 4", title: "DER Remoto (Supabase)",
+                theme: "purple",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-purple mb-4">Modelo Relacional Nuvem</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/05-der-local-remoto-rls-dia2.png" alt="DER Remoto" />
+                        </div>
+                        <div className="mt-4 text-sm text-brand-purple bg-white p-3 rounded-xl shadow-sm text-center font-medium border border-brand-purpleLight">
+                            <strong>Dica:</strong> A ausência da sync_queue na nuvem. Todas as tabelas têm a chave estrangeira <code>profile_id</code>, que é a âncora para a segurança multitenant.
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "rls", section: "Bloco 4", title: "Segurança com RLS",
+                theme: "purple",
+                content: (
+                    <div className="flex flex-col justify-center h-full max-w-4xl mx-auto w-full">
+                        <div className="bg-brand-purple p-8 squircle text-white shadow-xl">
+                            <h2 className="text-4xl font-bold mb-6 flex items-center gap-4"><i data-lucide="shield-check" className="w-10 h-10"></i> Row Level Security</h2>
+                            <p className="text-xl mb-8 leading-relaxed">
+                                A arquitetura não possui backend Node/Fastify customizado. A segurança de isolamento de dados multitenant é feita <strong>diretamente no Postgres via Supabase</strong>.
+                            </p>
+                            <div className="bg-black/40 p-6 rounded-2xl border border-white/10 font-mono text-lg overflow-x-auto">
+                                <span className="text-blue-300">CREATE POLICY</span> "Estudante isolado" <span className="text-blue-300">ON</span> sessoes_estudo<br/>
+                                <span className="text-blue-300">FOR ALL</span><br/>
+                                <span className="text-yellow-300">USING</span> (auth.uid() = profile_id)<br/>
+                                <span className="text-yellow-300">WITH CHECK</span> (auth.uid() = profile_id);
+                            </div>
+                        </div>
+                        <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <strong>*RLS (Row Level Security):</strong> Regra do banco de dados que impede um usuário de ler ou alterar registros que pertençam a outro usuário (onde o id do auth for diferente do dono da linha).
+                        </div>
+                    </div>
+                )
+            },
+
+            // BLOCO 5
+            {
+                id: "guia_cenario", section: "Bloco 5", title: "Guia: Cenário Misto",
+                theme: "yellow",
+                content: (
+                    <div className="bg-brand-yellowLight p-8 squircle shadow-sm h-full flex flex-col justify-center max-w-4xl mx-auto w-full border border-brand-yellow">
+                        <h2 className="text-3xl font-bold text-yellow-800 mb-6 flex items-center gap-3"><i data-lucide="mic" className="w-8 h-8"></i> Destaques para o Diagrama a seguir</h2>
+                        <ul className="space-y-6 text-xl text-gray-800">
+                            <li className="flex gap-4 items-start">
+                                <span className="text-yellow-800 font-bold text-2xl mt-1">•</span>
+                                <span>Validar o cenário clássico de um app offline-first: Mostrar que uma sessão <strong>já sincronizada</strong> coexiste perfeitamente com uma sessão nova <strong>"pending"</strong> e uma foto <strong>"pending"</strong>.</span>
+                            </li>
+                            <li className="flex gap-4 items-start">
+                                <span className="text-yellow-800 font-bold text-2xl mt-1">•</span>
+                                <span>Apontar no diagrama como as instâncias da Fila (SyncQueueItem) estão ligadas e rastreando as entidades que precisam ser sincronizadas.</span>
+                            </li>
+                        </ul>
+                    </div>
+                )
+            },
+            {
+                id: "cenario_misto", section: "Bloco 5", title: "Diagrama de Objetos (Cenário Misto)",
+                theme: "yellow",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-yellow mb-4">Prova do Modelo: Sincronização Parcial</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/06-diagrama-objetos-estados-dia1.png" alt="Cenario Misto" />
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "estado_sync", section: "Bloco 5", title: "Ciclo de Sincronização",
+                theme: "yellow",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-yellow mb-4">Máquina de Estados de Dados</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/06-diagrama-objetos-estados-dia2.png" alt="Sync State" />
+                        </div>
+                        <div className="mt-4 text-sm text-yellow-800 bg-brand-yellowLight p-3 rounded-xl text-center font-medium">
+                            <strong>Destaque:</strong> O loop "Sincronizando → Erro → Sincronizando" representa o mecanismo automático de Retry (Backoff) quando a rede cai no meio do envio.
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "estado_upload", section: "Bloco 5", title: "Ciclo de Upload",
+                theme: "yellow",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-yellow mb-4">Máquina de Estados de Arquivos</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/06-diagrama-objetos-estados-dia3.png" alt="Upload State" />
+                        </div>
+                        <div className="mt-4 text-sm text-yellow-800 bg-brand-yellowLight p-3 rounded-xl text-center font-medium">
+                            <strong>Destaque:</strong> Separamos os estados de arquivos dos dados tabulares porque fotos são pesadas (passam por Compressão primeiro, depois Upload).
+                        </div>
+                    </div>
+                )
+            },
+
+            // BLOCO 6
+            {
+                id: "bce", section: "Bloco 6", title: "Classificação BCE",
+                theme: "coral",
+                content: (
+                    <div className="bg-white p-8 squircle shadow-sm h-full flex flex-col">
+                        <h2 className="text-4xl font-bold text-brand-coral mb-8">Boundary - Control - Entity</h2>
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="border border-gray-200 p-6 rounded-2xl">
+                                <h3 className="font-bold text-2xl mb-2 flex items-center gap-2"><div className="w-5 h-5 bg-blue-500 rounded-full"></div> Boundary (UI)</h3>
+                                <p className="text-gray-600">11 Telas Expo Router. Recebem o input do estudante.</p>
+                            </div>
+                            <div className="border border-gray-200 p-6 rounded-2xl">
+                                <h3 className="font-bold text-2xl mb-2 flex items-center gap-2"><div className="w-5 h-5 bg-purple-500 rounded-full"></div> Boundary (Gateways)</h3>
+                                <p className="text-gray-600">Wrappers p/ nativo: Camera, Location, Supabase (Auth/Sync) e IA.</p>
+                            </div>
+                            <div className="border border-gray-200 p-6 rounded-2xl">
+                                <h3 className="font-bold text-2xl mb-2 flex items-center gap-2"><div className="w-5 h-5 bg-green-500 rounded-full"></div> Control (Use Cases)</h3>
+                                <p className="text-gray-600">7 Use Cases de Aplicação. Orquestram regras e repassam p/ domínio. Ex: RegistrarSessaoUseCase.</p>
+                            </div>
+                            <div className="border border-gray-200 p-6 rounded-2xl">
+                                <h3 className="font-bold text-2xl mb-2 flex items-center gap-2"><div className="w-5 h-5 bg-yellow-500 rounded-full"></div> Entity (Domínio)</h3>
+                                <p className="text-gray-600">7 Entidades. Objetos Puros (sem imports Expo). Ex: SessaoEstudo.</p>
+                            </div>
+                        </div>
+                        <div className="mt-6 text-xs text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <strong>*BCE:</strong> Padrão de projeto que separa a Interface (Boundary), a Regra de Negócio/Orquestração (Control) e os Dados Básicos (Entity).
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "robustez", section: "Bloco 6", title: "Diagrama de Robustez",
+                theme: "coral",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-coral mb-4">UC08: Registro de Sessão (BCE)</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/07-modelagem-bce-dia1.png" alt="Robustez UC08" />
+                        </div>
+                        <div className="mt-4 text-sm text-brand-coral bg-white p-3 rounded-xl shadow-sm text-center font-medium border border-brand-coralLight">
+                            <strong>Lembrete visual:</strong> A tela não fala com o banco. A UI fala com o UseCase; o UseCase orquestra Entidades e salva usando o Repositório e Fila.
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "guia_seq_uc08", section: "Bloco 6", title: "Guia: Sequência do UC08",
+                theme: "coral",
+                content: (
+                    <div className="bg-brand-coralLight p-8 squircle shadow-sm h-full flex flex-col justify-center max-w-4xl mx-auto w-full border border-brand-coral">
+                        <h2 className="text-3xl font-bold text-brand-coral mb-6 flex items-center gap-3"><i data-lucide="mic" className="w-8 h-8"></i> Destaques para o Diagrama a seguir</h2>
+                        <ul className="space-y-6 text-xl text-gray-800">
+                            <li className="flex gap-4 items-start">
+                                <span className="text-brand-coral font-bold text-2xl mt-1">•</span>
+                                <span>Mostrar a linha do tempo onde o usuário <strong>já recebe a confirmação de Sucesso</strong> e volta pra home de forma imediata (síncrona).</span>
+                            </li>
+                            <li className="flex gap-4 items-start">
+                                <span className="text-brand-coral font-bold text-2xl mt-1">•</span>
+                                <span>Apontar para o grande bloco inferior (PAR) que acontece totalmente em Background sem travar o aplicativo.</span>
+                            </li>
+                        </ul>
+                    </div>
+                )
+            },
+            {
+                id: "seq_uc08", section: "Bloco 6", title: "Sequência: Registro de Sessão",
+                theme: "coral",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-coral mb-4">Fluxo Síncrono (Local) vs. Assíncrono (Sync)</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/08-diagramas-de-sequencia-dia1.png" alt="Seq UC08" />
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "guia_seq_sync", section: "Bloco 6", title: "Guia: Motor de Sincronização",
+                theme: "coral",
+                content: (
+                    <div className="bg-brand-coralLight p-8 squircle shadow-sm h-full flex flex-col justify-center max-w-4xl mx-auto w-full border border-brand-coral">
+                        <h2 className="text-3xl font-bold text-brand-coral mb-6 flex items-center gap-3"><i data-lucide="mic" className="w-8 h-8"></i> Destaques para o Diagrama a seguir</h2>
+                        <ul className="space-y-6 text-xl text-gray-800">
+                            <li className="flex gap-4 items-start">
+                                <span className="text-brand-coral font-bold text-2xl mt-1">•</span>
+                                <span>Esta é a prova da engenharia offline-first: o loop percorrendo cada item pendente da fila de forma isolada.</span>
+                            </li>
+                            <li className="flex gap-4 items-start">
+                                <span className="text-brand-coral font-bold text-2xl mt-1">•</span>
+                                <span>Se o Supabase retornar um erro de conflito (HTTP 409), o sistema aplica as regras LWW automáticas.</span>
+                            </li>
+                        </ul>
+                    </div>
+                )
+            },
+            {
+                id: "seq_sync", section: "Bloco 6", title: "Sequência: Sincronização Offline",
+                theme: "coral",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-coral mb-4">Sync Engine, Retry e Conflitos</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/08-diagramas-de-sequencia-dia3.png" alt="Seq Sync" />
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "ativ_permissoes", section: "Bloco 6", title: "Atividades: Decisões e Permissões",
+                theme: "coral",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-coral mb-4">Nós de Decisão Nativa (UC08)</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/09-diagramas-de-atividades-dia1.png" alt="Atividades Permissoes" />
+                        </div>
+                        <div className="mt-4 text-sm text-brand-coral bg-white p-3 rounded-xl shadow-sm text-center font-medium border border-brand-coralLight">
+                            <strong>Destaque:</strong> Note como os caminhos que recebem "Não" das permissões de hardware desviam o fluxo mas não geram falha catastrófica, o dado apenas é salvo incompleto.
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "ativ_sync", section: "Bloco 6", title: "Atividades: Sync Engine",
+                theme: "coral",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold text-brand-coral mb-4">Fluxo do Worker de Fila</h2>
+                        <div className="flex-1">
+                            <DiagramViewer src="../criacoes/diagramas/09-diagramas-de-atividades-dia2.png" alt="Atividades Sync Worker" />
+                        </div>
+                    </div>
+                )
+            },
+
+            // BLOCO 7
+            {
+                id: "guia_cleanarch", section: "Bloco 7", title: "Guia: Clean Architecture",
+                theme: "black",
+                content: (
+                    <div className="bg-gray-200 p-8 squircle shadow-sm h-full flex flex-col justify-center max-w-4xl mx-auto w-full border border-gray-300">
+                        <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3"><i data-lucide="mic" className="w-8 h-8"></i> Destaques para o Diagrama a seguir</h2>
+                        <ul className="space-y-6 text-xl text-gray-800">
+                            <li className="flex gap-4 items-start">
+                                <span className="text-gray-800 font-bold text-2xl mt-1">•</span>
+                                <span>Ressaltar a Regra de Ouro: As setas (dependências) <strong>NUNCA</strong> apontam do núcleo (Domínio) para fora.</span>
+                            </li>
+                            <li className="flex gap-4 items-start">
+                                <span className="text-gray-800 font-bold text-2xl mt-1">•</span>
+                                <span>O Domínio expõe Portas (interfaces lógicas abstratas) e as camadas externas providenciam os Adaptadores concretos usando Expo e Supabase.</span>
+                            </li>
+                        </ul>
+                    </div>
+                )
+            },
+            {
+                id: "cleanarch", section: "Bloco 7", title: "Clean Architecture (Componentes)",
+                theme: "black",
+                content: (
+                    <div className="flex flex-col h-full w-full">
+                        <h2 className="text-3xl font-bold mb-4">Isolamento e Portas/Adaptadores</h2>
+                        <div className="flex-1 bg-white rounded-3xl p-2 border">
+                            <DiagramViewer src="../criacoes/diagramas/10-arquitetura-ddd-cleanarch-tdd-cronograma-dia1.png" alt="Clean Arch" />
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "ddd", section: "Bloco 7", title: "Mapeamento DDD",
+                theme: "black",
+                content: (
+                    <div className="bg-white p-8 squircle shadow-sm h-full flex flex-col">
+                        <h2 className="text-4xl font-bold mb-8">Modelagem de Domínio Rica</h2>
+                        <div className="grid grid-cols-2 gap-6 mb-6">
+                            <div className="p-4 border rounded-xl">
+                                <span className="font-bold block text-xl mb-2 text-brand-blue">Aggregate Roots</span>
+                                <ul className="list-disc pl-5"><li>Usuario</li><li>Disciplina</li><li>Topico</li><li>SessaoEstudo</li></ul>
+                            </div>
+                            <div className="p-4 border rounded-xl">
+                                <span className="font-bold block text-xl mb-2 text-brand-green">Value Objects</span>
+                                <ul className="list-disc pl-5"><li>Coordenada</li><li>Email</li><li>StatusSincronizacao</li></ul>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-gray-50 border rounded-xl flex-1">
+                            <span className="font-bold block text-xl mb-2">Gateways Puros no Domínio</span>
+                            <p>O Domínio fala com CameraGateway e LocationGateway de forma abstrata. É o Adapter LocationGatewayExpo que chama o expo-location real.</p>
+                        </div>
+                        <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <strong>*DDD (Domain Driven Design):</strong> Filosofia de criar código que reflete estritamente o negócio real. Aggregate Roots são as entidades chefes; Value Objects são dados sem ID próprio que formam os Agregados.
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "pastas", section: "Bloco 7", title: "Estrutura de Pastas de Código",
+                theme: "black",
+                content: (
+                    <div className="bg-gray-900 text-green-400 p-8 squircle shadow-sm h-full font-mono text-sm leading-loose">
+                        <h2 className="text-3xl font-bold font-sans text-white mb-6">Materializando a Arquitetura</h2>
+                        src/<br/>
+                        &nbsp;&nbsp;domain/<br/>
+                        &nbsp;&nbsp;&nbsp;&nbsp;entities/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← Usuario, SessaoEstudo<br/>
+                        &nbsp;&nbsp;&nbsp;&nbsp;value-objects/&nbsp;← Coordenada<br/>
+                        &nbsp;&nbsp;&nbsp;&nbsp;repositories/&nbsp;&nbsp;← Interfaces puras<br/>
+                        &nbsp;&nbsp;&nbsp;&nbsp;gateways/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← Interfaces puras<br/>
+                        &nbsp;&nbsp;application/<br/>
+                        &nbsp;&nbsp;&nbsp;&nbsp;use-cases/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← Orquestração (RegistrarSessaoUseCase)<br/>
+                        &nbsp;&nbsp;adapters/<br/>
+                        &nbsp;&nbsp;&nbsp;&nbsp;screens/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← Expo Router UI<br/>
+                        &nbsp;&nbsp;&nbsp;&nbsp;gateways/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← CameraGatewayExpo, AuthSupa<br/>
+                        &nbsp;&nbsp;infra/<br/>
+                        &nbsp;&nbsp;&nbsp;&nbsp;db/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← schema.ts (Drizzle)<br/>
+                        &nbsp;&nbsp;&nbsp;&nbsp;sync/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← sync-engine.ts<br/>
+                    </div>
+                )
+            },
+            {
+                id: "tdd", section: "Bloco 7", title: "Pirâmide TDD e Testes",
+                theme: "black",
+                content: (
+                    <div className="flex flex-col justify-center h-full max-w-5xl mx-auto w-full">
+                        <h2 className="text-4xl font-bold mb-8 text-center">Estratégia de Validação TDD</h2>
+                        <div className="flex items-end gap-2 h-72 border-b-4 border-gray-300 pb-2">
+                            <div className="bg-brand-blue flex-1 h-full rounded-t-xl flex items-center justify-center text-white font-bold text-center flex-col p-2 shadow-lg">
+                                <span className="text-3xl">Muitos</span>
+                                <span className="text-sm font-normal mt-2">Domínio (puro, s/ mock)</span>
+                            </div>
+                            <div className="bg-brand-green flex-1 h-[80%] rounded-t-xl flex items-center justify-center text-white font-bold text-center flex-col p-2 shadow-lg">
+                                <span className="text-2xl">Muitos</span>
+                                <span className="text-sm font-normal mt-2">Use Cases (fakes memory)</span>
+                            </div>
+                            <div className="bg-brand-yellow flex-1 h-[60%] rounded-t-xl flex items-center justify-center text-gray-800 font-bold text-center flex-col p-2 shadow-lg">
+                                <span className="text-xl">Médios</span>
+                                <span className="text-sm font-normal mt-2">Gateways/Repos (mock/SQLite)</span>
+                            </div>
+                            <div className="bg-brand-orange flex-1 h-[40%] rounded-t-xl flex items-center justify-center text-white font-bold text-center flex-col p-2 shadow-lg">
+                                <span>Poucos</span>
+                                <span className="text-xs font-normal mt-1">Componentes UI (react-native)</span>
+                            </div>
+                            <div className="bg-brand-coral flex-1 h-[20%] rounded-t-xl flex items-center justify-center text-white font-bold text-center flex-col p-2 shadow-lg">
+                                <span className="text-xs font-normal">E2E (Maestro)</span>
+                            </div>
+                        </div>
+                        <div className="mt-6 text-sm text-gray-800 bg-gray-100 p-4 rounded-xl text-center border border-gray-300">
+                            <strong>Destaque na Apresentação:</strong> Explicar que hardware (GPS/Câmera) nunca é acionado em testes unitários rápidos. Injetamos versões "Fakes" (em memória) para testar 100% das lógicas dos Use Cases em milissegundos.
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "rastreabilidade", section: "Bloco 7", title: "Matriz de Rastreabilidade",
+                theme: "black",
+                content: (
+                    <div className="bg-white p-8 squircle shadow-sm h-full flex flex-col">
+                        <h2 className="text-4xl font-bold mb-6">Da Demanda ao Teste (RF → UC → Teste)</h2>
+                        <div className="flex-1 overflow-x-auto">
+                            <table className="w-full text-left text-sm border-collapse">
+                                <thead><tr className="border-b-2 border-gray-300"><th className="pb-3 px-2">RF (Requisito Funcional)</th><th className="pb-3 px-2">Caso de Uso</th><th className="pb-3 px-2">Teste de Aceitação Planejado</th></tr></thead>
+                                <tbody className="divide-y divide-gray-100 text-gray-700">
+                                    <tr><td className="py-3 px-2 font-bold text-black">RF01 (Cadastro)</td><td className="py-3 px-2">UC01 Fazer Cadastro</td><td className="py-3 px-2 font-mono text-xs bg-gray-50 rounded">AutenticarUsuarioUseCase.test.ts</td></tr>
+                                    <tr><td className="py-3 px-2 font-bold text-black">RF05 (CRUD)</td><td className="py-3 px-2">UC04 Gerenciar Disciplinas</td><td className="py-3 px-2 font-mono text-xs bg-gray-50 rounded">CadastrarDisciplinaUseCase.test.ts</td></tr>
+                                    <tr><td className="py-3 px-2 font-bold text-black">RF07 (IA Resumo)</td><td className="py-3 px-2">UC06 Gerar Resumo via IA</td><td className="py-3 px-2 font-mono text-xs bg-gray-50 rounded">GerarResumoUseCase.test.ts</td></tr>
+                                    <tr><td className="py-3 px-2 font-bold text-black">RF11 (Sessão)</td><td className="py-3 px-2">UC08 Registrar Sessão</td><td className="py-3 px-2 font-mono text-xs bg-gray-50 rounded">RegistrarSessaoUseCase.test.ts</td></tr>
+                                    <tr><td className="py-3 px-2 font-bold text-black">RF13 (GPS)</td><td className="py-3 px-2">UC08 (Localização)</td><td className="py-3 px-2 font-mono text-xs bg-gray-50 rounded">Mock LocationGateway em UC08</td></tr>
+                                    <tr><td className="py-3 px-2 font-bold text-black">RF20 (Sync)</td><td className="py-3 px-2">UC14 Sincronizar Fila</td><td className="py-3 px-2 font-mono text-xs bg-gray-50 rounded">SincronizarFilaUseCase.test.ts</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "cronograma", section: "Bloco 7", title: "Cronograma Executivo (60h)",
+                theme: "black",
+                content: (
+                    <div className="flex flex-col h-full w-full justify-center">
+                        <h2 className="text-4xl font-bold mb-8">Roadmap de Sprints (~6h/cada)</h2>
+                        <div className="grid grid-cols-2 gap-6 text-lg">
+                            <div className="bg-white p-5 rounded-2xl border-l-8 border-gray-400 shadow-sm"><span className="font-bold text-gray-800">Sprint 0:</span> Setup Infra (Expo/DB/Supabase)</div>
+                            <div className="bg-white p-5 rounded-2xl border-l-8 border-brand-blue shadow-sm"><span className="font-bold text-gray-800">Sprint 1-2:</span> TDD Domínio e Use Cases</div>
+                            <div className="bg-white p-5 rounded-2xl border-l-8 border-brand-green shadow-sm"><span className="font-bold text-gray-800">Sprint 3-5:</span> Adapters (Auth/Repos/Gateways nativos)</div>
+                            <div className="bg-white p-5 rounded-2xl border-l-8 border-brand-yellow shadow-sm"><span className="font-bold text-gray-800">Sprint 6:</span> Construção da Sync Engine</div>
+                            <div className="bg-white p-5 rounded-2xl border-l-8 border-brand-orange shadow-sm"><span className="font-bold text-gray-800">Sprint 7-9:</span> Front-end UI (Telas e Integrações)</div>
+                            <div className="bg-white p-5 rounded-2xl border-l-8 border-brand-coral shadow-sm"><span className="font-bold text-gray-800">Sprint 10:</span> Polimento E2E e Lançamento</div>
+                        </div>
+                    </div>
+                )
+            },
+            {
+                id: "fim", section: "Fechamento", title: "StudyRats",
+                theme: "blue",
+                content: (
+                    <div className="flex flex-col items-center justify-center h-full text-center space-y-8">
+                        <div className="w-40 h-40 bg-brand-blue rounded-3xl rotate-12 flex items-center justify-center shadow-xl">
+                            <i data-lucide="graduation-cap" className="w-20 h-20 text-white -rotate-12"></i>
+                        </div>
+                        <h1 className="text-6xl font-extrabold text-brand-blue">Obrigada!</h1>
+                        <p className="text-3xl font-medium text-gray-600">Perguntas da Banca?</p>
+                        <p className="text-xl text-gray-400 font-medium">Maria Clara Miguel & Sthefany Bueno</p>
+                    </div>
+                )
+            }
+        ];
+
+        // MAPA DE CORES
+        const themes = {
+            blue: "bg-brand-blueLight text-brand-blue",
+            green: "bg-brand-greenLight text-brand-green",
+            orange: "bg-brand-orangeLight text-brand-orange",
+            purple: "bg-brand-purpleLight text-brand-purple",
+            yellow: "bg-brand-yellowLight text-yellow-800",
+            coral: "bg-brand-coralLight text-brand-coral",
+            black: "bg-gray-200 text-gray-800"
+        };
+        const activeTheme = {
+            blue: "bg-brand-blue text-white",
+            green: "bg-brand-green text-white",
+            orange: "bg-brand-orange text-white",
+            purple: "bg-brand-purple text-white",
+            yellow: "bg-brand-yellow text-black",
+            coral: "bg-brand-coral text-white",
+            black: "bg-brand-black text-white"
+        };
+
+        const App = () => {
+            const [currentSlide, setCurrentSlide] = useState(0);
+            const [menuOpen, setMenuOpen] = useState(false);
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (e.key === "ArrowRight") next();
+                    if (e.key === "ArrowLeft") prev();
+                };
+                window.addEventListener("keydown", handleKeyDown);
+                return () => window.removeEventListener("keydown", handleKeyDown);
+            }, [currentSlide]);
+
+            const next = () => setCurrentSlide(prev => Math.min(prev + 1, slides.length - 1));
+            const prev = () => setCurrentSlide(prev => Math.max(prev - 1, 0));
+
+            const slide = slides[currentSlide];
+
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            });
+
+            return (
+                <div className="min-h-screen w-full flex flex-col font-sans text-brand-black relative">
+                    {/* Progress Bar Fixa */}
+                    <div className="fixed top-0 left-0 h-2 w-full bg-gray-200 z-50">
+                        <div className="h-full bg-brand-blue transition-all duration-300 ease-out" style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}></div>
+                    </div>
+
+                    <div className="flex-1 flex w-full relative pt-12 pb-12">
+                        
+                        {/* SIDEBAR (Drawer) */}
+                        <div className={`fixed top-0 left-0 h-full w-96 bg-white border-r border-gray-200 shadow-2xl z-50 transform transition-transform duration-300 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                            <div className="p-6 flex items-center justify-between border-b border-gray-100">
+                                <h2 className="font-bold text-2xl flex items-center gap-2"><i data-lucide="list" style={{width: 24, height: 24}}></i> Índice</h2>
+                                <button onClick={() => setMenuOpen(false)} className="p-3 bg-gray-100 rounded-full hover:bg-gray-200 transition"><i data-lucide="x" style={{width: 20, height: 20}}></i></button>
+                            </div>
+                            <div className="p-4 overflow-y-auto h-[calc(100%-90px)] space-y-2">
+                                {slides.map((s, idx) => (
+                                    <button 
+                                        key={s.id} 
+                                        onClick={() => { setCurrentSlide(idx); setMenuOpen(false); }}
+                                        className={`w-full text-left p-4 rounded-2xl text-md font-medium transition flex items-start gap-3 ${currentSlide === idx ? activeTheme[s.theme] + " shadow-md" : 'hover:bg-gray-100 text-gray-700'}`}
+                                    >
+                                        <span className={`font-bold ${currentSlide === idx ? 'opacity-80' : 'text-gray-400'}`}>{String(idx + 1).padStart(2, '0')}.</span>
+                                        <span className="leading-tight">{s.title}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* MAIN CONTENT */}
+                        <div className="flex-1 flex flex-col items-center p-8 bg-brand-bg relative min-h-full">
+                            
+                            {/* Header flutuante para menus */}
+                            <div className="w-full max-w-7xl px-4 flex justify-between items-center z-10 mb-8">
+                                <button onClick={() => setMenuOpen(true)} className="bg-white px-6 py-3 rounded-full shadow-sm flex items-center gap-3 font-bold border border-gray-200 hover:bg-gray-50 hover:shadow-md transition">
+                                    <i data-lucide="list" style={{width: 20, height: 20}}></i> Ver Índice
+                                </button>
+                                <div className={`px-6 py-2 rounded-full text-md font-bold uppercase tracking-wider ${themes[slide.theme]}`}>
+                                    {slide.section}
+                                </div>
+                            </div>
+
+                            {/* Slide Canvas Flúido */}
+                            <div className="w-full max-w-7xl flex flex-col flex-1 relative mb-8">
+                                <div className="slide-container w-full h-full" key={slide.id}>
+                                    {slide.content}
+                                </div>
+                            </div>
+
+                            {/* Nav Controls integrados ao fluxo da página */}
+                            <div className="flex items-center gap-6 mt-12 mb-8">
+                                <button onClick={prev} disabled={currentSlide === 0} className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg disabled:opacity-30 hover:bg-gray-50 hover:scale-105 transition-all border border-gray-200 text-gray-600">
+                                    <i data-lucide="chevron-left" style={{width: 32, height: 32}}></i>
+                                </button>
+                                <span className="font-bold text-gray-400 w-24 text-center text-xl">{currentSlide + 1} / {slides.length}</span>
+                                <button onClick={next} disabled={currentSlide === slides.length - 1} className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg disabled:opacity-30 hover:bg-gray-50 hover:scale-105 transition-all border border-gray-200 text-gray-600">
+                                    <i data-lucide="chevron-right" style={{width: 32, height: 32}}></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        window.DiagramViewer = DiagramViewer;
+        root.render(<App />);
+    </script>
+</body>
+</html>
