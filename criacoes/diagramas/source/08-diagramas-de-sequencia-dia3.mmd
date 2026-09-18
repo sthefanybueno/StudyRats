@@ -1,0 +1,45 @@
+sequenceDiagram
+    participant NI as NetInfo<br/>«listener»
+    participant SE as SyncEngine<br/>«infra»
+    participant Q as SyncQueue<br/>«local»
+    participant R as Repository<br/>«local, SQLite»
+    participant S as SyncGateway<br/>«Supabase»
+    participant ST as StorageGateway<br/>«Supabase Storage»
+
+    NI ->> SE: onConectado()
+    SE ->> Q: obterPendentes(orderBy: created_at)
+    Q -->> SE: [item1, item2, ..., itemN]
+
+    loop Para cada item da fila
+        SE ->> S: enviar(item.entidade, item.operacao, item.payload)
+        alt 2xx — sucesso
+            S -->> SE: ok
+            SE ->> R: atualizarSyncStatus(item.entidadeId, "synced")
+            SE ->> Q: remover(item.id)
+        else Conflito (409)
+            S -->> SE: conflito(remote_updated_at)
+            SE ->> SE: compararUpdatedAt(local vs remoto)
+            Note over SE: Last-write-wins: updated_at mais recente prevalece
+            SE ->> R: resolver(item, vencedor)
+            SE ->> Q: remover(item.id)
+        else Erro (5xx / timeout)
+            S -->> SE: erro
+            SE ->> Q: incrementarTentativas(item.id)
+            SE ->> SE: reagendar(backoff = 2^tentativas, max 5min)
+        end
+    end
+
+    SE ->> Q: obterFotosPendentes()
+    Q -->> SE: [foto1, foto2, ...]
+
+    loop Para cada foto pendente
+        SE ->> SE: comprimir(foto, maxWidth=800, quality=0.7)
+        SE ->> ST: upload(foto.uri_local)
+        alt Upload OK
+            ST -->> SE: url_remota
+            SE ->> R: atualizarFoto(foto.id, url_remota, "synced")
+        else Falha
+            ST -->> SE: erro
+            SE ->> Q: reagendar upload (backoff)
+        end
+    end

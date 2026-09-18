@@ -1,0 +1,87 @@
+[
+  {
+    "file": "01-stack-referencia.md",
+    "stem": "01-stack-referencia-dia1",
+    "count": 1
+  },
+  {
+    "file": "03-diagrama-casos-de-uso.md",
+    "stem": "03-diagrama-casos-de-uso-dia1",
+    "count": 1
+  },
+  {
+    "file": "04-diagrama-de-classes-persistencia.md",
+    "stem": "04-diagrama-de-classes-persistencia-dia1",
+    "count": 1
+  },
+  {
+    "file": "05-der-local-remoto-rls.md",
+    "stem": "05-der-local-remoto-rls-dia1",
+    "count": 1
+  },
+  {
+    "file": "05-der-local-remoto-rls.md",
+    "stem": "05-der-local-remoto-rls-dia2",
+    "count": 2
+  },
+  {
+    "file": "06-diagrama-objetos-estados.md",
+    "stem": "06-diagrama-objetos-estados-dia1",
+    "count": 1
+  },
+  {
+    "file": "06-diagrama-objetos-estados.md",
+    "stem": "06-diagrama-objetos-estados-dia2",
+    "count": 2
+  },
+  {
+    "file": "06-diagrama-objetos-estados.md",
+    "stem": "06-diagrama-objetos-estados-dia3",
+    "count": 3
+  },
+  {
+    "file": "07-modelagem-bce.md",
+    "stem": "07-modelagem-bce-dia1",
+    "count": 1
+  },
+  {
+    "file": "07-modelagem-bce.md",
+    "stem": "07-modelagem-bce-dia2",
+    "count": 2
+  },
+  {
+    "file": "07-modelagem-bce.md",
+    "stem": "07-modelagem-bce-dia3",
+    "count": 3
+  },
+  {
+    "file": "08-diagramas-de-sequencia.md",
+    "stem": "08-diagramas-de-sequencia-dia1",
+    "count": 1
+  },
+  {
+    "file": "08-diagramas-de-sequencia.md",
+    "stem": "08-diagramas-de-sequencia-dia2",
+    "count": 2
+  },
+  {
+    "file": "08-diagramas-de-sequencia.md",
+    "stem": "08-diagramas-de-sequencia-dia3",
+    "count": 3
+  },
+  {
+    "file": "09-diagramas-de-atividades.md",
+    "stem": "09-diagramas-de-atividades-dia1",
+    "count": 1
+  },
+  {
+    "file": "09-diagramas-de-atividades.md",
+    "stem": "09-diagramas-de-atividades-dia2",
+    "count": 2
+  },
+  {
+    "file": "10-arquitetura-ddd-cleanarch-tdd-cronograma.md",
+    "stem": "10-arquitetura-ddd-cleanarch-tdd-cronograma-dia1",
+    "count": 1
+  }
+]

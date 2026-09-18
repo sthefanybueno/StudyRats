@@ -1,0 +1,30 @@
+flowchart TD
+    Start((NetInfo detecta\nconexão)) --> A1[Consultar sync_queue\nORDER BY created_at]
+    A1 --> D1{Fila vazia?}
+    D1 -- Sim --> End1((Fim — nada a sincronizar))
+    D1 -- Não --> A2[Pegar próximo item da fila]
+    A2 --> A3[Enviar para Supabase]
+    A3 --> D2{Resposta?}
+
+    D2 -- 2xx OK --> A4[Marcar entidade como synced]
+    A4 --> A5[Remover item da sync_queue]
+    A5 --> D1
+
+    D2 -- 409 Conflito --> A6[Comparar updated_at\nlocal vs remoto]
+    A6 --> A7[Aplicar last-write-wins]
+    A7 --> A5
+
+    D2 -- 5xx/Timeout --> A8[Incrementar tentativas]
+    A8 --> D3{tentativas > 5?}
+    D3 -- Sim --> A9[Marcar como error\nnotificar usuário]
+    A9 --> D1
+    D3 -- Não --> A10[Reagendar com backoff\n2^tentativas segundos]
+    A10 --> D1
+
+    D1 -- Fotos pendentes --> A11[Comprimir foto\n800px, 70%]
+    A11 --> A12[Upload para Supabase Storage]
+    A12 --> D4{Upload OK?}
+    D4 -- Sim --> A13[Atualizar url_remota + upload_status=synced]
+    A13 --> End2((Fim))
+    D4 -- Não --> A14[Reagendar upload\nbackoff]
+    A14 --> A11

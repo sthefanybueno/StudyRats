@@ -1,0 +1,83 @@
+classDiagram
+    class Clara {
+        <<instance>>
+        id = "user-uuid-123"
+        xp_total = 120
+        streak = 5
+        conexao = "offline"
+    }
+
+    class Disciplina_Matematica {
+        <<instance>>
+        id = "disc-uuid-001"
+        nome = "Matemática"
+        sync_status = "synced"
+    }
+
+    class Disciplina_Fisica {
+        <<instance>>
+        id = "disc-uuid-002"
+        nome = "Física"
+        sync_status = "pending"
+    }
+
+    class Topico_Derivadas {
+        <<instance>>
+        id = "topico-uuid-101"
+        nome = "Derivadas"
+        disciplina_id = "disc-uuid-001"
+        sync_status = "synced"
+    }
+
+    class Resumo_Derivadas {
+        <<instance>>
+        id = "resumo-uuid-201"
+        topico_id = "topico-uuid-101"
+        conteudo = "Resumo sobre limites e derivadas..."
+        sync_status = "synced"
+    }
+
+    class Sessao_Derivadas {
+        <<instance>>
+        id = "sessao-uuid-301"
+        disciplina_id = "disc-uuid-001"
+        topico_id = "topico-uuid-101"
+        duracao_minutos = 60
+        latitude = -23.5505
+        longitude = -46.6333
+        sync_status = "pending"
+    }
+
+    class Foto_Sessao {
+        <<instance>>
+        id = "foto-uuid-401"
+        sessao_id = "sessao-uuid-301"
+        uri_local = "file:///data/user/0/app/foto.jpg"
+        url_remota = null
+        upload_status = "pending"
+    }
+
+    class SyncItem_Disciplina {
+        <<instance>>
+        id = "queue-uuid-501"
+        entidade = "disciplinas"
+        operacao = "INSERT"
+        status = "pending"
+    }
+
+    class SyncItem_Sessao {
+        <<instance>>
+        id = "queue-uuid-502"
+        entidade = "sessoes_estudo"
+        operacao = "INSERT"
+        status = "pending"
+    }
+
+    Clara -- Disciplina_Matematica : possui
+    Clara -- Disciplina_Fisica : possui
+    Disciplina_Matematica -- Topico_Derivadas : contem
+    Topico_Derivadas -- Resumo_Derivadas : possui
+    Clara -- Sessao_Derivadas : realiza
+    Sessao_Derivadas -- Foto_Sessao : evidencia
+    SyncItem_Disciplina -- Disciplina_Fisica : aponta_para
+    SyncItem_Sessao -- Sessao_Derivadas : aponta_para
