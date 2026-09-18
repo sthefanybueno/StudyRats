@@ -1,0 +1,114 @@
+flowchart TB
+    subgraph UI["UI / Expo Router (Interface Adapters - entrada)"]
+        LoginScreen[LoginScreen]
+        CadastroScreen[CadastroScreen]
+        OnboardingScreen[OnboardingScreen]
+        DisciplinaScreen[DisciplinaFormScreen]
+        TopicoScreen[TopicoFormScreen]
+        ResumoScreen[ResumoScreen]
+        SessaoScreen[SessaoFormScreen]
+        HistoricoScreen[HistoricoSessoesScreen]
+        StreakScreen[StreakXPScreen]
+        RankingScreen[RankingScreen]
+        PerfilScreen[PerfilScreen]
+    end
+
+    subgraph Application["Application (Use Cases / Control)"]
+        UCAuth[AutenticarUsuarioUseCase]
+        UCDisciplina[CadastrarDisciplinaUseCase]
+        UCTopico[CadastrarTopicoUseCase]
+        UCResumo[GerarResumoUseCase]
+        UCSessao[RegistrarSessaoUseCase]
+        UCRanking[ConsultarRankingUseCase]
+        UCSync[SincronizarFilaUseCase]
+    end
+
+    subgraph Domain["Domain (Regras de Negócio Puras)"]
+        direction TB
+        subgraph Entities["Entities"]
+            Usuario[Usuario]
+            Disciplina[Disciplina]
+            Topico[Topico]
+            ResumoIA[ResumoIA]
+            SessaoEstudo[SessaoEstudo]
+            FotoSessao[FotoSessao]
+        end
+        subgraph Ports["Interfaces (Ports)"]
+            ITopicoRepo[[TopicoRepository]]
+            ISessaoRepo[[SessaoRepository]]
+            IDisciplinaRepo[[DisciplinaRepository]]
+            ICameraGW[[CameraGateway]]
+            ILocationGW[[LocationGateway]]
+            IAuthGW[[AuthGateway]]
+            ISyncGW[[SyncGateway]]
+            IAIGW[[AIGateway]]
+        end
+    end
+
+    subgraph Adapters["Adapters (Implementações)"]
+        TopicoRepoSQL[TopicoRepositorySQLite]
+        SessaoRepoSQL[SessaoRepositorySQLite]
+        DisciplinaRepoSQL[DisciplinaRepositorySQLite]
+        CameraExpo[CameraGatewayExpo]
+        LocationExpo[LocationGatewayExpo]
+        AuthSupa[AuthGatewaySupabase]
+        SyncSupa[SyncGatewaySupabase]
+        AIImpl[AIGatewayLLM]
+    end
+
+    subgraph Infra["Frameworks & Drivers"]
+        SQLite[(expo-sqlite + Drizzle ORM)]
+        ExpoCam[expo-camera / expo-image-picker]
+        ExpoLoc[expo-location]
+        SupaClient[supabase-js]
+        NetInfo[NetInfo]
+        SyncEngine[SyncEngine\nloop + retry + backoff]
+        EdgeFn[Supabase Edge Function\nproxy Gemini API]
+    end
+
+    %% UI → Application
+    LoginScreen --> UCAuth
+    CadastroScreen --> UCAuth
+    DisciplinaScreen --> UCDisciplina
+    TopicoScreen --> UCTopico
+    ResumoScreen --> UCResumo
+    SessaoScreen --> UCSessao
+    RankingScreen --> UCRanking
+
+    %% Application → Domain (somente ports)
+    UCAuth --> IAuthGW
+    UCDisciplina --> IDisciplinaRepo
+    UCTopico --> ITopicoRepo
+    UCResumo --> IAIGW
+    UCResumo --> ITopicoRepo
+    UCSessao --> ISessaoRepo
+    UCSessao --> ICameraGW
+    UCSessao --> ILocationGW
+    UCRanking --> ISyncGW
+    UCSync --> ISyncGW
+    UCSync --> ISessaoRepo
+    UCSync --> ITopicoRepo
+
+    %% Adapters implementam Ports
+    TopicoRepoSQL -.implementa.-> ITopicoRepo
+    SessaoRepoSQL -.implementa.-> ISessaoRepo
+    DisciplinaRepoSQL -.implementa.-> IDisciplinaRepo
+    CameraExpo -.implementa.-> ICameraGW
+    LocationExpo -.implementa.-> ILocationGW
+    AuthSupa -.implementa.-> IAuthGW
+    SyncSupa -.implementa.-> ISyncGW
+    AIImpl -.implementa.-> IAIGW
+
+    %% Adapters → Infra
+    TopicoRepoSQL --> SQLite
+    SessaoRepoSQL --> SQLite
+    DisciplinaRepoSQL --> SQLite
+    CameraExpo --> ExpoCam
+    LocationExpo --> ExpoLoc
+    AuthSupa --> SupaClient
+    SyncSupa --> SupaClient
+    AIImpl --> EdgeFn
+    EdgeFn --> Gemini[Gemini Flash API]
+    SyncEngine --> NetInfo
+    SyncEngine --> UCSync
+    SyncEngine --> SQLite

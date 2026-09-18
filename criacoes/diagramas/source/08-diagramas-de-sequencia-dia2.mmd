@@ -1,0 +1,28 @@
+sequenceDiagram
+    actor Estudante
+    participant B as ResumoScreen<br/>«boundary»
+    participant C as GerarResumoUseCase<br/>«control»
+    participant R as ResumoRepository<br/>«local, SQLite»
+    participant AI as AIGateway<br/>«externo»
+
+    Estudante ->> B: selecionar tópico + "Gerar Resumo"
+    B ->> C: gerarResumo(topicoId)
+
+    C ->> C: verificarLimiteDiario()
+    alt Limite atingido (≥10/dia)
+        C -->> B: erro "Limite de 10 resumos/dia atingido"
+        B -->> Estudante: feedback de limite
+    else Dentro do limite
+        C ->> C: verificarConexao()
+        alt Sem conexão
+            C -->> B: erro "Sem internet"
+            B -->> Estudante: "Conecte-se para gerar resumo"
+        else Com conexão
+            C ->> AI: gerarResumo(topico.nome, disciplina.nome)
+            AI -->> C: resumoTexto
+            C ->> R: salvarResumo(topicoId, resumoTexto)
+            R -->> C: ok
+            C -->> B: resumoGerado
+            B -->> Estudante: exibe resumo
+        end
+    end

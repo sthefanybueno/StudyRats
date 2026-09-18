@@ -1,0 +1,10 @@
+stateDiagram-v2
+    [*] --> Pendente : criado/editado localmente
+    Pendente --> Sincronizando : conexão disponível + worker processa fila
+    Sincronizando --> Sincronizado : servidor confirma (2xx)
+    Sincronizando --> Erro : falha de rede / erro de validação
+    Erro --> Sincronizando : retry automático (backoff exponencial)
+    Sincronizado --> Pendente : nova edição local pelo estudante
+    Pendente --> ExcluidoLocalmente : estudante exclui (soft delete)
+    ExcluidoLocalmente --> Sincronizando : propaga DELETE para Supabase
+    Sincronizando --> [*] : delete confirmado no servidor → remove sync_queue item

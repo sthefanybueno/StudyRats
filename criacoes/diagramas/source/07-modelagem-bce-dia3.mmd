@@ -1,0 +1,23 @@
+flowchart LR
+    Ator((Sistema de\nSincronização))
+    B[SyncEngine\n«infra»]
+    GW[SyncGateway\n«boundary-externo»]
+    C[SincronizarFilaUseCase\n«control»]
+    E1[Disciplina\n«entity»]
+    E2[Topico\n«entity»]
+    E3[SessaoEstudo\n«entity»]
+    E4[FotoSessao\n«entity»]
+    E5[SyncQueueItem\n«entity»]
+    R1[SessaoRepository\n«boundary-saída»]
+    R2[TopicoRepository\n«boundary-saída»]
+
+    Ator --> B
+    B --> C
+    C --> GW
+    C --> E1
+    C --> E2
+    C --> E3
+    C --> E4
+    C --> E5
+    C --> R1
+    C --> R2

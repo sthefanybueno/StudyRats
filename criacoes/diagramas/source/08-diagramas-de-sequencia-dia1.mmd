@@ -1,0 +1,48 @@
+sequenceDiagram
+    actor Estudante
+    participant B as SessaoFormScreen<br/>«boundary»
+    participant Loc as LocationGateway<br/>«boundary»
+    participant Cam as CameraGateway<br/>«boundary»
+    participant C as RegistrarSessaoUseCase<br/>«control»
+    participant E as SessaoEstudo<br/>«entity»
+    participant R as SessaoRepository<br/>«local, SQLite»
+    participant Q as SyncQueue<br/>«local»
+    participant S as SyncGateway<br/>«Supabase»
+
+    Estudante ->> B: preencher (disciplina, tópico, duração) e confirmar
+    B ->> Loc: obterLocalizacaoAtual()
+    alt Permissão concedida + GPS ativo
+        Loc -->> B: {lat, lng}
+    else Permissão negada ou timeout
+        Loc -->> B: null (sessão sem coordenadas)
+    end
+
+    opt Estudante opta por anexar foto
+        B ->> Cam: capturarFoto()
+        alt Permissão concedida
+            Cam -->> B: {uri_local}
+        else Permissão negada
+            Cam -->> B: null (sessão sem foto)
+        end
+    end
+
+    B ->> C: registrar(dados, coordenada, foto)
+    C ->> E: criar(UUID, dados, lat, lng)
+    E -->> C: sessaoEstudo (sync_status=pending)
+    C ->> C: calcularXP(+10 XP, checar streak 7d → +50 bônus)
+    C ->> R: salvar(sessaoEstudo)
+    R -->> C: ok
+    C ->> Q: enfileirar(sessaoEstudo)
+    C -->> B: sucesso
+    B -->> Estudante: "Sessão registrada ✓ +10 XP"
+
+    par Processamento assíncrono da fila (quando há rede)
+        Q ->> S: enviar(sessaoEstudo)
+        alt Sync bem-sucedido
+            S -->> Q: 200 ok
+            Q ->> R: marcarSincronizado(sessaoEstudo.id)
+        else Falha (sem rede / erro servidor)
+            S -->> Q: erro
+            Q ->> Q: reagendar retry (backoff 2^n, max 5min)
+        end
+    end

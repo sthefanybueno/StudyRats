@@ -1,0 +1,15 @@
+flowchart LR
+    Ator((Estudante))
+    B[ResumoScreen\n«boundary-ui»]
+    AI[AIGateway\n«boundary-externo»]
+    C[GerarResumoUseCase\n«control»]
+    E1[Topico\n«entity»]
+    E2[ResumoIA\n«entity»]
+    R[ResumoRepository\n«boundary-saída»]
+
+    Ator --> B
+    B --> C
+    C --> AI
+    C --> E1
+    C --> E2
+    C --> R

@@ -1,0 +1,76 @@
+classDiagram
+    class Usuario {
+        +String id (UUID)
+        +String email
+        +String nome_exibicao
+        +Int xp_total
+        +Int xp_semanal
+        +Int streak_atual
+    }
+
+    class Disciplina {
+        +String id (UUID)
+        +String usuario_id
+        +String nome
+        +DateTime created_at
+        +DateTime updated_at
+        +DateTime deleted_at
+        +String sync_status
+    }
+
+    class Topico {
+        +String id (UUID)
+        +String disciplina_id
+        +String nome
+        +DateTime created_at
+        +DateTime updated_at
+        +DateTime deleted_at
+        +String sync_status
+    }
+
+    class ResumoIA {
+        +String id (UUID)
+        +String topico_id
+        +String conteudo
+        +DateTime gerado_em
+        +String sync_status
+    }
+
+    class SessaoEstudo {
+        +String id (UUID)
+        +String usuario_id
+        +String disciplina_id
+        +String topico_id
+        +Int duracao_minutos
+        +Float latitude
+        +Float longitude
+        +DateTime created_at
+        +String sync_status
+    }
+
+    class FotoSessao {
+        +String id (UUID)
+        +String sessao_id
+        +String uri_local
+        +String url_remota
+        +String upload_status
+    }
+
+    class SyncQueueItem {
+        +String id (UUID)
+        +String entidade
+        +String operacao
+        +String payload_json
+        +Int tentativas
+        +String erro_msg
+        +String status
+        +DateTime created_at
+    }
+
+    Usuario "1" -- "*" Disciplina : possui
+    Disciplina "1" -- "*" Topico : contem
+    Topico "1" -- "1" ResumoIA : possui
+    Usuario "1" -- "*" SessaoEstudo : realiza
+    Disciplina "1" -- "*" SessaoEstudo : categoriza
+    Topico "1" -- "*" SessaoEstudo : foca
+    SessaoEstudo "1" -- "0..1" FotoSessao : evidencia

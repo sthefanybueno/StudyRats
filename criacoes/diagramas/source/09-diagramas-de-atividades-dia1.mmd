@@ -1,0 +1,38 @@
+flowchart TD
+    Start((Início)) --> A1[Estudante preenche formulário\ndisciplina + tópico + duração]
+    A1 --> D1{Permissão de\nlocalização concedida?}
+
+    D1 -- Não --> A2[Solicitar permissão ao SO]
+    A2 --> D1b{Concedida agora?}
+    D1b -- Sim --> A3[Capturar localização GPS]
+    D1b -- Não --> A3b[Prosseguir SEM coordenadas\nlat/lng = null]
+    D1 -- Sim --> A3
+
+    A3 --> D4{Estudante quer\nanexar foto?}
+    A3b --> D4
+
+    D4 -- Sim --> D5{Permissão de\ncâmera concedida?}
+    D5 -- Não --> A6[Solicitar permissão ao SO]
+    A6 --> D5b{Concedida agora?}
+    D5b -- Sim --> A7[Capturar foto via câmera]
+    D5b -- Não --> A7b[Prosseguir SEM foto]
+    D5 -- Sim --> A7
+    D4 -- Não --> A8
+
+    A7 --> A8[Criar SessaoEstudo com UUID]
+    A7b --> A8
+
+    A8 --> A9[Salvar localmente em SQLite\nsync_status = pending]
+    A9 --> A10[Calcular XP + atualizar streak]
+    A10 --> A11[Enfileirar na sync_queue]
+    A11 --> A12[Exibir feedback\n'Sessão registrada ✓ +10 XP']
+
+    A12 --> D6{Há conexão\nde rede?}
+    D6 -- Não --> A13[Aguardar reconexão\nlistener NetInfo]
+    A13 --> D6
+    D6 -- Sim --> A14[Enviar para Supabase]
+    A14 --> D7{Envio\nconfirmado?}
+    D7 -- Sim --> A15[Marcar como synced]
+    D7 -- Não --> A16[Reagendar retry\nbackoff exponencial]
+    A16 --> D6
+    A15 --> End((Fim))

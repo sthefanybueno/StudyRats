@@ -1,0 +1,19 @@
+flowchart LR
+    Ator((Estudante))
+    B[SessaoFormScreen\n«boundary-ui»]
+    Cam[CameraGateway\n«boundary-nativo»]
+    Loc[LocationGateway\n«boundary-nativo»]
+    C[RegistrarSessaoUseCase\n«control»]
+    E1[SessaoEstudo\n«entity»]
+    E2[FotoSessao\n«entity»]
+    R[SessaoRepository\n«boundary-saída»]
+    Q[SyncQueue\n«boundary-saída»]
+
+    Ator --> B
+    B --> Cam
+    B --> Loc
+    B --> C
+    C --> E1
+    C --> E2
+    C --> R
+    C --> Q

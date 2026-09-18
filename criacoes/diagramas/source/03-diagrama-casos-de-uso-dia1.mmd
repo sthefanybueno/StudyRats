@@ -1,0 +1,47 @@
+flowchart LR
+    %% ── Atores ──
+    Visitante((Visitante))
+    Estudante((Estudante))
+    Sync((Sistema de\nSincronização))
+    IA((Gateway de IA))
+    Camera((Câmera do\nDispositivo))
+    GPS((GPS do\nDispositivo))
+
+    %% ── Herança de Ator ──
+    Estudante -->|herda| Visitante
+
+    %% ── Casos de Uso do Visitante ──
+    Visitante --> UC01[UC01 Fazer Cadastro]
+    Visitante --> UC02[UC02 Fazer Login]
+
+    %% ── Casos de Uso do Estudante ──
+    Estudante --> UC03[UC03 Completar Onboarding]
+    Estudante --> UC04[UC04 Gerenciar Disciplinas]
+    Estudante --> UC05[UC05 Gerenciar Tópicos]
+    Estudante --> UC06[UC06 Gerar Resumo via IA]
+    Estudante --> UC07[UC07 Consultar Resumos]
+    Estudante --> UC08[UC08 Registrar Sessão de Estudo]
+    Estudante --> UC09[UC09 Consultar Histórico de Sessões]
+    Estudante --> UC10[UC10 Visualizar Streak e XP]
+    Estudante --> UC11[UC11 Consultar Ranking Global]
+    Estudante --> UC12[UC12 Visualizar Perfil]
+    Estudante --> UC13[UC13 Fazer Logout]
+
+    %% ── Relacionamentos include ──
+    UC06 -.->|include| UC06a[Verificar Limite Diário de Gerações]
+    UC06 -.->|include| UC06b[Salvar Resumo Localmente]
+    UC08 -.->|include| UC08a[Capturar Localização Atual]
+    UC08 -.->|include| UC08b[Calcular XP da Sessão]
+    UC08 -.->|include| UC08c[Enfileirar para Sincronização]
+    UC14 -.->|include| UC14a[Resolver Conflito de Dados]
+
+    %% ── Relacionamentos extend ──
+    UC08d[Anexar Foto da Sessão] -.->|extend| UC08
+
+    %% ── Casos de Uso do Sistema de Sincronização ──
+    Sync --> UC14[UC14 Sincronizar Fila Pendente]
+
+    %% ── Conexões com atores externos ──
+    UC06 --- IA
+    UC08a --- GPS
+    UC08d --- Camera

@@ -1,0 +1,62 @@
+erDiagram
+    DISCIPLINAS {
+        string id PK "UUID"
+        string nome
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "Soft delete"
+        string sync_status "enum"
+    }
+
+    TOPICOS {
+        string id PK "UUID"
+        string disciplina_id FK
+        string nome
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "Soft delete"
+        string sync_status "enum"
+    }
+
+    RESUMOS_IA {
+        string id PK "UUID"
+        string topico_id FK
+        text conteudo
+        datetime gerado_em
+        string sync_status "enum"
+    }
+
+    SESSOES_ESTUDO {
+        string id PK "UUID"
+        string disciplina_id FK
+        string topico_id FK
+        int duracao_minutos
+        float latitude "nullable"
+        float longitude "nullable"
+        datetime created_at
+        string sync_status "enum"
+    }
+
+    FOTOS_SESSAO {
+        string id PK "UUID"
+        string sessao_id FK
+        string uri_local
+        string url_remota "nullable"
+        string upload_status "enum"
+    }
+
+    SYNC_QUEUE {
+        string id PK "UUID"
+        string entidade "Nome da tabela"
+        string operacao "INSERT/UPDATE/DELETE"
+        text payload_json
+        string status "pending/error"
+        int tentativas
+        datetime created_at
+    }
+
+    DISCIPLINAS ||--o{ TOPICOS : "contem"
+    DISCIPLINAS ||--o{ SESSOES_ESTUDO : "categoriza"
+    TOPICOS ||--o{ SESSOES_ESTUDO : "foca"
+    TOPICOS ||--o| RESUMOS_IA : "possui"
+    SESSOES_ESTUDO ||--o| FOTOS_SESSAO : "evidencia"

@@ -1,0 +1,65 @@
+erDiagram
+    PROFILES {
+        uuid id PK "FK para auth.users"
+        string email
+        string nome_exibicao
+        int xp_total
+        int xp_semanal
+        int streak_atual
+        datetime updated_at
+    }
+
+    DISCIPLINAS {
+        uuid id PK
+        uuid profile_id FK
+        string nome
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "Soft delete"
+    }
+
+    TOPICOS {
+        uuid id PK
+        uuid profile_id FK
+        uuid disciplina_id FK
+        string nome
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "Soft delete"
+    }
+
+    RESUMOS_IA {
+        uuid id PK
+        uuid profile_id FK
+        uuid topico_id FK
+        text conteudo
+        datetime gerado_em
+    }
+
+    SESSOES_ESTUDO {
+        uuid id PK
+        uuid profile_id FK
+        uuid disciplina_id FK
+        uuid topico_id FK
+        int duracao_minutos
+        float latitude "nullable"
+        float longitude "nullable"
+        datetime created_at
+    }
+
+    FOTOS_SESSAO {
+        uuid id PK
+        uuid profile_id FK
+        uuid sessao_id FK
+        string url_remota
+        datetime created_at
+    }
+
+    PROFILES ||--o{ DISCIPLINAS : "possui"
+    PROFILES ||--o{ TOPICOS : "possui"
+    PROFILES ||--o{ SESSOES_ESTUDO : "possui"
+    DISCIPLINAS ||--o{ TOPICOS : "contem"
+    DISCIPLINAS ||--o{ SESSOES_ESTUDO : "categoriza"
+    TOPICOS ||--o{ SESSOES_ESTUDO : "foca"
+    TOPICOS ||--o| RESUMOS_IA : "possui"
+    SESSOES_ESTUDO ||--o| FOTOS_SESSAO : "evidencia"

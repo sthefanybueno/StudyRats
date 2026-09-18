@@ -1,0 +1,11 @@
+stateDiagram-v2
+    [*] --> Capturada : foto tirada via câmera, salva localmente
+    Capturada --> ComprimindoUpload : conexão disponível + worker de mídia
+    ComprimindoUpload --> Enviando : foto comprimida (≤800px, 70%)
+    Enviando --> Enviada : Supabase Storage confirma upload
+    Enviada --> URLAtualizada : url_remota preenchida no registro local
+    URLAtualizada --> [*]
+    Enviando --> ErroUpload : falha de rede / timeout
+    ErroUpload --> ComprimindoUpload : retry (backoff)
+    Capturada --> ExcluidaLocal : estudante remove foto antes de upload
+    ExcluidaLocal --> [*]
