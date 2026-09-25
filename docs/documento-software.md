@@ -404,12 +404,12 @@ classDiagram
 | Classe | Local (SQLite) | Remota (Supabase) | Estratégia |
 |--------|----------------|-------------------|------------|
 | **Usuario** | Sim — cache de sessão, XP e streak | Sim — `auth.users` + tabela `profiles` | Fonte da verdade: Supabase Auth; cache local para sessão offline e cálculo de XP/streak |
-| **Disciplina** | Sim — tabela `disciplinas` (Drizzle ORM) | Sim — tabela `disciplinas` (Postgres) | Fonte da verdade: local até sync; conflito resolvido por last-write-wins (`updated_at`) |
-| **Topico** | Sim — tabela `topicos` (Drizzle ORM) | Sim — tabela `topicos` (Postgres) | Fonte da verdade: local até sync; conflito resolvido por last-write-wins (`updated_at`) |
+| **Disciplina** | Sim — tabela `disciplinas` (Drizzle ORM) | Sim — tabela `disciplinas` (Postgres) | Fonte da verdade: local até sync; conflito resolvido por last-write-wins (`updated_at`). **Atua como Aggregate Root para Topico.** |
+| **Topico** | Sim — tabela `topicos` (Drizzle ORM) | Sim — tabela `topicos` (Postgres) | Entidade fraca controlada pela `Disciplina`. Dependência via FK estrita com `ON DELETE CASCADE`. |
 | **ResumoIA** | Sim — tabela `resumos_ia` (Drizzle ORM) | Sim — tabela `resumos_ia` (Postgres) | Gerado online (API de IA) → salvo localmente imediatamente → sync posterior |
-| **SessaoEstudo** | Sim — tabela `sessoes_estudo` (Drizzle ORM) | Sim — tabela `sessoes_estudo` (Postgres) | Fonte da verdade: local até sync; conflito resolvido por last-write-wins (`updated_at`) |
-| **FotoSessao** | Sim — arquivo no filesystem + linha em `fotos_sessao` | Sim — Supabase Storage (binário) + linha espelho em `fotos_sessao` | Upload de binário assíncrono, separado do sync de dados tabulares; compressão obrigatória (≤800px, 70%) |
-| **SyncQueueItem** | Sim — tabela `sync_queue` | Não | Efêmera, exclusivamente local; registros apagados após sync confirmado |
+| **SessaoEstudo** | Sim — tabela `sessoes_estudo` (Drizzle ORM) | Sim — tabela `sessoes_estudo` (Postgres) | Fonte da verdade: local até sync; conflito resolvido por last-write-wins. **Atua como Aggregate Root para FotoSessao.** |
+| **FotoSessao** | Sim — arquivo no filesystem + linha em `fotos_sessao` | Sim — Supabase Storage (binário) + linha espelho em `fotos_sessao` | Entidade fraca controlada por `SessaoEstudo`. `ON DELETE CASCADE` garantido no banco de dados. |
+| **SyncQueueItem** | Sim — tabela `sync_queue` | Não | Efêmera, exclusivamente local (Outbox Pattern). O tracking do status de sync (`StatusSincronizacao`) pertence a cada Agregado, descentralizando a responsabilidade. |
 
 ### 3.2 Modelo Relacional Local (DER SQLite)
 
@@ -676,10 +676,17 @@ stateDiagram-v2
 
 | Tipo | Papel | Exemplos no StudyRats |
 |------|-------|-----------------------|
-| **Boundary (UI)** | Telas Expo Router — ponto de contato com o estudante | `LoginScreen`, `CadastroScreen`, `OnboardingScreen`, `DisciplinaFormScreen`, `TopicoFormScreen`, `ResumoScreen`, `SessaoFormScreen`, `HistoricoSessoesScreen`, `StreakXPScreen`, `RankingScreen`, `PerfilScreen` |
-| **Boundary (Nativo/Externo)** | Wrappers de SDK que implementam interfaces do domínio | `CameraGateway`, `LocationGateway`, `AuthGateway`, `SyncGateway`, `AIGateway` |
-| **Control** | Orquestram casos de uso — não guardam estado persistente, não conhecem SDKs | `CadastrarDisciplinaUseCase`, `CadastrarTopicoUseCase`, `GerarResumoUseCase`, `RegistrarSessaoUseCase`, `AutenticarUsuarioUseCase`, `ConsultarRankingUseCase`, `SincronizarFilaUseCase` |
-| **Entity** | Dados de domínio persistentes (do Diagrama de Classes, Seção 3) | `Usuario`, `Disciplina`, `Topico`, `ResumoIA`, `SessaoEstudo`, `FotoSessao`, `SyncQueueItem` |
+| **Boundary (UI) / Adapters** | Telas Expo Router atuando como "Adapter Components" puramente visuais, orquestradas por Custom Hooks (`useAtividades`) que conectam o React ao UseCase. | `LoginScreen`, `CadastroScreen`, `SessaoFormScreen`, `useAtividades` (hook) |
+| **Boundary (Nativo/Externo)** | Adapters/Wrappers de SDK que implementam as interfaces do domínio (Gateways). | `CameraGateway`, `LocationGateway`, `AuthGateway`, `SyncGateway`, `AIGateway` |
+| **Control (Use Cases)** | Orquestram o fluxo — **100% agnósticos a framework**. Proibido conter imports do React, Expo ou Supabase. | `CadastrarDisciplinaUseCase`, `RegistrarSessaoUseCase`, `SincronizarFilaUseCase` |
+| **Entity** | Dados de domínio persistentes, controlados por *Aggregate Roots*. | `Usuario`, `Disciplina`, `SessaoEstudo` |
+
+#### 5.1.1 Regras Arquiteturais Críticas (Clean Architecture & DDD)
+
+Conforme definições arquiteturais firmadas, o projeto segue regras estritas de isolamento:
+1. **Extração de Dependências (Isolamento do Domínio):** É terminantemente **proibido** importar bibliotecas externas de infraestrutura (`expo-sqlite`, `expo-camera`, `expo-location`, `@supabase/supabase-js`, `react`, `react-native`) dentro dos diretórios `domain/` ou `application/` (Use Cases). Todo acesso a recursos nativos ou banco de dados deve ser feito através de interfaces (Gateways/Repositories) implementadas na camada `adapters/`.
+2. **Entidades Fracas e Aggregate Roots:** Entidades dependentes (como `FotoSessao` e `Topico`) são tratadas como entidades internas de um Agregado. A criação, alteração ou exclusão dessas entidades deve obrigatoriamente passar pela sua Raiz de Agregação (`SessaoEstudo` ou `Disciplina`). Não devem existir Repositórios isolados para entidades fracas. No banco de dados (Drizzle/Supabase), exige-se o uso de chaves estrangeiras com `ON DELETE CASCADE`.
+3. **Descentralização do Estado de Sincronização:** O status de sincronização é um *Value Object* (`StatusSincronizacao: pending | synced | error`) gerenciado de forma descentralizada por cada Raiz de Agregação. A tabela `SYNC_QUEUE` opera apenas como um detalhe de infraestrutura local (Outbox Pattern) para garantir o envio eventual, mas não substitui o estado de tracking residente nas próprias entidades do domínio, isolando falhas por contexto de agregado.
 
 ### 5.2 Tabela de Mapeamento por Caso de Uso
 
