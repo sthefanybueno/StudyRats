@@ -10,6 +10,9 @@ class MockAuthGateway implements IAuthGateway {
     if (senha && senha !== '123') throw new Error('Credenciais inválidas');
     return Usuario.create({ id: 'user-auth-1', email, nomeExibicao: 'Tester' });
   }
+  async cadastrar(email: string, _senha: string, nomeExibicao: string): Promise<Usuario> {
+    return Usuario.create({ id: 'user-auth-2', email, nomeExibicao });
+  }
   async logout(): Promise<void> {}
 }
 

@@ -29,7 +29,7 @@ export class AutenticarUsuarioUseCase {
 
       // Se for login explícito ou não achou sessão, faz login
       if (!usuario) {
-        usuario = await this.authGateway.login(request.email, request.senha);
+        usuario = await this.authGateway.login(request.email, request.senha ?? '');
       }
 
       // Cache local

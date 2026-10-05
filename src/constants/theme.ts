@@ -1,55 +1,57 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design system StudyRats — tokens extraídos das telas do Stitch
+ * (tema escuro navy, acento âmbar para ação/XP, roxo para IA/nível,
+ * verde para sincronizado, laranja para pendente).
  */
-
 import '@/global.css';
 
-import { Platform } from 'react-native';
-
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  background: '#0E121C',
+  surface: '#161C29',
+  surfaceRaised: '#1E2535',
+  surfaceInput: '#111622',
+  border: '#262E40',
+  borderStrong: '#323B50',
+
+  text: '#F3F5F9',
+  textSecondary: '#9AA3B5',
+  textMuted: '#667085',
+
+  primary: '#FDBA5C', // âmbar (CTA, XP)
+  primaryStrong: '#F59E0B',
+  primaryText: '#2A1A04',
+  primarySoft: 'rgba(253, 186, 92, 0.14)',
+
+  ai: '#8B5CF6', // roxo (IA, nível)
+  aiStrong: '#6D28D9',
+  aiSoft: 'rgba(139, 92, 246, 0.16)',
+  aiText: '#C4B5FD',
+
+  success: '#34D399', // sincronizado
+  successSoft: 'rgba(52, 211, 153, 0.14)',
+  warning: '#F59E0B', // pendente
+  warningSoft: 'rgba(245, 158, 11, 0.14)',
+  danger: '#F87171', // erro
+  dangerSoft: 'rgba(248, 113, 113, 0.14)',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+/** Paleta para o campo `cor` da entidade Disciplina. */
+export const DisciplinaCores = [
+  '#FDBA5C',
+  '#8B5CF6',
+  '#34D399',
+  '#38BDF8',
+  '#F472B6',
+  '#F87171',
+] as const;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+export const Fonts = {
+  regular: 'PlusJakartaSans_400Regular',
+  medium: 'PlusJakartaSans_500Medium',
+  semibold: 'PlusJakartaSans_600SemiBold',
+  bold: 'PlusJakartaSans_700Bold',
+  extrabold: 'PlusJakartaSans_800ExtraBold',
+} as const;
 
 export const Spacing = {
   half: 2,
@@ -61,5 +63,12 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const Radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  pill: 999,
+} as const;
+
+export const MaxContentWidth = 520;

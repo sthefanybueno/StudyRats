@@ -1,7 +1,6 @@
-// Repositórios
-import { InMemoryUsuarioRepository } from '../../infrastructure/repositories/InMemoryUsuarioRepository';
-import { InMemoryDisciplinaRepository } from '../../infrastructure/repositories/InMemoryDisciplinaRepository';
-import { InMemorySessaoEstudoRepository } from '../../infrastructure/repositories/InMemorySessaoEstudoRepository';
+import { LocalAsyncStorageUsuarioRepository } from '../../infrastructure/repositories/LocalAsyncStorageUsuarioRepository';
+import { LocalAsyncStorageDisciplinaRepository } from '../../infrastructure/repositories/LocalAsyncStorageDisciplinaRepository';
+import { LocalAsyncStorageSessaoEstudoRepository } from '../../infrastructure/repositories/LocalAsyncStorageSessaoEstudoRepository';
 import { InMemoryResumoIARepository } from '../../infrastructure/repositories/InMemoryResumoIARepository';
 import { InMemorySyncQueueRepository } from '../../infrastructure/repositories/InMemorySyncQueueRepository';
 
@@ -14,6 +13,7 @@ import { ExpoLocationGateway } from '../../infrastructure/gateways/ExpoLocationG
 
 // Use Cases
 import { AutenticarUsuarioUseCase } from '../use-cases/AutenticarUsuarioUseCase';
+import { CadastrarUsuarioUseCase } from '../use-cases/CadastrarUsuarioUseCase';
 import { CadastrarDisciplinaUseCase } from '../use-cases/CadastrarDisciplinaUseCase';
 import { CadastrarTopicoUseCase } from '../use-cases/CadastrarTopicoUseCase';
 import { GerarResumoUseCase } from '../use-cases/GerarResumoUseCase';
@@ -21,10 +21,10 @@ import { RegistrarSessaoUseCase } from '../use-cases/RegistrarSessaoUseCase';
 import { ConsultarRankingUseCase } from '../use-cases/ConsultarRankingUseCase';
 import { SincronizarFilaUseCase } from '../use-cases/SincronizarFilaUseCase';
 
-// 1. Instanciar Adapters (Singletons)
-const usuarioRepository = new InMemoryUsuarioRepository();
-const disciplinaRepository = new InMemoryDisciplinaRepository();
-const sessaoEstudoRepository = new InMemorySessaoEstudoRepository();
+// 1. Instanciar Adapters (Singletons com armazenamento local persistente em AsyncStorage)
+const usuarioRepository = new LocalAsyncStorageUsuarioRepository();
+const disciplinaRepository = new LocalAsyncStorageDisciplinaRepository();
+const sessaoEstudoRepository = new LocalAsyncStorageSessaoEstudoRepository();
 const resumoRepository = new InMemoryResumoIARepository();
 const syncQueueRepository = new InMemorySyncQueueRepository();
 
@@ -37,6 +37,8 @@ const locationGateway = new ExpoLocationGateway();
 // 2. Instanciar Use Cases injetando as dependências
 export const DIContainer = {
   autenticarUsuario: new AutenticarUsuarioUseCase(authGateway, usuarioRepository),
+  cadastrarUsuario: new CadastrarUsuarioUseCase(authGateway, usuarioRepository),
+  logout: () => authGateway.logout(),
   cadastrarDisciplina: new CadastrarDisciplinaUseCase(disciplinaRepository),
   cadastrarTopico: new CadastrarTopicoUseCase(disciplinaRepository),
   gerarResumo: new GerarResumoUseCase(aiGateway, resumoRepository),

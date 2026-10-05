@@ -1,18 +1,80 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import { DarkTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { Colors } from '@/constants/theme';
+import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+const navTheme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: Colors.background, card: Colors.surface, primary: Colors.primary },
+};
+
+function RootNavigator() {
+  const { usuario, restaurando, precisaOnboarding } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+
+  const pronto = fontsLoaded && !restaurando;
+
+  useEffect(() => {
+    if (pronto) {
+      SplashScreen.hideAsync();
+    }
+  }, [pronto]);
+
+  useEffect(() => {
+    if (!pronto) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inOnboardingGroup = segments[0] === '(onboarding)';
+
+    if (!usuario && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (usuario && precisaOnboarding && !inOnboardingGroup) {
+      router.replace('/(onboarding)/disciplinas');
+    } else if (usuario && !precisaOnboarding && (inAuthGroup || inOnboardingGroup)) {
+      router.replace('/(app)');
+    }
+  }, [usuario, precisaOnboarding, pronto, segments, router]);
+
+  if (!pronto) return null;
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background }, animation: 'fade' }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="(app)" />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider value={navTheme}>
+      <AuthProvider>
+        <StatusBar style="light" />
+        <RootNavigator />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
