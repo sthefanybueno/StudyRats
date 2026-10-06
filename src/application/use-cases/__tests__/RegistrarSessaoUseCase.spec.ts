@@ -1,9 +1,9 @@
-import { RegistrarSessaoUseCase } from './RegistrarSessaoUseCase';
-import { ISessaoEstudoRepository } from '../../domain/repositories/ISessaoEstudoRepository';
-import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
-import { ICameraGateway } from '../../domain/gateways/ICameraGateway';
-import { SessaoEstudo } from '../../domain/entities/SessaoEstudo';
-import { Usuario } from '../../domain/entities/Usuario';
+import { RegistrarSessaoUseCase } from '../RegistrarSessaoUseCase';
+import { ISessaoEstudoRepository } from '../../../domain/repositories/ISessaoEstudoRepository';
+import { IUsuarioRepository } from '../../../domain/repositories/IUsuarioRepository';
+import { ICameraGateway } from '../../../domain/gateways/ICameraGateway';
+import { SessaoEstudo } from '../../../domain/entities/SessaoEstudo';
+import { Usuario } from '../../../domain/entities/Usuario';
 
 class MockSessaoRepository implements ISessaoEstudoRepository {
   sessoes: SessaoEstudo[] = [];
@@ -21,6 +21,7 @@ class MockUsuarioRepository implements IUsuarioRepository {
     else this.usuarios.push(usuario);
   }
   async buscarPorId(id: string): Promise<Usuario | null> { return this.usuarios.find(u => u.id === id) || null; }
+  async listarTodos(): Promise<Usuario[]> { return this.usuarios; }
 }
 
 class MockCameraGateway implements ICameraGateway {

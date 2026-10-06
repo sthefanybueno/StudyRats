@@ -15,12 +15,26 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import type { SessaoEstudo } from '@/domain/entities/SessaoEstudo';
 import { useAuth } from '@/providers/AuthProvider';
+import { formatarTempoRegressivo, useSessaoFoco } from '@/providers/SessaoFocoProvider';
 
 export default function DashboardScreen() {
   const { usuario } = useAuth();
+  const { sessaoAtiva, pausarSessao, retomarSessao, concluirSessao } = useSessaoFoco();
   const [carregando, setCarregando] = useState(true);
   const [sessoes, setSessoes] = useState<SessaoEstudo[]>([]);
   const [disciplinasMap, setDisciplinasMap] = useState<Map<string, Disciplina>>(new Map());
+  const [salvandoSessao, setSalvandoSessao] = useState(false);
+
+  // Concluir Sessão diretamente do Dashboard
+  const handleConcluirSessaoDashboard = async () => {
+    if (!usuario) return;
+    setSalvandoSessao(true);
+    const res = await concluirSessao(usuario.id);
+    setSalvandoSessao(false);
+    if (res.isSuccess) {
+      await carregarDadosLocais();
+    }
+  };
 
   // Carregar dados reais locais a cada foco na tela
   const carregarDadosLocais = useCallback(async () => {
@@ -103,8 +117,97 @@ export default function DashboardScreen() {
         </View>
       </Animated.View>
 
+      {/* HERO CTA PRINCIPAL: Sessão de Foco (Super Destaque #1) */}
+      <Animated.View entering={FadeInDown.delay(100).duration(450)}>
+        {sessaoAtiva ? (
+          <Card accent={sessaoAtiva.disciplina.cor} style={styles.activeSessionDashboardCard}>
+            <View style={styles.activeSessionHeader}>
+              <View style={styles.rowInlineGap}>
+                <Ionicons name="timer-outline" size={20} color={Colors.primary} />
+                <AppText variant="title">Sessão de Foco</AppText>
+              </View>
+              <Pill
+                tone={sessaoAtiva.emExecucao ? 'success' : 'warning'}
+                dot
+                label={sessaoAtiva.emExecucao ? 'EM EXECUÇÃO' : 'PAUSADO'}
+              />
+            </View>
+
+            <View style={styles.activeSessionBody}>
+              <View style={styles.flex}>
+                <AppText variant="heading" color={sessaoAtiva.disciplina.cor}>
+                  {sessaoAtiva.disciplina.nome}
+                </AppText>
+                <AppText variant="caption" color={Colors.textSecondary}>
+                  {sessaoAtiva.topico ? sessaoAtiva.topico.nome : 'Sem tópico específico'}
+                </AppText>
+              </View>
+
+              <View style={styles.timerBoxDashboard}>
+                <AppText variant="display" color={Colors.primary} style={styles.timerTextDashboard}>
+                  {formatarTempoRegressivo(sessaoAtiva.segundosDecorridos, sessaoAtiva.duracaoAlvoMinutos)}
+                </AppText>
+              </View>
+            </View>
+
+            {/* Botões de Ação da Sessão de Foco */}
+            <View style={styles.activeSessionActions}>
+              {sessaoAtiva.emExecucao ? (
+                <Button
+                  label="Pausar"
+                  icon="pause"
+                  variant="secondary"
+                  onPress={pausarSessao}
+                  style={styles.flex}
+                />
+              ) : (
+                <Button
+                  label="Retomar"
+                  icon="play"
+                  variant="primary"
+                  onPress={retomarSessao}
+                  style={styles.flex}
+                />
+              )}
+
+              <Button
+                label="Concluir Sessão"
+                icon="checkmark-circle"
+                variant="primary"
+                loading={salvandoSessao}
+                onPress={handleConcluirSessaoDashboard}
+                style={styles.flex}
+              />
+            </View>
+          </Card>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Iniciar Nova Sessão de Foco"
+            onPress={() => router.push('/sessao/nova')}
+            style={({ pressed }) => [styles.heroActionBanner, pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] }]}>
+            <View style={styles.heroActionIconCircle}>
+              <Ionicons name="play" size={26} color={Colors.primary} />
+            </View>
+            <View style={styles.flex}>
+              <View style={styles.rowInlineGap}>
+                <AppText variant="title" color={Colors.primaryText} style={styles.boldText}>
+                  Sessão de Foco
+                </AppText>
+              </View>
+              <AppText variant="caption" color="rgba(42, 26, 4, 0.85)" style={styles.boldText}>
+                Iniciar Nova Sessão • Cronômetro & Registro Local
+              </AppText>
+            </View>
+            <View style={styles.heroActionArrowCircle}>
+              <Ionicons name="arrow-forward" size={22} color={Colors.primary} />
+            </View>
+          </Pressable>
+        )}
+      </Animated.View>
+
       {/* Card de Streak & Multiplicador */}
-      <Animated.View entering={FadeInDown.delay(120).duration(450)}>
+      <Animated.View entering={FadeInDown.delay(140).duration(450)}>
         <Card style={styles.streakCard}>
           <View style={styles.streakLeft}>
             <View style={styles.flameCircle}>
@@ -151,30 +254,6 @@ export default function DashboardScreen() {
             </AppText>
           </View>
         </Card>
-      </Animated.View>
-
-      {/* CTA Principal: Registrar Nova Sessão */}
-      <Animated.View entering={FadeInDown.delay(240).duration(450)}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Registrar Nova Sessão de Estudo"
-          onPress={() => router.push('/sessao/nova')}
-          style={({ pressed }) => [styles.actionBanner, pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }]}>
-          <View style={styles.actionIconCircle}>
-            <Ionicons name="flash" size={24} color={Colors.primaryText} />
-          </View>
-          <View style={styles.flex}>
-            <AppText variant="heading" color={Colors.text}>
-              Registrar Nova Sessão
-            </AppText>
-            <AppText variant="caption" color={Colors.textSecondary}>
-              Ganhe +10 XP por sessão • Salva localmente
-            </AppText>
-          </View>
-          <View style={styles.actionArrowCircle}>
-            <Ionicons name="chevron-forward" size={20} color={Colors.text} />
-          </View>
-        </Pressable>
       </Animated.View>
 
       {/* Grid de Estatísticas Rápidas (3 Cards calculados em tempo real) */}
@@ -371,37 +450,74 @@ const styles = StyleSheet.create({
   xpCard: { gap: Spacing.two + 2, padding: Spacing.four - 4 },
   xpHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   xpFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  actionBanner: {
+  heroActionBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-    padding: Spacing.four - 4,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.four - 4,
     borderRadius: Radius.xl,
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  actionIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.lg,
     backgroundColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: Colors.primaryStrong,
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  heroActionIconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: Radius.lg,
+    backgroundColor: '#2A1A04',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionArrowCircle: {
+  heroActionArrowCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surfaceRaised,
+    backgroundColor: '#2A1A04',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  activeSessionDashboardCard: {
+    gap: Spacing.three,
+    padding: Spacing.four - 4,
+    borderColor: Colors.primary,
+  },
+  activeSessionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  activeSessionBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surfaceInput,
+    padding: Spacing.three,
+    borderRadius: Radius.md,
+  },
+  timerBoxDashboard: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: Colors.surfaceRaised,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderStrong,
+  },
+  timerTextDashboard: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+  },
+  activeSessionActions: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  rowInlineGap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statsRow: { flexDirection: 'row', gap: Spacing.two },
   statCard: { flex: 1, padding: Spacing.three - 2, gap: 6 },
   statTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

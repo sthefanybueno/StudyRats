@@ -15,9 +15,12 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import type { Topico } from '@/domain/entities/Topico';
 import { useAuth } from '@/providers/AuthProvider';
+import { formatarTempoRegressivo, useSessaoFoco } from '@/providers/SessaoFocoProvider';
 
 export default function NovaSessaoScreen() {
   const { usuario } = useAuth();
+  const { sessaoAtiva, iniciarSessao, pausarSessao, retomarSessao, concluirSessao, cancelarSessao } = useSessaoFoco();
+
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [disciplinaSelecionada, setDisciplinaSelecionada] = useState<Disciplina | null>(null);
   const [topicoSelecionado, setTopicoSelecionado] = useState<Topico | null>(null);
@@ -52,6 +55,39 @@ export default function NovaSessaoScreen() {
       }
     });
   }, [usuario]);
+
+  // Iniciar Sessão de Foco
+  const handleIniciarSessaoFoco = () => {
+    if (!usuario) return;
+    if (!disciplinaSelecionada) {
+      setErroMsg('Selecione uma disciplina');
+      return;
+    }
+    iniciarSessao({
+      disciplina: disciplinaSelecionada,
+      topico: topicoSelecionado,
+      duracaoAlvoMinutos: duracaoMinutos,
+      anexarGps,
+      fotoUri,
+    });
+    router.replace('/(app)');
+  };
+
+  // Finalizar Sessão Ativa em Execução
+  const handleFinalizarSessaoAtiva = async () => {
+    if (!usuario) return;
+    setSalvando(true);
+    const res = await concluirSessao(usuario.id);
+    setSalvando(false);
+    if (res.isSuccess) {
+      setSucessoMsg(`+${res.xpGanho} XP Registrados com sucesso!`);
+      setTimeout(() => {
+        router.replace('/(app)');
+      }, 1200);
+    } else {
+      setErroMsg(res.error || 'Erro ao concluir sessão');
+    }
+  };
 
   // Atualizar tópico selecionado ao trocar disciplina
   const selecionarDisciplina = (d: Disciplina) => {
@@ -138,13 +174,40 @@ export default function NovaSessaoScreen() {
   return (
     <Screen
       footer={
-        sucessoMsg ? null : (
+        sucessoMsg ? null : sessaoAtiva ? (
+          <View style={styles.runningFooterRow}>
+            {sessaoAtiva.emExecucao ? (
+              <Button
+                label="Pausar"
+                icon="pause"
+                variant="secondary"
+                onPress={pausarSessao}
+                style={styles.flex}
+              />
+            ) : (
+              <Button
+                label="Retomar"
+                icon="play"
+                variant="primary"
+                onPress={retomarSessao}
+                style={styles.flex}
+              />
+            )}
+            <Button
+              label="Concluir Sessão"
+              icon="checkmark-circle"
+              variant="primary"
+              loading={salvando}
+              onPress={handleFinalizarSessaoAtiva}
+              style={styles.flex}
+            />
+          </View>
+        ) : (
           <Button
-            testID="concluir-sessao-btn"
-            label={`Concluir e Ganhar +${duracaoMinutos} XP`}
-            icon="flash"
-            loading={salvando}
-            onPress={handleConcluirSessao}
+            testID="iniciar-sessao-btn"
+            label="Iniciar Sessão de Foco"
+            icon="play"
+            onPress={handleIniciarSessaoFoco}
           />
         )
       }>
@@ -172,6 +235,52 @@ export default function NovaSessaoScreen() {
             <AppText variant="body" color={Colors.textSecondary} style={styles.centerText}>
               Sua sessão foi blindada localmente no dispositivo. Retornando ao Dashboard...
             </AppText>
+          </Card>
+        </Animated.View>
+      ) : sessaoAtiva ? (
+        <Animated.View entering={FadeInDown.duration(400)}>
+          <Card accent={sessaoAtiva.disciplina.cor} style={styles.runningTimerCard}>
+            <View style={styles.runningTimerHeader}>
+              <Pill
+                tone={sessaoAtiva.emExecucao ? 'success' : 'warning'}
+                dot
+                label={sessaoAtiva.emExecucao ? 'EM EXECUÇÃO' : 'PAUSADO'}
+              />
+              <AppText variant="caption" color={Colors.textMuted}>
+                Alvo: {sessaoAtiva.duracaoAlvoMinutos} min
+              </AppText>
+            </View>
+
+            <View style={styles.timerDisplayContainer}>
+              <AppText variant="display" style={styles.timerDisplayText}>
+                {formatarTempoRegressivo(sessaoAtiva.segundosDecorridos, sessaoAtiva.duracaoAlvoMinutos)}
+              </AppText>
+              <AppText variant="caption" color={Colors.textSecondary}>
+                TEMPO DE FOCO RESTANTE
+              </AppText>
+            </View>
+
+            <View style={styles.runningMetaInfo}>
+              <View style={styles.rowGap}>
+                <Ionicons name="journal" size={18} color={sessaoAtiva.disciplina.cor} />
+                <AppText variant="heading">{sessaoAtiva.disciplina.nome}</AppText>
+              </View>
+              {sessaoAtiva.topico && (
+                <View style={styles.rowGap}>
+                  <Ionicons name="bookmark-outline" size={14} color={Colors.textSecondary} />
+                  <AppText variant="caption" color={Colors.textSecondary}>
+                    {sessaoAtiva.topico.nome}
+                  </AppText>
+                </View>
+              )}
+            </View>
+
+            <Button
+              label="Cancelar Sessão"
+              variant="secondary"
+              icon="close-circle-outline"
+              onPress={cancelarSessao}
+            />
           </Card>
         </Animated.View>
       ) : (
@@ -441,6 +550,40 @@ export default function NovaSessaoScreen() {
 }
 
 const styles = StyleSheet.create({
+  runningFooterRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  runningTimerCard: {
+    gap: Spacing.four,
+    padding: Spacing.four,
+    alignItems: 'center',
+  },
+  runningTimerHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  timerDisplayContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.three,
+  },
+  timerDisplayText: {
+    fontSize: 56,
+    lineHeight: 64,
+    color: Colors.primary,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+  },
+  runningMetaInfo: {
+    width: '100%',
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingVertical: Spacing.two,
+    backgroundColor: Colors.surfaceInput,
+    borderRadius: Radius.md,
+  },
+  rowGap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   backButton: {
     width: 40,

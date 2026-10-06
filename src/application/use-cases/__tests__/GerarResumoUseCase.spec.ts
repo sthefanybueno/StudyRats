@@ -1,7 +1,7 @@
-import { GerarResumoUseCase } from './GerarResumoUseCase';
-import { IAIGateway } from '../../domain/gateways/IAIGateway';
-import { IResumoIARepository } from '../../domain/repositories/IResumoIARepository';
-import { ResumoIA } from '../../domain/entities/ResumoIA';
+import { GerarResumoUseCase } from '../GerarResumoUseCase';
+import { IAIGateway } from '../../../domain/gateways/IAIGateway';
+import { IResumoIARepository } from '../../../domain/repositories/IResumoIARepository';
+import { ResumoIA } from '../../../domain/entities/ResumoIA';
 
 class MockAIGateway implements IAIGateway {
   shouldFail = false;

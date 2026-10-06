@@ -14,8 +14,11 @@ import { ExpoLocationGateway } from '../../infrastructure/gateways/ExpoLocationG
 // Use Cases
 import { AutenticarUsuarioUseCase } from '../use-cases/AutenticarUsuarioUseCase';
 import { CadastrarUsuarioUseCase } from '../use-cases/CadastrarUsuarioUseCase';
+import { AtualizarPerfilUseCase } from '../use-cases/AtualizarPerfilUseCase';
 import { CadastrarDisciplinaUseCase } from '../use-cases/CadastrarDisciplinaUseCase';
 import { CadastrarTopicoUseCase } from '../use-cases/CadastrarTopicoUseCase';
+import { AtualizarTopicoUseCase } from '../use-cases/AtualizarTopicoUseCase';
+import { DeletarTopicoUseCase } from '../use-cases/DeletarTopicoUseCase';
 import { GerarResumoUseCase } from '../use-cases/GerarResumoUseCase';
 import { RegistrarSessaoUseCase } from '../use-cases/RegistrarSessaoUseCase';
 import { ConsultarRankingUseCase } from '../use-cases/ConsultarRankingUseCase';
@@ -38,9 +41,12 @@ const locationGateway = new ExpoLocationGateway();
 export const DIContainer = {
   autenticarUsuario: new AutenticarUsuarioUseCase(authGateway, usuarioRepository),
   cadastrarUsuario: new CadastrarUsuarioUseCase(authGateway, usuarioRepository),
+  atualizarPerfil: new AtualizarPerfilUseCase(usuarioRepository),
   logout: () => authGateway.logout(),
   cadastrarDisciplina: new CadastrarDisciplinaUseCase(disciplinaRepository),
   cadastrarTopico: new CadastrarTopicoUseCase(disciplinaRepository),
+  atualizarTopico: new AtualizarTopicoUseCase(disciplinaRepository),
+  deletarTopico: new DeletarTopicoUseCase(disciplinaRepository),
   gerarResumo: new GerarResumoUseCase(aiGateway, resumoRepository),
   registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway), // Passar os Gateways reais
   consultarRanking: new ConsultarRankingUseCase(syncGateway),

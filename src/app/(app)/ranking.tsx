@@ -1,66 +1,75 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { DIContainer } from '@/application/di/container';
 import { BrandMark } from '@/components/Brand';
 import { AppText } from '@/components/ui/AppText';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import type { Usuario } from '@/domain/entities/Usuario';
 import { useAuth } from '@/providers/AuthProvider';
-
-/** Competidores simulados para compor o ranking global e posicionar o usuário dinamicamente */
-const TOP_COMPETIDORES = [
-  { rank: 1, nome: 'Lucas M.', materia: 'Engenharia • Computação', xp: 2850, streak: '25d', titulo: 'Lenda Madrugada', podio: true },
-  { rank: 2, nome: 'Beatriz L.', materia: 'Medicina • Anatomia', xp: 2410, streak: '18d', titulo: 'Mestre do Foco', podio: true },
-  { rank: 3, nome: 'Rafael C.', materia: 'Direito • Constitucional', xp: 2190, streak: '15d', titulo: 'Rato Biblioteca', podio: true },
-  { rank: 4, nome: 'Mariana Silva', materia: 'Neuroanatomia • Medicina', xp: 2040, streak: '19d' },
-  { rank: 5, nome: 'Thiago Souza', materia: 'Algoritmos • C. Computação', xp: 1960, streak: '12d' },
-  { rank: 6, nome: 'Clara Nogueira', materia: 'Direito Constitucional', xp: 1890, streak: '16d' },
-  { rank: 7, nome: 'Gabriel Ramos', materia: 'Cálculo Diferencial • Eng', xp: 1820, streak: '8d' },
-  { rank: 8, nome: 'Sofia Martins', materia: 'Bioquímica Celular', xp: 1750, streak: '22d' },
-  { rank: 9, nome: 'Enzo Farias', materia: 'Física Quântica', xp: 1680, streak: '11d' },
-  { rank: 10, nome: 'Júlia Duarte', materia: 'Macroeconomia II', xp: 1610, streak: '15d' },
-  { rank: 11, nome: 'Felipe Castro', materia: 'Estatística Aplicada', xp: 1570, streak: '9d' },
-  { rank: 12, nome: 'Laura Peixoto', materia: 'Farmacologia Clínica', xp: 1510, streak: '14d' },
-  { rank: 13, nome: 'Bruno Ribeiro', materia: 'Inteligência Artificial', xp: 1462, streak: '13d' },
-  { rank: 15, nome: 'Camila Andrade', materia: 'Direito Penal • OAB', xp: 1390, streak: '6d' },
-];
 
 export default function RankingScreen() {
   const { usuario } = useAuth();
-  const [subTab, setSubTab] = useState<'geral' | 'faculdade' | 'grupo'>('geral');
+  const [usuariosRanking, setUsuariosRanking] = useState<Usuario[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
-  const userXp = usuario?.xpTotal ?? 1420;
-  const userStreak = usuario?.streakAtual ?? 14;
-  const primeiroNome = usuario?.nomeExibicao ?? 'Alex';
-
-  // Calcular posição do usuário logado dinamicamente com base no seu XP real
-  const calcularPosicao = () => {
-    let pos = 1;
-    for (const c of TOP_COMPETIDORES) {
-      if (userXp < c.xp) {
-        pos = c.rank + 1;
+  // Carregar usuários reais cadastrados no banco local
+  const carregarRanking = useCallback(async () => {
+    setCarregando(true);
+    try {
+      const lista = await DIContainer.repositories.usuario.listarTodos();
+      // Garantir que o usuário atual está na lista se estiver logado
+      if (usuario && !lista.some(u => u.id === usuario.id)) {
+        lista.push(usuario);
       }
+      // Ordenar por XP Total (decrescente)
+      lista.sort((a, b) => b.xpTotal - a.xpTotal);
+      setUsuariosRanking(lista);
+    } catch (e) {
+      console.error('Erro ao carregar ranking:', e);
+      if (usuario) setUsuariosRanking([usuario]);
+    } finally {
+      setCarregando(false);
     }
-    return Math.max(1, pos);
-  };
+  }, [usuario]);
 
-  const userRank = calcularPosicao();
+  useFocusEffect(
+    useCallback(() => {
+      carregarRanking();
+    }, [carregarRanking])
+  );
+
+  const userRankIndex = usuariosRanking.findIndex(u => u.id === usuario?.id);
+  const userRank = userRankIndex >= 0 ? userRankIndex + 1 : 1;
+  const userXp = usuario?.xpTotal ?? 0;
+  const userStreak = usuario?.streakAtual ?? 0;
+  const primeiroNome = usuario?.nomeExibicao ?? 'Usuário';
+
+  const usuarioTop1 = usuariosRanking[0];
+  const usuarioTop2 = usuariosRanking[1];
+  const usuarioTop3 = usuariosRanking[2];
+  const outrosUsuarios = usuariosRanking.slice(3);
 
   return (
     <Screen contentStyle={styles.content}>
       {/* Header Superior */}
       <View style={styles.topHeader}>
-        <BrandMark subtitle="Ranking" />
+        <BrandMark subtitle="Ranking Local" />
         <View style={styles.topHeaderRight}>
-          <Pill tone="success" dot label="Sync" />
+          <Pill tone="success" dot label="Sync Local" />
           <View style={styles.avatarBox}>
-            <AppText variant="label" color={Colors.primary}>
-              {primeiroNome[0]?.toUpperCase()}
-            </AppText>
+            {usuario?.fotoUrl ? (
+              <Image source={{ uri: usuario.fotoUrl }} style={styles.avatarImageSmall} />
+            ) : (
+              <AppText variant="label" color={Colors.primary}>
+                {primeiroNome[0]?.toUpperCase()}
+              </AppText>
+            )}
           </View>
         </View>
       </View>
@@ -70,35 +79,10 @@ export default function RankingScreen() {
         <View style={styles.rowGap}>
           <View style={styles.greenDot} />
           <AppText variant="caption" color={Colors.textSecondary}>
-            Ranking Online Atualizado há 5 min • <AppText variant="caption" color={Colors.text} style={styles.boldText}>Top 50</AppText>
+            Ranking Local Atualizado • <AppText variant="caption" color={Colors.text} style={styles.boldText}>{usuariosRanking.length} {usuariosRanking.length === 1 ? 'Usuário Cadastrado' : 'Usuários Cadastrados'}</AppText>
           </AppText>
         </View>
-        <Ionicons name="refresh-outline" size={16} color={Colors.textMuted} />
-      </View>
-
-      {/* Sub Tabs */}
-      <View style={styles.subTabRow}>
-        <Pressable
-          onPress={() => setSubTab('geral')}
-          style={[styles.subTab, subTab === 'geral' && styles.subTabActive]}>
-          <AppText variant="label" color={subTab === 'geral' ? Colors.text : Colors.textMuted}>
-            Geral
-          </AppText>
-        </Pressable>
-        <Pressable
-          onPress={() => setSubTab('faculdade')}
-          style={[styles.subTab, subTab === 'faculdade' && styles.subTabActive]}>
-          <AppText variant="label" color={subTab === 'faculdade' ? Colors.text : Colors.textMuted}>
-            Minha Faculdade
-          </AppText>
-        </Pressable>
-        <Pressable
-          onPress={() => setSubTab('grupo')}
-          style={[styles.subTab, subTab === 'grupo' && styles.subTabActive]}>
-          <AppText variant="label" color={subTab === 'grupo' ? Colors.text : Colors.textMuted}>
-            Meu Grupo
-          </AppText>
-        </Pressable>
+        <Ionicons name="people-outline" size={16} color={Colors.textMuted} />
       </View>
 
       {/* Card Fixo do Usuário Logado */}
@@ -112,174 +96,217 @@ export default function RankingScreen() {
             </View>
             <View style={styles.flex}>
               <AppText variant="title">{primeiroNome} (Você)</AppText>
+              {usuario?.nomeUsuario ? (
+                <AppText variant="caption" color={Colors.primary} style={styles.boldText}>
+                  {usuario.nomeUsuario}
+                </AppText>
+              ) : null}
               <View style={styles.rowGap}>
                 <AppText variant="heading" color={Colors.primary}>
                   {userXp.toLocaleString()} <AppText variant="caption" color={Colors.textSecondary}>XP</AppText>
                 </AppText>
                 <AppText variant="caption" color={Colors.textMuted}>
-                  • {userRank > 1 ? `${(TOP_COMPETIDORES[userRank - 2]?.xp ?? userXp + 42) - userXp} pts para ultrapassar #${userRank - 1}` : 'Você é o #1!'}
+                  • {userRank === 1 ? 'Líder do Ranking! 👑' : `Posição #${userRank}`}
                 </AppText>
               </View>
             </View>
-            <Pill tone="success" label="↗ +3 hoje! 🚀" />
+            <Pill tone="success" label="● Ativo" />
           </View>
           <View style={styles.userRankFooter}>
-            <Pill tone="warning" icon="flame" label={`${userStreak} Dias`} />
-            <Pill tone="neutral" label="Multiplicador 1.5x" />
+            <Pill tone="warning" icon="flame" label={`${userStreak} Dias de Streak`} />
+            <Pill tone="neutral" label="Dados Locais do Aparelho" />
           </View>
         </Card>
       </Animated.View>
 
-      {/* Pódio Semanal (Top 3) */}
+      {/* Pódio dos Cadastrados */}
       <View style={styles.podioSection}>
         <View style={styles.sectionHeader}>
-          <AppText variant="heading">🏆 Pódio Semanal</AppText>
-          <AppText variant="overline" color={Colors.textMuted}>
-            Temporada 04
-          </AppText>
+          <AppText variant="heading">🏆 Pódio dos Estudantes</AppText>
+          <Pill tone="primary" label={`${usuariosRanking.length} Cadastrado(s)`} />
         </View>
 
         <View style={styles.podioRow}>
           {/* #2 Lugar */}
-          <View style={[styles.podioCard, styles.podioCard2]}>
-            <View style={[styles.avatarCircle, { borderColor: '#A0AEC0' }]}>
-              <Ionicons name="person" size={20} color="#A0AEC0" />
+          {usuarioTop2 ? (
+            <View style={[styles.podioCard, styles.podioCard2]}>
+              <View style={[styles.avatarCircle, { borderColor: '#A0AEC0' }]}>
+                {usuarioTop2.fotoUrl ? (
+                  <Image source={{ uri: usuarioTop2.fotoUrl }} style={styles.podioAvatarImage} />
+                ) : (
+                  <AppText variant="label" color="#A0AEC0">
+                    {usuarioTop2.nomeExibicao[0]?.toUpperCase()}
+                  </AppText>
+                )}
+              </View>
+              <Pill tone="neutral" label="#2" />
+              <AppText variant="label" numberOfLines={1} style={styles.centerText}>
+                {usuarioTop2.nomeExibicao}
+              </AppText>
+              {usuarioTop2.nomeUsuario ? (
+                <AppText variant="caption" color={Colors.textSecondary} style={styles.centerText}>
+                  {usuarioTop2.nomeUsuario}
+                </AppText>
+              ) : null}
+              <AppText variant="heading" color={Colors.primary}>
+                {usuarioTop2.xpTotal}
+              </AppText>
+              <AppText variant="caption" color={Colors.textSecondary}>
+                XP
+              </AppText>
             </View>
-            <Pill tone="neutral" label="#2" />
-            <AppText variant="label" style={styles.centerText}>
-              Beatriz L.
-            </AppText>
-            <AppText variant="caption" color={Colors.textMuted} style={styles.centerText}>
-              Mestre do Foco
-            </AppText>
-            <AppText variant="heading" color={Colors.primary}>
-              2.410
-            </AppText>
-            <AppText variant="caption" color={Colors.textSecondary}>
-              XP
-            </AppText>
-          </View>
+          ) : (
+            <View style={[styles.podioCard, styles.podioCard2, styles.podioEmpty]}>
+              <Ionicons name="person-outline" size={24} color={Colors.textMuted} />
+              <AppText variant="caption" color={Colors.textMuted}>
+                Vago
+              </AppText>
+            </View>
+          )}
 
           {/* #1 Lugar (Destaque Central) */}
-          <View style={[styles.podioCard, styles.podioCard1]}>
-            <View style={styles.crownBox}>
-              <Ionicons name="star" size={16} color={Colors.primary} />
+          {usuarioTop1 && (
+            <View style={[styles.podioCard, styles.podioCard1]}>
+              <View style={styles.crownBox}>
+                <Ionicons name="star" size={16} color={Colors.primary} />
+              </View>
+              <View style={[styles.avatarCircle, styles.avatarCircle1]}>
+                {usuarioTop1.fotoUrl ? (
+                  <Image source={{ uri: usuarioTop1.fotoUrl }} style={styles.podioAvatarImage1} />
+                ) : (
+                  <AppText variant="title" color={Colors.primary}>
+                    {usuarioTop1.nomeExibicao[0]?.toUpperCase()}
+                  </AppText>
+                )}
+              </View>
+              <Pill tone="primary" label="#1" />
+              <AppText variant="heading" numberOfLines={1} style={styles.centerText}>
+                {usuarioTop1.nomeExibicao}
+              </AppText>
+              <AppText variant="caption" color={Colors.primary} style={styles.centerText}>
+                {usuarioTop1.nomeUsuario || (usuarioTop1.id === usuario?.id ? 'Você' : 'Líder')}
+              </AppText>
+              <AppText variant="display" color={Colors.primary}>
+                {usuarioTop1.xpTotal}
+              </AppText>
+              <AppText variant="caption" color={Colors.textSecondary}>
+                XP TOTAL
+              </AppText>
             </View>
-            <View style={[styles.avatarCircle, styles.avatarCircle1]}>
-              <Ionicons name="person" size={24} color={Colors.primary} />
-            </View>
-            <Pill tone="primary" label="#1" />
-            <AppText variant="heading" style={styles.centerText}>
-              Lucas M.
-            </AppText>
-            <AppText variant="caption" color={Colors.primary} style={styles.centerText}>
-              Lenda Madrugada
-            </AppText>
-            <AppText variant="display" color={Colors.primary}>
-              2.850
-            </AppText>
-            <AppText variant="caption" color={Colors.textSecondary}>
-              XP TOTAL
-            </AppText>
-          </View>
+          )}
 
           {/* #3 Lugar */}
-          <View style={[styles.podioCard, styles.podioCard3]}>
-            <View style={[styles.avatarCircle, { borderColor: '#CD7F32' }]}>
-              <Ionicons name="person" size={20} color="#CD7F32" />
-            </View>
-            <Pill tone="neutral" label="#3" />
-            <AppText variant="label" style={styles.centerText}>
-              Rafael C.
-            </AppText>
-            <AppText variant="caption" color={Colors.textMuted} style={styles.centerText}>
-              Rato Biblioteca
-            </AppText>
-            <AppText variant="heading" color={Colors.primary}>
-              2.190
-            </AppText>
-            <AppText variant="caption" color={Colors.textSecondary}>
-              XP
-            </AppText>
-          </View>
-        </View>
-      </View>
-
-      {/* Lista de Concorrentes (#4 a #15 + Posição do Usuário) */}
-      <View style={styles.listSection}>
-        <View style={styles.sectionHeader}>
-          <AppText variant="overline" color={Colors.textSecondary}>
-            TOP CONCORRENTES (#4 • #15)
-          </AppText>
-          <AppText variant="overline" color={Colors.textMuted}>
-            Sequência / XP
-          </AppText>
-        </View>
-
-        {TOP_COMPETIDORES.filter(c => !c.podio).map(comp => (
-          <Card key={comp.rank} style={styles.rankRowCard}>
-            <AppText variant="heading" color={Colors.textSecondary} style={styles.rankNumber}>
-              #{comp.rank}
-            </AppText>
-            <View style={styles.rowAvatarBox}>
-              <Ionicons name="person-circle-outline" size={32} color={Colors.textMuted} />
-            </View>
-            <View style={styles.flex}>
-              <AppText variant="label">{comp.nome}</AppText>
-              <AppText variant="caption" color={Colors.textSecondary}>
-                {comp.materia}
-              </AppText>
-            </View>
-            <View style={styles.rankRowRight}>
-              <AppText variant="label" color={Colors.primary}>
-                {comp.xp.toLocaleString()} <AppText variant="caption" color={Colors.textSecondary}>XP</AppText>
-              </AppText>
-              <AppText variant="caption" color={Colors.textMuted}>
-                🔥 {comp.streak}
-              </AppText>
-            </View>
-          </Card>
-        ))}
-
-        {/* Linha Destacada do Usuário Logado */}
-        <Card style={styles.userHighlightedRowCard}>
-          <AppText variant="heading" color={Colors.primaryText} style={styles.rankNumber}>
-            #{userRank}
-          </AppText>
-          <View style={styles.rowAvatarBox}>
-            <Ionicons name="person-circle" size={32} color={Colors.primaryText} />
-          </View>
-          <View style={styles.flex}>
-            <View style={styles.rowGap}>
-              <AppText variant="heading" color={Colors.primaryText}>
-                {primeiroNome} (Você)
-              </AppText>
-              <View style={styles.voceBadge}>
-                <AppText variant="caption" color="#000" style={styles.boldText}>
-                  VOCÊ
-                </AppText>
+          {usuarioTop3 ? (
+            <View style={[styles.podioCard, styles.podioCard3]}>
+              <View style={[styles.avatarCircle, { borderColor: '#CD7F32' }]}>
+                {usuarioTop3.fotoUrl ? (
+                  <Image source={{ uri: usuarioTop3.fotoUrl }} style={styles.podioAvatarImage} />
+                ) : (
+                  <AppText variant="label" color="#CD7F32">
+                    {usuarioTop3.nomeExibicao[0]?.toUpperCase()}
+                  </AppText>
+                )}
               </View>
+              <Pill tone="neutral" label="#3" />
+              <AppText variant="label" numberOfLines={1} style={styles.centerText}>
+                {usuarioTop3.nomeExibicao}
+              </AppText>
+              {usuarioTop3.nomeUsuario ? (
+                <AppText variant="caption" color={Colors.textSecondary} style={styles.centerText}>
+                  {usuarioTop3.nomeUsuario}
+                </AppText>
+              ) : null}
+              <AppText variant="heading" color={Colors.primary}>
+                {usuarioTop3.xpTotal}
+              </AppText>
+              <AppText variant="caption" color={Colors.textSecondary}>
+                XP
+              </AppText>
             </View>
-            <AppText variant="caption" color={Colors.primaryText}>
-              Sistemas Operacionais • TI
-            </AppText>
-          </View>
-          <View style={styles.rankRowRight}>
-            <AppText variant="heading" color={Colors.primaryText}>
-              {userXp.toLocaleString()} <AppText variant="caption" color={Colors.primaryText}>XP</AppText>
-            </AppText>
-            <AppText variant="caption" color={Colors.primaryText}>
-              🔥 {userStreak}d
-            </AppText>
-          </View>
-        </Card>
+          ) : (
+            <View style={[styles.podioCard, styles.podioCard3, styles.podioEmpty]}>
+              <Ionicons name="person-outline" size={24} color={Colors.textMuted} />
+              <AppText variant="caption" color={Colors.textMuted}>
+                Vago
+              </AppText>
+            </View>
+          )}
+        </View>
       </View>
 
-      {/* Warning Footer */}
+      {/* Lista de Concorrentes (#4 em diante) */}
+      {outrosUsuarios.length > 0 && (
+        <View style={styles.listSection}>
+          <View style={styles.sectionHeader}>
+            <AppText variant="overline" color={Colors.textSecondary}>
+              DEMAIS USUÁRIOS CADASTRADOS
+            </AppText>
+            <AppText variant="overline" color={Colors.textMuted}>
+              XP Total
+            </AppText>
+          </View>
+
+          {outrosUsuarios.map((comp, idx) => {
+            const rankPos = idx + 4;
+            const isUser = comp.id === usuario?.id;
+
+            return (
+              <Card
+                key={comp.id}
+                style={isUser ? styles.userHighlightedRowCard : styles.rankRowCard}>
+                <AppText
+                  variant="heading"
+                  color={isUser ? Colors.primaryText : Colors.textSecondary}
+                  style={styles.rankNumber}>
+                  #{rankPos}
+                </AppText>
+                <View style={styles.rowAvatarBox}>
+                  {comp.fotoUrl ? (
+                    <Image source={{ uri: comp.fotoUrl }} style={styles.listAvatarImage} />
+                  ) : (
+                    <Ionicons
+                      name="person-circle"
+                      size={32}
+                      color={isUser ? Colors.primaryText : Colors.textMuted}
+                    />
+                  )}
+                </View>
+                <View style={styles.flex}>
+                  <AppText variant="label" color={isUser ? Colors.primaryText : Colors.text}>
+                    {comp.nomeExibicao} {isUser && '(Você)'}
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    color={isUser ? Colors.primaryText : Colors.textSecondary}>
+                    {comp.nomeUsuario || comp.email.getValue}
+                  </AppText>
+                </View>
+                <View style={styles.rankRowRight}>
+                  <AppText variant="label" color={isUser ? Colors.primaryText : Colors.primary}>
+                    {comp.xpTotal.toLocaleString()}{' '}
+                    <AppText
+                      variant="caption"
+                      color={isUser ? Colors.primaryText : Colors.textSecondary}>
+                      XP
+                    </AppText>
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    color={isUser ? Colors.primaryText : Colors.textMuted}>
+                    🔥 {comp.streakAtual}d
+                  </AppText>
+                </View>
+              </Card>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Footer informativo */}
       <Card style={styles.warningFooterCard}>
-        <Ionicons name="wifi-outline" size={20} color={Colors.success} />
+        <Ionicons name="cube-outline" size={20} color={Colors.success} />
         <AppText variant="caption" color={Colors.textSecondary} style={styles.flex}>
-          O ranking requer conexão com a internet para sincronizar pontuações e conquistas dos outros ratos de estudo em tempo real.
+          Exibindo apenas os usuários reais cadastrados no banco de dados local do seu aplicativo.
         </AppText>
       </Card>
     </Screen>
@@ -299,6 +326,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImageSmall: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
   statusBanner: {
     flexDirection: 'row',
@@ -312,9 +345,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   greenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success },
-  subTabRow: { flexDirection: 'row', gap: Spacing.two, backgroundColor: Colors.surfaceInput, padding: 4, borderRadius: Radius.lg },
-  subTab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: Radius.md },
-  subTabActive: { backgroundColor: Colors.surfaceRaised },
   userRankCard: { gap: Spacing.three, padding: Spacing.four - 4, borderColor: Colors.primary, backgroundColor: 'rgba(253,186,92,0.06)' },
   userRankTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three - 2 },
   rankBadgeBox: { width: 44, height: 44, borderRadius: Radius.md, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
@@ -326,19 +356,23 @@ const styles = StyleSheet.create({
   podioCard1: { height: 190, borderColor: Colors.primary, backgroundColor: 'rgba(253,186,92,0.08)' },
   podioCard2: { height: 160 },
   podioCard3: { height: 160 },
+  podioEmpty: { justifyContent: 'center', opacity: 0.5, borderStyle: 'dashed' },
   crownBox: { marginBottom: -4 },
-  avatarCircle: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surfaceRaised },
+  avatarCircle: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surfaceRaised, overflow: 'hidden' },
   avatarCircle1: { width: 52, height: 52, borderRadius: 26, borderColor: Colors.primary },
+  podioAvatarImage: { width: 40, height: 40, borderRadius: 20 },
+  podioAvatarImage1: { width: 48, height: 48, borderRadius: 24 },
   listSection: { gap: Spacing.two },
   rankRowCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three - 2, padding: Spacing.three },
   userHighlightedRowCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three - 2, padding: Spacing.three, backgroundColor: Colors.primary, borderColor: Colors.primaryStrong },
   rankNumber: { width: 32, textAlign: 'center' },
-  rowAvatarBox: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  rowAvatarBox: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  listAvatarImage: { width: 32, height: 32, borderRadius: 16 },
   rankRowRight: { alignItems: 'flex-end' },
-  voceBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: Radius.pill, backgroundColor: Colors.primaryText },
   warningFooterCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 2, padding: Spacing.three + 2 },
   flex: { flex: 1 },
   rowGap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   boldText: { fontFamily: 'PlusJakartaSans_700Bold' },
   centerText: { textAlign: 'center' },
 });
+

@@ -1,4 +1,4 @@
-import { ResumoIA } from './ResumoIA';
+import { ResumoIA } from '../ResumoIA';
 
 describe('ResumoIA Entity', () => {
   it('should create a new ResumoIA with valid attributes', () => {

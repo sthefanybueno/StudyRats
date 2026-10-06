@@ -3,6 +3,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { DIContainer } from '@/application/di/container';
 import type { Usuario } from '@/domain/entities/Usuario';
 
+export interface AtualizarPerfilPayload {
+  nomeExibicao?: string;
+  nomeUsuario?: string;
+  fotoUrl?: string;
+}
+
 interface AuthContextValue {
   usuario: Usuario | null;
   restaurando: boolean;
@@ -10,6 +16,7 @@ interface AuthContextValue {
   precisaOnboarding: boolean;
   login: (email: string, senha: string) => Promise<string | null>;
   cadastrar: (nome: string, email: string, senha: string) => Promise<string | null>;
+  atualizarPerfil: (payload: AtualizarPerfilPayload) => Promise<string | null>;
   concluirOnboarding: () => void;
   logout: () => Promise<void>;
 }
@@ -49,6 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
+  const atualizarPerfil = useCallback(async (payload: AtualizarPerfilPayload) => {
+    if (!usuario) return 'Usuário não autenticado';
+    const res = await DIContainer.atualizarPerfil.execute({ usuarioId: usuario.id, ...payload });
+    if (!res.isSuccess) return res.error;
+    const atualizado = await DIContainer.repositories.usuario.buscarPorId(usuario.id);
+    if (atualizado) setUsuario(atualizado);
+    return null;
+  }, [usuario]);
+
+
   const concluirOnboarding = useCallback(() => setPrecisaOnboarding(false), []);
 
   const logout = useCallback(async () => {
@@ -58,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ usuario, restaurando, precisaOnboarding, login, cadastrar, concluirOnboarding, logout }),
-    [usuario, restaurando, precisaOnboarding, login, cadastrar, concluirOnboarding, logout]
+    () => ({ usuario, restaurando, precisaOnboarding, login, cadastrar, atualizarPerfil, concluirOnboarding, logout }),
+    [usuario, restaurando, precisaOnboarding, login, cadastrar, atualizarPerfil, concluirOnboarding, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

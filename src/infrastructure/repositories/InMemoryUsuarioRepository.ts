@@ -11,4 +11,8 @@ export class InMemoryUsuarioRepository implements IUsuarioRepository {
   async buscarPorId(id: string): Promise<Usuario | null> {
     return this.usuarios.get(id) || null;
   }
+
+  async listarTodos(): Promise<Usuario[]> {
+    return Array.from(this.usuarios.values());
+  }
 }

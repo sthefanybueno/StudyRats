@@ -4,6 +4,8 @@ export interface UsuarioProps {
   id: string; // ID will come from Supabase Auth in this case
   email: Email;
   nomeExibicao: string;
+  nomeUsuario?: string;
+  fotoUrl?: string;
   xpTotal?: number;
   xpSemanal?: number;
   streakAtual?: number;
@@ -22,6 +24,14 @@ export class Usuario {
 
   public get nomeExibicao(): string {
     return this.props.nomeExibicao;
+  }
+
+  public get nomeUsuario(): string | undefined {
+    return this.props.nomeUsuario;
+  }
+
+  public get fotoUrl(): string | undefined {
+    return this.props.fotoUrl;
   }
 
   public get xpTotal(): number {
@@ -52,6 +62,33 @@ export class Usuario {
     this.props.streakAtual = 0;
   }
 
+  public atualizarNomeExibicao(novoNome: string): void {
+    if (!novoNome || novoNome.trim() === '') {
+      throw new Error('O nome de exibição é obrigatório');
+    }
+    this.props.nomeExibicao = novoNome.trim();
+  }
+
+  public atualizarNomeUsuario(novoUsername?: string): void {
+    if (!novoUsername || novoUsername.trim() === '') {
+      this.props.nomeUsuario = undefined;
+      return;
+    }
+    let limpo = novoUsername.trim();
+    if (limpo.startsWith('@')) {
+      limpo = limpo.substring(1).trim();
+    }
+    const regex = /^[a-zA-Z0-9._]{3,30}$/;
+    if (!regex.test(limpo)) {
+      throw new Error('O username deve ter de 3 a 30 caracteres (letras, números, . ou _)');
+    }
+    this.props.nomeUsuario = `@${limpo}`;
+  }
+
+  public atualizarFotoUrl(novaFotoUrl?: string): void {
+    this.props.fotoUrl = novaFotoUrl && novaFotoUrl.trim() !== '' ? novaFotoUrl.trim() : undefined;
+  }
+
   public static create(props: Omit<UsuarioProps, 'email'> & { email: string | Email }): Usuario {
     if (!props.id || props.id.trim() === '') {
       throw new Error('O ID do usuário (Auth) é obrigatório');
@@ -63,12 +100,24 @@ export class Usuario {
 
     const email = props.email instanceof Email ? props.email : Email.create(props.email);
 
+    let nomeUsuarioFormatado = props.nomeUsuario;
+    if (nomeUsuarioFormatado && nomeUsuarioFormatado.trim()) {
+      let limpo = nomeUsuarioFormatado.trim();
+      if (!limpo.startsWith('@')) {
+        limpo = `@${limpo}`;
+      }
+      nomeUsuarioFormatado = limpo;
+    }
+
     return new Usuario({
       ...props,
       email,
+      nomeUsuario: nomeUsuarioFormatado,
+      fotoUrl: props.fotoUrl,
       xpTotal: props.xpTotal ?? 0,
       xpSemanal: props.xpSemanal ?? 0,
       streakAtual: props.streakAtual ?? 0,
     });
   }
 }
+

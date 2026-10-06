@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 
 import { Colors } from '@/constants/theme';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
+import { SessaoFocoProvider } from '@/providers/SessaoFocoProvider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,8 +73,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={navTheme}>
       <AuthProvider>
-        <StatusBar style="light" />
-        <RootNavigator />
+        <SessaoFocoProvider>
+          <StatusBar style="light" />
+          <RootNavigator />
+        </SessaoFocoProvider>
       </AuthProvider>
     </ThemeProvider>
   );

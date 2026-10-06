@@ -1,6 +1,6 @@
-import { ConsultarRankingUseCase } from './ConsultarRankingUseCase';
-import { ISyncGateway } from '../../domain/gateways/ISyncGateway';
-import { Usuario } from '../../domain/entities/Usuario';
+import { ConsultarRankingUseCase } from '../ConsultarRankingUseCase';
+import { ISyncGateway } from '../../../domain/gateways/ISyncGateway';
+import { Usuario } from '../../../domain/entities/Usuario';
 
 class MockSyncGateway implements ISyncGateway {
   async fazerUploadFoto(uri: string, path: string): Promise<string> { return ''; }

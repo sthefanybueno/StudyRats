@@ -1,6 +1,6 @@
-import { SessaoEstudo } from './SessaoEstudo';
-import { FotoSessao } from './FotoSessao';
-import { Coordenada } from '../value-objects/Coordenada';
+import { SessaoEstudo } from '../SessaoEstudo';
+import { FotoSessao } from '../FotoSessao';
+import { Coordenada } from '../../value-objects/Coordenada';
 
 describe('SessaoEstudo Entity', () => {
   it('should create a new SessaoEstudo with valid attributes', () => {

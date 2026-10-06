@@ -1,6 +1,6 @@
-import { CadastrarDisciplinaUseCase } from './CadastrarDisciplinaUseCase';
-import { IDisciplinaRepository } from '../../domain/repositories/IDisciplinaRepository';
-import { Disciplina } from '../../domain/entities/Disciplina';
+import { CadastrarDisciplinaUseCase } from '../CadastrarDisciplinaUseCase';
+import { IDisciplinaRepository } from '../../../domain/repositories/IDisciplinaRepository';
+import { Disciplina } from '../../../domain/entities/Disciplina';
 
 class MockDisciplinaRepository implements IDisciplinaRepository {
   public disciplinas: Disciplina[] = [];

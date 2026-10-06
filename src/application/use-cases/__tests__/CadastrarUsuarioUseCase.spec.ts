@@ -1,7 +1,7 @@
-import { CadastrarUsuarioUseCase } from './CadastrarUsuarioUseCase';
-import { IAuthGateway } from '../../domain/gateways/IAuthGateway';
-import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
-import { Usuario } from '../../domain/entities/Usuario';
+import { CadastrarUsuarioUseCase } from '../CadastrarUsuarioUseCase';
+import { IAuthGateway } from '../../../domain/gateways/IAuthGateway';
+import { IUsuarioRepository } from '../../../domain/repositories/IUsuarioRepository';
+import { Usuario } from '../../../domain/entities/Usuario';
 
 class MockAuthGateway implements IAuthGateway {
   emailsExistentes = ['usado@test.com'];
@@ -20,6 +20,7 @@ class MockUsuarioRepository implements IUsuarioRepository {
   usuarios: Usuario[] = [];
   async salvar(usuario: Usuario): Promise<void> { this.usuarios.push(usuario); }
   async buscarPorId(id: string): Promise<Usuario | null> { return this.usuarios.find(u => u.id === id) || null; }
+  async listarTodos(): Promise<Usuario[]> { return this.usuarios; }
 }
 
 const setup = () => {

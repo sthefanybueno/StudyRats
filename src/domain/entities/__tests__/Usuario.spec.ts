@@ -1,5 +1,4 @@
-import { Usuario } from './Usuario';
-import { Email } from '../value-objects/Email';
+import { Usuario } from '../Usuario';
 
 describe('Usuario Entity', () => {
   it('should create a new Usuario with valid attributes and default XP', () => {
@@ -39,7 +38,7 @@ describe('Usuario Entity', () => {
     });
 
     usuario.adicionarXP(50);
-    
+
     expect(usuario.xpTotal).toBe(50);
     expect(usuario.xpSemanal).toBe(50);
   });
@@ -57,5 +56,52 @@ describe('Usuario Entity', () => {
 
     usuario.resetarStreak();
     expect(usuario.streakAtual).toBe(0);
+  });
+
+  it('should update nomeExibicao correctly', () => {
+    const usuario = Usuario.create({
+      id: '123',
+      email: 'test@test.com',
+      nomeExibicao: 'Nome Antigo',
+    });
+
+    usuario.atualizarNomeExibicao('Novo Nome');
+    expect(usuario.nomeExibicao).toBe('Novo Nome');
+  });
+
+  it('should throw error when updating nomeExibicao to empty string', () => {
+    const usuario = Usuario.create({
+      id: '123',
+      email: 'test@test.com',
+      nomeExibicao: 'Nome Antigo',
+    });
+
+    expect(() => usuario.atualizarNomeExibicao('')).toThrow('O nome de exibição é obrigatório');
+  });
+
+  it('should update nomeUsuario and fotoUrl correctly', () => {
+    const usuario = Usuario.create({
+      id: '123',
+      email: 'test@test.com',
+      nomeExibicao: 'Nome',
+    });
+
+    usuario.atualizarNomeUsuario('joao_dev');
+    expect(usuario.nomeUsuario).toBe('@joao_dev');
+
+    usuario.atualizarFotoUrl('file:///path/to/avatar.jpg');
+    expect(usuario.fotoUrl).toBe('file:///path/to/avatar.jpg');
+  });
+
+  it('should throw error for invalid username format', () => {
+    const usuario = Usuario.create({
+      id: '123',
+      email: 'test@test.com',
+      nomeExibicao: 'Nome',
+    });
+
+    expect(() => usuario.atualizarNomeUsuario('ab')).toThrow(
+      'O username deve ter de 3 a 30 caracteres (letras, números, . ou _)'
+    );
   });
 });

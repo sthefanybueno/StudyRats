@@ -1,5 +1,5 @@
-import { Disciplina } from './Disciplina';
-import { Topico } from './Topico';
+import { Disciplina } from '../Disciplina';
+import { Topico } from '../Topico';
 
 describe('Disciplina Entity', () => {
   it('should create a new Disciplina with valid attributes', () => {

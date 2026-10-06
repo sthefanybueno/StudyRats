@@ -37,6 +37,23 @@ export class Disciplina {
     this._topicos.push(topico);
   }
 
+  public removerTopico(topicoId: string): void {
+    const topico = this._topicos.find(t => t.id === topicoId);
+    if (topico) {
+      topico.marcarComoDeletado();
+      this.props.updatedAt = new Date();
+    }
+  }
+
+  public atualizarTopico(topicoId: string, novoNome: string): void {
+    const topico = this._topicos.find(t => t.id === topicoId && !t.deletedAt);
+    if (!topico) {
+      throw new Error('Tópico não encontrado');
+    }
+    topico.atualizarNome(novoNome);
+    this.props.updatedAt = new Date();
+  }
+
   public marcarComoDeletada(): void {
     this.props.deletedAt = new Date();
     this._topicos.forEach(t => t.marcarComoDeletado());

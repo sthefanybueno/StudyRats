@@ -24,6 +24,8 @@ export class LocalAsyncStorageUsuarioRepository implements IUsuarioRepository {
       id: usuario.id,
       email: usuario.email.getValue,
       nomeExibicao: usuario.nomeExibicao,
+      nomeUsuario: usuario.nomeUsuario,
+      fotoUrl: usuario.fotoUrl,
       xpTotal: usuario.xpTotal,
       xpSemanal: usuario.xpSemanal,
       streakAtual: usuario.streakAtual,
@@ -39,9 +41,35 @@ export class LocalAsyncStorageUsuarioRepository implements IUsuarioRepository {
       id: item.id,
       email: item.email,
       nomeExibicao: item.nomeExibicao,
+      nomeUsuario: item.nomeUsuario,
+      fotoUrl: item.fotoUrl,
       xpTotal: item.xpTotal,
       xpSemanal: item.xpSemanal,
       streakAtual: item.streakAtual,
     });
   }
+
+  async listarTodos(): Promise<Usuario[]> {
+    const todos = await this.carregarTodos();
+    const lista: Usuario[] = [];
+    for (const key of Object.keys(todos)) {
+      const item = todos[key];
+      if (item && item.id) {
+        lista.push(
+          Usuario.create({
+            id: item.id,
+            email: item.email,
+            nomeExibicao: item.nomeExibicao,
+            nomeUsuario: item.nomeUsuario,
+            fotoUrl: item.fotoUrl,
+            xpTotal: item.xpTotal || 0,
+            xpSemanal: item.xpSemanal || 0,
+            streakAtual: item.streakAtual || 0,
+          })
+        );
+      }
+    }
+    return lista;
+  }
 }
+

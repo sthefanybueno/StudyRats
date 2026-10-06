@@ -23,6 +23,15 @@ export class Topico {
 
   public marcarComoDeletado(): void {
     this.props.deletedAt = new Date();
+    this.props.updatedAt = new Date();
+  }
+
+  public atualizarNome(novoNome: string): void {
+    if (!novoNome || novoNome.trim() === '') {
+      throw new Error('O nome do tópico não pode ser vazio');
+    }
+    this.props.nome = novoNome.trim();
+    this.props.updatedAt = new Date();
   }
 
   public atualizarSyncStatus(status: StatusSincronizacaoType): void {

@@ -1,4 +1,4 @@
-import { FotoSessao } from './FotoSessao';
+import { FotoSessao } from '../FotoSessao';
 
 describe('FotoSessao Entity', () => {
   it('should create a new FotoSessao with valid attributes', () => {

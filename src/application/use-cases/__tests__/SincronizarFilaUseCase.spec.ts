@@ -1,8 +1,8 @@
-import { SincronizarFilaUseCase } from './SincronizarFilaUseCase';
-import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueRepository';
-import { ISyncGateway } from '../../domain/gateways/ISyncGateway';
-import { SyncQueueItem } from '../../domain/entities/SyncQueueItem';
-import { Usuario } from '../../domain/entities/Usuario';
+import { SincronizarFilaUseCase } from '../SincronizarFilaUseCase';
+import { ISyncQueueRepository } from '../../../domain/repositories/ISyncQueueRepository';
+import { ISyncGateway } from '../../../domain/gateways/ISyncGateway';
+import { SyncQueueItem } from '../../../domain/entities/SyncQueueItem';
+import { Usuario } from '../../../domain/entities/Usuario';
 
 class MockSyncQueueRepo implements ISyncQueueRepository {
   itens: SyncQueueItem[] = [];
