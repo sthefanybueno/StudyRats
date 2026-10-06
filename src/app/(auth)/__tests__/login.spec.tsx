@@ -12,6 +12,20 @@ describe('<LoginScreen /> (RNTL Screen Test)', () => {
   let mockContainer: any;
   let usuarioRepo: InMemoryUsuarioRepository;
   let authGateway: MockAuthGateway;
+  
+  const originalError = console.error;
+
+  beforeAll(() => {
+    // Silencia o warning inofensivo de overlapping act do React Native Testing Library
+    console.error = (...args) => {
+      if (typeof args[0] === 'string' && args[0].includes('overlapping act')) return;
+      originalError.call(console, ...args);
+    };
+  });
+
+  afterAll(() => {
+    console.error = originalError;
+  });
 
   beforeEach(() => {
     usuarioRepo = new InMemoryUsuarioRepository();
