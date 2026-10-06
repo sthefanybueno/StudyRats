@@ -1,0 +1,94 @@
+<USER_REQUEST>
+Lembra da primeira apresentação que fizemos? Em @[apresentacao].
+Precisamos elaborar uma nova apresentação, agora seguindo o estilo das telas que geramos abordando o seguinte:
+
+1. Camada de Domínio Puro (/domain)
+Contém as regras de negócio centrais e é 100% puro, sem importação de bibliotecas ou frameworks.
+[INSERIR PROVAS VERIFICÁVEIS]
+
+- Value Objects: Imutáveis, sem id próprio, validados na criação
+[INSERIR OS PRINCIPAIS VALUE OBJECTS]
+[INSERIR PROVAS VERIFICÁVEIS]
+
+- Entidades e Agregados: 
+[INSERIR PROVAS VERIFICÁVEIS DOS PRINCIPAIS CITADOS]
+
+- Serviços de Domínio: 
+[INSERIR O QUE É]
+[INSERIR PROVAS VERIFICÁVEIS DOS CITADOS]
+
+- Contratos e Interfaces Declarativas:
+[INSERIR O QUE É]
+[INSERIR PROVAS VERIFICÁVEIS DOS CITADOS]
+
+2. Camada de Aplicação (application/use-cases/)
+Contém a lógica de orquestração do sistema, chamam as entidades e se comunicam através dos repositórios e gateways sem conter regras de negócio puras ou código de interface.
+
+- Casos de uso implementados:
+[INSERIR OS CASOS IMPLEMENTADOS E SUAS FUNÇÕES]
+[INSERIR PROVAS VERIFICÁVEIS DOS MAIS RELEVANTES PARA O SISTEMA]
+
+
+- Testes com Fakes In-Memory: Via TDD
+[INSERIR OS TESTES IMPLEMENTADOS MAIS RELEVANTES]
+[INSERIR A COBERTURA DOS TESTES]
+
+3. Camada de Adaptadores, Estado Global e Context API (adapters/)
+
+- Context API: Gerenciamento do estado global
+[INSERIR PROVAS VERIFICÁVEIS DOS CITADOS]
+[INSERIR OS CASOS IMPLEMENTADOS E SUAS FUNÇÕES]
+
+- Gerenciamento de Sessão Segura:
+[INSERIR O QUE É]
+[INSERIR OS CASOS IMPLEMENTADOS E SUAS FUNÇÕES]
+
+- Custom Hooks:
+[INSERIR O QUE É]
+[INSERIR OS CASOS IMPLEMENTADOS MAIS RELEVANTES PARA O SISTEMA E SUAS FUNÇÕES]
+
+- Gateways de Hardware (Adapters):
+[INSERIR O QUE É]
+[INSERIR OS CASOS IMPLEMENTADOS E SUAS FUNÇÕES]
+
+4. Camada de Interface do Usuário e Rotas (app/ e adapters/screens/)
+
+- Navegação e Rotas:
+[INSERIR A ORGANIZAÇÃO DA ÁRVORE DE ARQUIVOS E O QUE ESTÁ CONTIDO EM CADA "GALHO"]
+
+- Layouts e Componentes Visuais:
+[INSERIR PROVAS VERIFICÁVEIS DOS CITADOS]
+
+- Telas Principais:
+[INSERIR AS TELAS PRINCIPAIS E SUAS FUNCIONALIDADES]
+[INSERIR OS PRINTS ENVIADOS]
+
+- Suíte de Testes da Camada Visual
+[INSERIR PROVAS VERIFICÁVEIS]
+
+5. O que FICA EM MOCK / FAKE nesta fase (Sem Banco ou Hardware Real)
+
+- Componentes que permanecem mockados ou em memória:
+
+- Sem Armazenamento Permanente Real:
+[INSERIR PROVAS VERIFICÁVEIS]
+
+- Sem Acesso Nativo a Sensores:
+[INSERIR PROVAS VERIFICÁVEIS]
+
+- Fakes de Repositorio e Session Stubs:
+[INSERIR PROVAS VERIFICÁVEIS]
+
+- Relatório de Cobertura de Código das Camadas Centrais
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-06T09:10:03-03:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+@[apresentacao] is a [Directory]:
+c:\Desenvolvimento\MOBILE_StudyRats\StudyRats\apresentacao
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.6 Flash (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
