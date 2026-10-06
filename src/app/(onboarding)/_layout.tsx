@@ -1,10 +1,11 @@
 import { Stack } from 'expo-router';
-
-import { Colors } from '@/constants/theme';
 import { OnboardingProvider } from '@/providers/OnboardingProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 /** RF02 — onboarding em 3 telas após o primeiro cadastro. */
 export default function OnboardingLayout() {
+    const { colors: Colors } = useAppTheme();
+
   return (
     <OnboardingProvider>
       <Stack

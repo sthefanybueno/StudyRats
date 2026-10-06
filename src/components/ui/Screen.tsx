@@ -3,7 +3,8 @@ import { type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 interface ScreenProps {
   children: ReactNode;
@@ -14,16 +15,19 @@ interface ScreenProps {
 
 /** Fundo navy com brilhos suaves âmbar/roxo, scroll e teclado tratados. */
 export function Screen({ children, footer, contentStyle }: ScreenProps) {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   return (
     <View style={styles.root}>
       <LinearGradient
         pointerEvents="none"
-        colors={['rgba(139,92,246,0.18)', 'transparent']}
+        colors={['rgba(56,103,214,0.06)', 'transparent']}
         style={styles.glowTop}
       />
       <LinearGradient
         pointerEvents="none"
-        colors={['transparent', 'rgba(253,186,92,0.10)']}
+        colors={['transparent', 'rgba(136,84,208,0.06)']}
         style={styles.glowBottom}
       />
       <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
@@ -42,7 +46,7 @@ export function Screen({ children, footer, contentStyle }: ScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   flex: { flex: 1 },
   glowTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 320 },

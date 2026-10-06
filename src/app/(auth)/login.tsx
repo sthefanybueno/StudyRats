@@ -9,11 +9,15 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
 import { TextField } from '@/components/ui/TextField';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/providers/AuthProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 /** UC02 — Fazer Login (RF03). */
 export default function LoginScreen() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -115,7 +119,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   content: { justifyContent: 'center', gap: Spacing.five },
   hero: { alignItems: 'center', gap: Spacing.three },
   center: { textAlign: 'center' },

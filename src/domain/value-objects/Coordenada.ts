@@ -1,10 +1,11 @@
 export interface CoordenadaProps {
   latitude: number;
   longitude: number;
+  timestamp?: Date;
 }
 
 export class Coordenada {
-  private constructor(private readonly props: CoordenadaProps) {}
+  private constructor(private readonly props: Required<CoordenadaProps>) {}
 
   public get latitude(): number {
     return this.props.latitude;
@@ -12,6 +13,10 @@ export class Coordenada {
 
   public get longitude(): number {
     return this.props.longitude;
+  }
+
+  public get timestamp(): Date {
+    return this.props.timestamp;
   }
 
   public static create(props: CoordenadaProps): Coordenada {
@@ -22,6 +27,10 @@ export class Coordenada {
       throw new Error('Longitude inválida');
     }
 
-    return new Coordenada(props);
+    return new Coordenada({
+      latitude: props.latitude,
+      longitude: props.longitude,
+      timestamp: props.timestamp ?? new Date(),
+    });
   }
 }

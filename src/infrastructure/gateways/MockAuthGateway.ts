@@ -28,12 +28,14 @@ export class MockAuthGateway implements IAuthGateway {
     ],
   ]);
 
+  constructor(private readonly delayMs: number = 0) {}
+
   async obterUsuarioLogado(): Promise<Usuario | null> {
     return this.usuarioAtual;
   }
 
   async login(email: string, senha: string): Promise<Usuario> {
-    await delay(700);
+    if (this.delayMs > 0) await delay(this.delayMs);
     const conta = this.contas.get(email.toLowerCase());
     if (!conta || conta.senha !== senha) {
       throw new Error('Email ou senha incorretos');
@@ -43,7 +45,7 @@ export class MockAuthGateway implements IAuthGateway {
   }
 
   async cadastrar(email: string, senha: string, nomeExibicao: string): Promise<Usuario> {
-    await delay(900);
+    if (this.delayMs > 0) await delay(this.delayMs);
     const chave = email.toLowerCase();
     if (this.contas.has(chave)) {
       throw new Error('Este email já está em uso');

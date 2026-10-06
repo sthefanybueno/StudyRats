@@ -3,7 +3,9 @@ import { forwardRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { AppText } from './AppText';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useAppTheme } from "@/providers/ThemeProvider";
+import { Colors as GlobalColors } from "@/constants/theme";
 
 interface TextFieldProps extends TextInputProps {
   label: string;
@@ -17,22 +19,24 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   { label, icon, error, hint, secure, style, onFocus, onBlur, ...rest },
   ref
 ) {
+  const { colors: Colors } = useAppTheme();
+  const styles = useStyles(Colors);
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(true);
 
-  const borderColor = error ? Colors.danger : focused ? Colors.primary : Colors.border;
+  const borderColor = error ? GlobalColors.danger : focused ? GlobalColors.primary : GlobalColors.border;
 
   return (
     <View style={styles.wrapper}>
-      <AppText variant="caption" color={Colors.textSecondary}>
+      <AppText variant="caption" color={GlobalColors.textSecondary}>
         {label}
       </AppText>
       <View style={[styles.field, { borderColor }]}>
-        <Ionicons name={icon} size={18} color={focused ? Colors.primary : Colors.textMuted} />
+        <Ionicons name={icon} size={18} color={focused ? GlobalColors.primary : GlobalColors.textMuted} />
         <TextInput
           ref={ref}
-          placeholderTextColor={Colors.textMuted}
-          selectionColor={Colors.primary}
+          placeholderTextColor={GlobalColors.textMuted}
+          selectionColor={GlobalColors.primary}
           secureTextEntry={secure && hidden}
           onFocus={e => {
             setFocused(true);
@@ -51,16 +55,16 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
             accessibilityRole="button"
             accessibilityLabel={hidden ? 'Mostrar senha' : 'Ocultar senha'}
             onPress={() => setHidden(h => !h)}>
-            <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={18} color={Colors.textMuted} />
+            <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={18} color={GlobalColors.textMuted} />
           </Pressable>
         )}
       </View>
       {error ? (
-        <AppText variant="caption" color={Colors.danger}>
+        <AppText variant="caption" color={GlobalColors.danger}>
           {error}
         </AppText>
       ) : hint ? (
-        <AppText variant="caption" color={Colors.textMuted}>
+        <AppText variant="caption" color={GlobalColors.textMuted}>
           {hint}
         </AppText>
       ) : null}
@@ -68,7 +72,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   wrapper: { gap: Spacing.two },
   field: {
     flexDirection: 'row',
@@ -76,7 +80,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two + 4,
     minHeight: 52,
     paddingHorizontal: Spacing.three,
-    borderRadius: Radius.md,
+    borderRadius: 16,
     borderWidth: 1,
     backgroundColor: Colors.surfaceInput,
   },

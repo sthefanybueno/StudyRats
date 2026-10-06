@@ -11,13 +11,17 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
 import { TextField } from '@/components/ui/TextField';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import type { Topico } from '@/domain/entities/Topico';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatarTempoRegressivo, useSessaoFoco } from '@/providers/SessaoFocoProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 export default function NovaSessaoScreen() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { usuario } = useAuth();
   const { sessaoAtiva, iniciarSessao, pausarSessao, retomarSessao, concluirSessao, cancelarSessao } = useSessaoFoco();
 
@@ -549,7 +553,7 @@ export default function NovaSessaoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   runningFooterRow: {
     flexDirection: 'row',
     gap: Spacing.two,

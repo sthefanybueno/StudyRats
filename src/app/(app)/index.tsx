@@ -11,13 +11,17 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill, ProgressBar } from '@/components/ui/Surface';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import type { SessaoEstudo } from '@/domain/entities/SessaoEstudo';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatarTempoRegressivo, useSessaoFoco } from '@/providers/SessaoFocoProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 export default function DashboardScreen() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { usuario } = useAuth();
   const { sessaoAtiva, pausarSessao, retomarSessao, concluirSessao } = useSessaoFoco();
   const [carregando, setCarregando] = useState(true);
@@ -195,7 +199,7 @@ export default function DashboardScreen() {
                   Sessão de Foco
                 </AppText>
               </View>
-              <AppText variant="caption" color="rgba(42, 26, 4, 0.85)" style={styles.boldText}>
+              <AppText variant="caption" color="rgba(255, 255, 255, 0.85)" style={styles.boldText}>
                 Iniciar Nova Sessão • Cronômetro & Registro Local
               </AppText>
             </View>
@@ -393,7 +397,7 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   content: { gap: Spacing.four },
   topHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },
@@ -470,7 +474,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: Radius.lg,
-    backgroundColor: '#2A1A04',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -478,7 +482,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#2A1A04',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },

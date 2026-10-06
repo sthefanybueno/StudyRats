@@ -11,11 +11,15 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
 import { TextField } from '@/components/ui/TextField';
-import { Colors, DisciplinaCores, Radius, Spacing } from '@/constants/theme';
+import { DisciplinaCores, Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import { useAuth } from '@/providers/AuthProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 export default function MateriasScreen() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { usuario } = useAuth();
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -435,7 +439,7 @@ export default function MateriasScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   content: { gap: Spacing.four },
   topHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },

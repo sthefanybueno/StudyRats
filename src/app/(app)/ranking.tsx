@@ -9,11 +9,15 @@ import { BrandMark } from '@/components/Brand';
 import { AppText } from '@/components/ui/AppText';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import type { Usuario } from '@/domain/entities/Usuario';
 import { useAuth } from '@/providers/AuthProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 export default function RankingScreen() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { usuario } = useAuth();
   const [usuariosRanking, setUsuariosRanking] = useState<Usuario[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -234,20 +238,20 @@ export default function RankingScreen() {
         </View>
       </View>
 
-      {/* Lista de Concorrentes (#4 em diante) */}
-      {outrosUsuarios.length > 0 && (
+      {/* Lista de Concorrentes (Ranking Completo) */}
+      {usuariosRanking.length > 0 && (
         <View style={styles.listSection}>
           <View style={styles.sectionHeader}>
             <AppText variant="overline" color={Colors.textSecondary}>
-              DEMAIS USUÁRIOS CADASTRADOS
+              RANKING COMPLETO
             </AppText>
             <AppText variant="overline" color={Colors.textMuted}>
               XP Total
             </AppText>
           </View>
 
-          {outrosUsuarios.map((comp, idx) => {
-            const rankPos = idx + 4;
+          {usuariosRanking.map((comp, idx) => {
+            const rankPos = idx + 1;
             const isUser = comp.id === usuario?.id;
 
             return (
@@ -313,7 +317,7 @@ export default function RankingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   content: { gap: Spacing.four },
   topHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },

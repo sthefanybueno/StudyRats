@@ -2,6 +2,7 @@ import { AutenticarUsuarioUseCase } from '../AutenticarUsuarioUseCase';
 import { IAuthGateway } from '../../../domain/gateways/IAuthGateway';
 import { IUsuarioRepository } from '../../../domain/repositories/IUsuarioRepository';
 import { Usuario } from '../../../domain/entities/Usuario';
+import { InMemorySessionStorage } from '../../../infrastructure/storage/InMemorySessionStorage';
 
 class MockAuthGateway implements IAuthGateway {
   async obterUsuarioLogado(): Promise<Usuario | null> { return null; }
@@ -47,6 +48,23 @@ describe('AutenticarUsuarioUseCase', () => {
     expect(response.isSuccess).toBe(false);
     if (!response.isSuccess) {
       expect(response.error).toBe('Credenciais inválidas');
+    }
+  });
+
+  it('should restore session from ISessionStorage when available', async () => {
+    const gateway = new MockAuthGateway();
+    const repo = new MockUsuarioRepository();
+    const sessionStorage = new InMemorySessionStorage();
+    const user = Usuario.create({ id: 'user-saved-token', email: 'session@test.com', nomeExibicao: 'Session User' });
+    await repo.salvar(user);
+    await sessionStorage.salvarSessionToken('user-saved-token');
+
+    const useCase = new AutenticarUsuarioUseCase(gateway, repo, sessionStorage);
+    const response = await useCase.execute({ email: '', isLogin: false });
+
+    expect(response.isSuccess).toBe(true);
+    if (response.isSuccess) {
+      expect(response.value.id).toBe('user-saved-token');
     }
   });
 });

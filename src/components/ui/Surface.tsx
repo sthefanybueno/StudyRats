@@ -4,9 +4,14 @@ import { type ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { AppText } from './AppText';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useAppTheme } from "@/providers/ThemeProvider";
+import { Colors as GlobalColors } from "@/constants/theme";
 
 export function Card({ children, style, accent }: { children: ReactNode; style?: ViewStyle; accent?: string }) {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   return (
     <View style={[styles.card, accent ? { borderLeftWidth: 3, borderLeftColor: accent } : null, style]}>{children}</View>
   );
@@ -15,11 +20,11 @@ export function Card({ children, style, accent }: { children: ReactNode; style?:
 type Tone = 'primary' | 'ai' | 'success' | 'warning' | 'neutral';
 
 const tones: Record<Tone, { bg: string; fg: string }> = {
-  primary: { bg: Colors.primarySoft, fg: Colors.primary },
-  ai: { bg: Colors.aiSoft, fg: Colors.aiText },
-  success: { bg: Colors.successSoft, fg: Colors.success },
-  warning: { bg: Colors.warningSoft, fg: Colors.warning },
-  neutral: { bg: Colors.surfaceRaised, fg: Colors.textSecondary },
+  primary: { bg: GlobalColors.primarySoft, fg: GlobalColors.primary },
+  ai: { bg: GlobalColors.aiSoft, fg: GlobalColors.aiText },
+  success: { bg: GlobalColors.successSoft, fg: GlobalColors.success },
+  warning: { bg: GlobalColors.warningSoft, fg: GlobalColors.warning },
+  neutral: { bg: GlobalColors.surfaceRaised, fg: GlobalColors.textSecondary },
 };
 
 /** Selo em pílula, como "● Sincronizado" / "+45 XP" nas telas do Stitch. */
@@ -34,6 +39,9 @@ export function Pill({
   icon?: keyof typeof Ionicons.glyphMap;
   dot?: boolean;
 }) {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const t = tones[tone];
   return (
     <View style={[styles.pill, { backgroundColor: t.bg }]}>
@@ -48,6 +56,9 @@ export function Pill({
 
 /** Barra de progresso com gradiente âmbar → verde (igual ao card de XP). */
 export function ProgressBar({ progress, colors }: { progress: number; colors?: [string, string] }) {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const pct = Math.max(0, Math.min(1, progress));
   return (
     <View style={styles.track}>
@@ -61,13 +72,18 @@ export function ProgressBar({ progress, colors }: { progress: number; colors?: [
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: Colors.border,
     padding: Spacing.three,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   pill: {
     flexDirection: 'row',

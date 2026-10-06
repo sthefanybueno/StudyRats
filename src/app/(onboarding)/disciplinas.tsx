@@ -11,14 +11,18 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
 import { TextField } from '@/components/ui/TextField';
-import { Colors, DisciplinaCores, Radius, Spacing } from '@/constants/theme';
+import { DisciplinaCores, Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import { useAuth } from '@/providers/AuthProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 const SUGESTOES = ['Cálculo', 'Física', 'Programação', 'Química', 'Biologia', 'História', 'Inglês', 'Direito'];
 
 /** Onboarding 1/3 — escolher disciplinas (RF02 → UC04 / CadastrarDisciplinaUseCase). */
 export default function OnboardingDisciplinas() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { usuario } = useAuth();
   const [nome, setNome] = useState('');
   const [cor, setCor] = useState<string>(DisciplinaCores[0]);
@@ -176,7 +180,7 @@ export default function OnboardingDisciplinas() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   heading: { gap: Spacing.two },
   form: { gap: Spacing.three, padding: Spacing.four - 4 },
   colorRow: { gap: Spacing.two },

@@ -10,11 +10,15 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
 import { TextField } from '@/components/ui/TextField';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/providers/AuthProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 /** UC01 — Fazer Cadastro (RF01): email, senha e nome de exibição. */
 export default function CadastroScreen() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { cadastrar } = useAuth();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -136,7 +140,7 @@ export default function CadastroScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   content: { gap: Spacing.four },
   heading: { gap: Spacing.three },
   perks: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },

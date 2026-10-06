@@ -8,8 +8,9 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card } from '@/components/ui/Surface';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useOnboarding } from '@/providers/OnboardingProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 const OPCOES = [
   { minutos: 30, titulo: 'Casual', descricao: 'Um pouquinho todo dia', icon: 'leaf-outline' },
@@ -29,6 +30,9 @@ function Opcao({
   ativa: boolean;
   onPress: () => void;
 }) {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const style = useAnimatedStyle(() => ({
     borderColor: withTiming(ativa ? Colors.primary : Colors.border, { duration: 200 }),
     backgroundColor: withTiming(ativa ? 'rgba(253,186,92,0.08)' : Colors.surface, { duration: 200 }),
@@ -59,6 +63,9 @@ function Opcao({
 
 /** Onboarding 2/3 — definir meta de estudo (RF02). */
 export default function OnboardingMeta() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { metaMinutos, setMetaMinutos } = useOnboarding();
 
   return (
@@ -105,7 +112,7 @@ export default function OnboardingMeta() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   heading: { gap: Spacing.two },
   list: { gap: Spacing.three - 4 },
   opcao: {

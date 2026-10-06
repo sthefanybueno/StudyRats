@@ -24,12 +24,15 @@ import { RegistrarSessaoUseCase } from '../use-cases/RegistrarSessaoUseCase';
 import { ConsultarRankingUseCase } from '../use-cases/ConsultarRankingUseCase';
 import { SincronizarFilaUseCase } from '../use-cases/SincronizarFilaUseCase';
 
-// 1. Instanciar Adapters (Singletons com armazenamento local persistente em AsyncStorage)
+import { SessionStorageSecureStore } from '../../infrastructure/storage/SessionStorageSecureStore';
+
+// 1. Instanciar Adapters (Singletons com armazenamento local persistente em AsyncStorage / SecureStore)
 const usuarioRepository = new LocalAsyncStorageUsuarioRepository();
 const disciplinaRepository = new LocalAsyncStorageDisciplinaRepository();
 const sessaoEstudoRepository = new LocalAsyncStorageSessaoEstudoRepository();
 const resumoRepository = new InMemoryResumoIARepository();
 const syncQueueRepository = new InMemorySyncQueueRepository();
+const sessionStorage = new SessionStorageSecureStore();
 
 const authGateway = new MockAuthGateway();
 const syncGateway = new MockSyncGateway();
@@ -39,10 +42,13 @@ const locationGateway = new ExpoLocationGateway();
 
 // 2. Instanciar Use Cases injetando as dependências
 export const DIContainer = {
-  autenticarUsuario: new AutenticarUsuarioUseCase(authGateway, usuarioRepository),
+  autenticarUsuario: new AutenticarUsuarioUseCase(authGateway, usuarioRepository, sessionStorage),
   cadastrarUsuario: new CadastrarUsuarioUseCase(authGateway, usuarioRepository),
   atualizarPerfil: new AtualizarPerfilUseCase(usuarioRepository),
-  logout: () => authGateway.logout(),
+  logout: async () => {
+    await sessionStorage.removerSessionToken();
+    await authGateway.logout();
+  },
   cadastrarDisciplina: new CadastrarDisciplinaUseCase(disciplinaRepository),
   cadastrarTopico: new CadastrarTopicoUseCase(disciplinaRepository),
   atualizarTopico: new AtualizarTopicoUseCase(disciplinaRepository),

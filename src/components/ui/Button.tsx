@@ -3,7 +3,9 @@ import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from '
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { AppText } from './AppText';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useAppTheme } from "@/providers/ThemeProvider";
+import { Colors as GlobalColors } from "@/constants/theme";
 
 type Variant = 'primary' | 'ai' | 'secondary' | 'ghost';
 
@@ -20,10 +22,10 @@ interface ButtonProps {
 }
 
 const palette: Record<Variant, { bg: string; fg: string; border?: string }> = {
-  primary: { bg: Colors.primary, fg: Colors.primaryText },
-  ai: { bg: Colors.aiStrong, fg: '#FFFFFF' },
-  secondary: { bg: Colors.surfaceRaised, fg: Colors.text, border: Colors.border },
-  ghost: { bg: 'transparent', fg: Colors.textSecondary },
+  primary: { bg: GlobalColors.primary, fg: GlobalColors.primaryText },
+  ai: { bg: GlobalColors.aiStrong, fg: '#FFFFFF' },
+  secondary: { bg: GlobalColors.surfaceRaised, fg: GlobalColors.text, border: GlobalColors.border },
+  ghost: { bg: 'transparent', fg: GlobalColors.textSecondary },
 };
 
 export function Button({
@@ -37,6 +39,9 @@ export function Button({
   style,
   testID,
 }: ButtonProps) {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const scale = useSharedValue(1);
   const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const p = palette[variant];
@@ -73,21 +78,21 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   base: {
     minHeight: 54,
-    borderRadius: Radius.lg,
+    borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: Spacing.four,
     alignItems: 'center',
     justifyContent: 'center',
   },
   glow: {
-    shadowColor: Colors.primaryStrong,
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   label: { fontSize: 16 },

@@ -1,22 +1,21 @@
 import { useState } from 'react';
 import { DIContainer } from '../application/di/container';
 import { Disciplina } from '../domain/entities/Disciplina';
-import { Topico } from '../domain/entities/Topico';
 
-export function useAtividades(usuarioId: string) {
+export function useAtividades(usuarioId: string, container = DIContainer) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [carregando, setCarregando] = useState(false);
 
   const carregarDisciplinas = async () => {
     setCarregando(true);
-    const result = await DIContainer.repositories.disciplina.listarPorUsuario(usuarioId);
+    const result = await container.repositories.disciplina.listarPorUsuario(usuarioId);
     setDisciplinas(result);
     setCarregando(false);
   };
 
   const cadastrarDisciplina = async (nome: string, cor: string) => {
     setCarregando(true);
-    const res = await DIContainer.cadastrarDisciplina.execute({ usuarioId, nome, cor });
+    const res = await container.cadastrarDisciplina.execute({ usuarioId, nome, cor });
     if (res.isSuccess) {
       await carregarDisciplinas();
     }
@@ -26,7 +25,7 @@ export function useAtividades(usuarioId: string) {
 
   const cadastrarTopico = async (disciplinaId: string, nome: string) => {
     setCarregando(true);
-    const res = await DIContainer.cadastrarTopico.execute({ disciplinaId, nome });
+    const res = await container.cadastrarTopico.execute({ disciplinaId, nome });
     if (res.isSuccess) {
       await carregarDisciplinas(); // Atualiza a árvore
     }
@@ -36,7 +35,7 @@ export function useAtividades(usuarioId: string) {
 
   const registrarSessao = async (disciplinaId: string, topicoId: string, duracaoMinutos: number, comFoto: boolean) => {
     setCarregando(true);
-    const res = await DIContainer.registrarSessao.execute({
+    const res = await container.registrarSessao.execute({
       usuarioId,
       disciplinaId,
       topicoId,

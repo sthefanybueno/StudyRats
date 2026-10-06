@@ -1,7 +1,6 @@
 /**
- * Design system StudyRats — tokens extraídos das telas do Stitch
- * (tema escuro navy, acento âmbar para ação/XP, roxo para IA/nível,
- * verde para sincronizado, laranja para pendente).
+ * Design system StudyRats
+ * Tema dinâmico (Atualmente fixado no Escuro)
  */
 import '@/global.css';
 
@@ -17,22 +16,25 @@ export const Colors = {
   textSecondary: '#9AA3B5',
   textMuted: '#667085',
 
-  primary: '#FDBA5C', // âmbar (CTA, XP)
+  primary: '#FDBA5C', // âmbar
   primaryStrong: '#F59E0B',
   primaryText: '#2A1A04',
   primarySoft: 'rgba(253, 186, 92, 0.14)',
 
-  ai: '#8B5CF6', // roxo (IA, nível)
+  ai: '#8B5CF6', // roxo
   aiStrong: '#6D28D9',
   aiSoft: 'rgba(139, 92, 246, 0.16)',
   aiText: '#C4B5FD',
 
-  success: '#34D399', // sincronizado
+  success: '#34D399',
   successSoft: 'rgba(52, 211, 153, 0.14)',
-  warning: '#F59E0B', // pendente
+  warning: '#F59E0B',
   warningSoft: 'rgba(245, 158, 11, 0.14)',
-  danger: '#F87171', // erro
+  danger: '#F87171',
   dangerSoft: 'rgba(248, 113, 113, 0.14)',
+
+  yellow: '#FFD32A',
+  yellowSoft: '#FFFCEB',
 } as const;
 
 /** Paleta para o campo `cor` da entidade Disciplina. */

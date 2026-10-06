@@ -10,19 +10,21 @@ import { DarkTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-ro
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-
-import { Colors } from '@/constants/theme';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SessaoFocoProvider } from '@/providers/SessaoFocoProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
+import { Colors as GlobalColors } from "@/constants/theme";
 
 SplashScreen.preventAutoHideAsync();
 
 const navTheme = {
   ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: Colors.background, card: Colors.surface, primary: Colors.primary },
+  colors: { ...DarkTheme.colors, background: GlobalColors.background, card: GlobalColors.surface, primary: GlobalColors.primary },
 };
 
 function RootNavigator() {
+    const { colors: Colors } = useAppTheme();
+
   const { usuario, restaurando, precisaOnboarding } = useAuth();
   const segments = useSegments();
   const router = useRouter();
@@ -70,11 +72,18 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const { colors: Colors, modoEscuro } = useAppTheme();
+
+  const navTheme = {
+    ...DarkTheme,
+    colors: { ...DarkTheme.colors, background: Colors.background, card: Colors.surface, primary: Colors.primary },
+  };
+
   return (
     <ThemeProvider value={navTheme}>
       <AuthProvider>
         <SessaoFocoProvider>
-          <StatusBar style="light" />
+          <StatusBar style={modoEscuro ? 'light' : 'dark'} />
           <RootNavigator />
         </SessaoFocoProvider>
       </AuthProvider>

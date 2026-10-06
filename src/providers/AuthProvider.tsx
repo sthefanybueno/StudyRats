@@ -27,52 +27,60 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  * Adapter de UI que conecta o React aos use cases de autenticação.
  * Retorna mensagens de erro (string) em vez de lançar, para as telas exibirem.
  */
-export function AuthProvider({ children }: { children: ReactNode }) {
+interface AuthProviderProps {
+  children: ReactNode;
+  container?: typeof DIContainer;
+}
+
+/**
+ * Adapter de UI que conecta o React aos use cases de autenticação.
+ * Retorna mensagens de erro (string) em vez de lançar, para as telas exibirem.
+ */
+export function AuthProvider({ children, container = DIContainer }: AuthProviderProps) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [restaurando, setRestaurando] = useState(true);
   const [precisaOnboarding, setPrecisaOnboarding] = useState(false);
 
   useEffect(() => {
-    DIContainer.autenticarUsuario
+    container.autenticarUsuario
       .execute({ email: '', isLogin: false })
       .then(res => {
         if (res.isSuccess) setUsuario(res.value);
       })
       .finally(() => setRestaurando(false));
-  }, []);
+  }, [container]);
 
   const login = useCallback(async (email: string, senha: string) => {
-    const res = await DIContainer.autenticarUsuario.execute({ email: email.trim(), senha, isLogin: true });
+    const res = await container.autenticarUsuario.execute({ email: email.trim(), senha, isLogin: true });
     if (!res.isSuccess) return res.error;
     setUsuario(res.value);
     return null;
-  }, []);
+  }, [container]);
 
   const cadastrar = useCallback(async (nomeExibicao: string, email: string, senha: string) => {
-    const res = await DIContainer.cadastrarUsuario.execute({ nomeExibicao, email, senha });
+    const res = await container.cadastrarUsuario.execute({ nomeExibicao, email, senha });
     if (!res.isSuccess) return res.error;
     setPrecisaOnboarding(true);
     setUsuario(res.value);
     return null;
-  }, []);
+  }, [container]);
 
   const atualizarPerfil = useCallback(async (payload: AtualizarPerfilPayload) => {
     if (!usuario) return 'Usuário não autenticado';
-    const res = await DIContainer.atualizarPerfil.execute({ usuarioId: usuario.id, ...payload });
+    const res = await container.atualizarPerfil.execute({ usuarioId: usuario.id, ...payload });
     if (!res.isSuccess) return res.error;
-    const atualizado = await DIContainer.repositories.usuario.buscarPorId(usuario.id);
+    const atualizado = await container.repositories.usuario.buscarPorId(usuario.id);
     if (atualizado) setUsuario(atualizado);
     return null;
-  }, [usuario]);
-
+  }, [usuario, container]);
 
   const concluirOnboarding = useCallback(() => setPrecisaOnboarding(false), []);
 
   const logout = useCallback(async () => {
-    await DIContainer.logout();
+    await container.logout();
     setUsuario(null);
     setPrecisaOnboarding(false);
-  }, []);
+  }, [container]);
 
   const value = useMemo(
     () => ({ usuario, restaurando, precisaOnboarding, login, cadastrar, atualizarPerfil, concluirOnboarding, logout }),

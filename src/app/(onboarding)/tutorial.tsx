@@ -7,9 +7,11 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import { useOnboarding } from '@/providers/OnboardingProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
+import { Colors as GlobalColors } from "@/constants/theme";
 
 type Passo = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -24,24 +26,24 @@ type Passo = {
 const PASSOS: Passo[] = [
   {
     icon: 'flash',
-    cor: Colors.primary,
-    fundo: Colors.primarySoft,
+    cor: GlobalColors.primary,
+    fundo: GlobalColors.primarySoft,
     titulo: 'Registre suas sessões',
     texto: 'Escolha disciplina, tópico e duração. Foto e localização são opcionais.',
     selos: [{ label: '+10 XP por sessão', tone: 'primary' }],
   },
   {
     icon: 'flame',
-    cor: Colors.warning,
-    fundo: Colors.warningSoft,
+    cor: GlobalColors.warning,
+    fundo: GlobalColors.warningSoft,
     titulo: 'Mantenha o streak',
     texto: 'Estude pelo menos uma sessão por dia. A cada 7 dias seguidos você ganha bônus.',
     selos: [{ label: '+50 XP a cada 7 dias', tone: 'warning' }],
   },
   {
     icon: 'cloud-offline',
-    cor: Colors.success,
-    fundo: Colors.successSoft,
+    cor: GlobalColors.success,
+    fundo: GlobalColors.successSoft,
     titulo: 'Funciona sem internet',
     texto: 'Tudo é salvo no aparelho e sincronizado sozinho quando a conexão voltar.',
     selos: [
@@ -51,16 +53,16 @@ const PASSOS: Passo[] = [
   },
   {
     icon: 'sparkles',
-    cor: Colors.aiText,
-    fundo: Colors.aiSoft,
+    cor: GlobalColors.aiText,
+    fundo: GlobalColors.aiSoft,
     titulo: 'Resumos com IA',
     texto: 'Gere resumos dos seus tópicos e leia depois, mesmo offline. Gerar precisa de internet.',
     selos: [{ label: 'Até 10 por dia', tone: 'ai' }],
   },
   {
     icon: 'trophy',
-    cor: Colors.primary,
-    fundo: Colors.primarySoft,
+    cor: GlobalColors.primary,
+    fundo: GlobalColors.primarySoft,
     titulo: 'Ranking semanal',
     texto: 'Dispute o Top 50 pelo XP da semana. O placar zera toda segunda-feira.',
     selos: [{ label: 'Top 50 global', tone: 'primary' }],
@@ -69,6 +71,9 @@ const PASSOS: Passo[] = [
 
 /** Onboarding 3/3 — tutorial rápido (RF02). Conclui o UC03. */
 export default function OnboardingTutorial() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { usuario, concluirOnboarding } = useAuth();
   const { metaMinutos } = useOnboarding();
 
@@ -149,7 +154,7 @@ export default function OnboardingTutorial() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   heading: { gap: Spacing.two },
   list: { gap: Spacing.three - 4 },
   item: { flexDirection: 'row', gap: Spacing.three - 2 },

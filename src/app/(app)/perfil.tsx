@@ -12,13 +12,17 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill, ProgressBar } from '@/components/ui/Surface';
 import { TextField } from '@/components/ui/TextField';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/providers/AuthProvider';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 export default function PerfilScreen() {
+    const { colors: Colors } = useAppTheme();
+      const styles = useStyles(Colors);
+
   const { usuario, logout, atualizarPerfil } = useAuth();
 
-  // Configurações Locais Toggles
+  const { modoEscuro, setModoEscuro } = useAppTheme();
   const [lembreteStreak, setLembreteStreak] = useState(true);
   const [modoOfflinePrioritario, setModoOfflinePrioritario] = useState(true);
 
@@ -282,6 +286,26 @@ export default function PerfilScreen() {
 
           <View style={styles.divider} />
 
+          {/* Toggle Modo Escuro */}
+          <View style={styles.configItem}>
+            <View style={styles.configIconBox}>
+              <Ionicons name="moon-outline" size={18} color={Colors.aiText} />
+            </View>
+            <View style={styles.flex}>
+              <AppText variant="label">Modo Escuro (Beta)</AppText>
+              <AppText variant="caption" color={Colors.textSecondary}>
+                Tema navy escuro para ambientes noturnos
+              </AppText>
+            </View>
+            <Pressable
+              onPress={() => setModoEscuro(!modoEscuro)}
+              style={[styles.toggleSwitch, modoEscuro && styles.toggleSwitchActive]}>
+              <View style={[styles.toggleKnob, modoEscuro && styles.toggleKnobActive]} />
+            </Pressable>
+          </View>
+
+          <View style={styles.divider} />
+
           {/* Toggle 2: Modo Offline Prioritário */}
           <View style={styles.configItem}>
             <View style={styles.configIconBox}>
@@ -396,7 +420,7 @@ export default function PerfilScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = (Colors: any) => StyleSheet.create({
   content: { gap: Spacing.four },
   topHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },

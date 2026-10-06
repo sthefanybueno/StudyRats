@@ -39,7 +39,12 @@ interface SessaoFocoContextData {
 
 const SessaoFocoContext = createContext<SessaoFocoContextData>({} as SessaoFocoContextData);
 
-export function SessaoFocoProvider({ children }: { children: React.ReactNode }) {
+interface SessaoFocoProviderProps {
+  children: React.ReactNode;
+  container?: typeof DIContainer;
+}
+
+export function SessaoFocoProvider({ children, container = DIContainer }: SessaoFocoProviderProps) {
   const [sessaoAtiva, setSessaoAtiva] = useState<SessaoAtiva | null>(null);
 
   // Timer ticker para cronômetro regressivo em tempo real
@@ -110,7 +115,7 @@ export function SessaoFocoProvider({ children }: { children: React.ReactNode }) 
       ? sessaoAtiva.topico.id
       : sessaoAtiva.disciplina.topicos[0]?.id || 'topico-generico';
 
-    const res = await DIContainer.registrarSessao.execute({
+    const res = await container.registrarSessao.execute({
       usuarioId,
       disciplinaId: sessaoAtiva.disciplina.id,
       topicoId: topicoIdFinal,

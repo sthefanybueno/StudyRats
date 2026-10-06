@@ -1,6 +1,7 @@
 import { Text, type TextProps, type TextStyle } from 'react-native';
 
-import { Colors, Fonts } from '@/constants/theme';
+import { Fonts } from '@/constants/theme';
+import { useAppTheme } from "@/providers/ThemeProvider";
 
 type Variant = 'display' | 'title' | 'heading' | 'body' | 'label' | 'caption' | 'overline';
 
@@ -19,6 +20,9 @@ export interface AppTextProps extends TextProps {
   color?: string;
 }
 
-export function AppText({ variant = 'body', color = Colors.text, style, ...rest }: AppTextProps) {
-  return <Text style={[variants[variant], { color }, style]} {...rest} />;
+export function AppText({ variant = 'body', color, style, ...rest }: AppTextProps) {
+    const { colors: Colors } = useAppTheme();
+    const finalColor = color ?? Colors.text;
+
+  return <Text style={[variants[variant], { color: finalColor }, style]} {...rest} />;
 }
