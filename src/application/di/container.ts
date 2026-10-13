@@ -1,6 +1,6 @@
-import { LocalAsyncStorageUsuarioRepository } from '../../infrastructure/repositories/LocalAsyncStorageUsuarioRepository';
-import { LocalAsyncStorageDisciplinaRepository } from '../../infrastructure/repositories/LocalAsyncStorageDisciplinaRepository';
-import { LocalAsyncStorageSessaoEstudoRepository } from '../../infrastructure/repositories/LocalAsyncStorageSessaoEstudoRepository';
+import { SecureStoreUsuarioRepository } from '../../infrastructure/repositories/SecureStoreUsuarioRepository';
+import { SecureStoreDisciplinaRepository } from '../../infrastructure/repositories/SecureStoreDisciplinaRepository';
+import { SecureStoreSessaoEstudoRepository } from '../../infrastructure/repositories/SecureStoreSessaoEstudoRepository';
 import { InMemoryResumoIARepository } from '../../infrastructure/repositories/InMemoryResumoIARepository';
 import { InMemorySyncQueueRepository } from '../../infrastructure/repositories/InMemorySyncQueueRepository';
 
@@ -27,9 +27,9 @@ import { SincronizarFilaUseCase } from '../use-cases/SincronizarFilaUseCase';
 import { SessionStorageSecureStore } from '../../infrastructure/storage/SessionStorageSecureStore';
 
 // 1. Instanciar Adapters (Singletons com armazenamento local persistente em AsyncStorage / SecureStore)
-const usuarioRepository = new LocalAsyncStorageUsuarioRepository();
-const disciplinaRepository = new LocalAsyncStorageDisciplinaRepository();
-const sessaoEstudoRepository = new LocalAsyncStorageSessaoEstudoRepository();
+const usuarioRepository = new SecureStoreUsuarioRepository();
+const disciplinaRepository = new SecureStoreDisciplinaRepository();
+const sessaoEstudoRepository = new SecureStoreSessaoEstudoRepository();
 const resumoRepository = new InMemoryResumoIARepository();
 const syncQueueRepository = new InMemorySyncQueueRepository();
 const sessionStorage = new SessionStorageSecureStore();

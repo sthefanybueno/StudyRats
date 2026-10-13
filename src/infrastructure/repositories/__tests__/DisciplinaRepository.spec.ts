@@ -1,9 +1,9 @@
-import { LocalAsyncStorageDisciplinaRepository } from '../LocalAsyncStorageDisciplinaRepository';
+import { SecureStoreDisciplinaRepository } from '../SecureStoreDisciplinaRepository';
 import { InMemoryDisciplinaRepository } from '../InMemoryDisciplinaRepository';
 import { Disciplina } from '@/domain/entities/Disciplina';
 import { Topico } from '@/domain/entities/Topico';
 
-describe('Disciplina Repositories (InMemory & LocalAsyncStorage)', () => {
+describe('Disciplina Repositories (InMemory & SecureStore)', () => {
   describe('InMemoryDisciplinaRepository', () => {
     it('deve salvar, buscar, listar por usuário e deletar disciplina', async () => {
       const repo = new InMemoryDisciplinaRepository();
@@ -25,9 +25,9 @@ describe('Disciplina Repositories (InMemory & LocalAsyncStorage)', () => {
     });
   });
 
-  describe('LocalAsyncStorageDisciplinaRepository', () => {
-    it('deve persistir no AsyncStorage, buscar, listar por usuário e deletar disciplina', async () => {
-      const repo = new LocalAsyncStorageDisciplinaRepository();
+  describe('SecureStoreDisciplinaRepository', () => {
+    it('deve persistir no SecureStore, buscar, listar por usuário e deletar disciplina', async () => {
+      const repo = new SecureStoreDisciplinaRepository();
       const disc = Disciplina.create({ usuarioId: 'usr-2', nome: 'Geografia', cor: '#00F' });
       const topico = Topico.create({ disciplinaId: disc.id, nome: 'Relevo' });
       disc.adicionarTopico(topico);

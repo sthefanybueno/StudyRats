@@ -1,14 +1,14 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { IDisciplinaRepository } from '../../domain/repositories/IDisciplinaRepository';
 import { Disciplina } from '../../domain/entities/Disciplina';
 import { Topico } from '../../domain/entities/Topico';
 
 const STORAGE_KEY = '@studyrats:disciplinas';
 
-export class LocalAsyncStorageDisciplinaRepository implements IDisciplinaRepository {
+export class SecureStoreDisciplinaRepository implements IDisciplinaRepository {
   private async carregarTodos(): Promise<Record<string, any>> {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      const raw = await SecureStore.getItemAsync(STORAGE_KEY);
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -16,7 +16,7 @@ export class LocalAsyncStorageDisciplinaRepository implements IDisciplinaReposit
   }
 
   private async salvarTodos(map: Record<string, any>): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(map));
   }
 
   async salvar(disciplina: Disciplina): Promise<void> {

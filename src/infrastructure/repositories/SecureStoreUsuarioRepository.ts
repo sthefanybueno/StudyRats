@@ -1,13 +1,13 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
 import { Usuario } from '../../domain/entities/Usuario';
 
 const STORAGE_KEY = '@studyrats:usuarios';
 
-export class LocalAsyncStorageUsuarioRepository implements IUsuarioRepository {
+export class SecureStoreUsuarioRepository implements IUsuarioRepository {
   private async carregarTodos(): Promise<Record<string, any>> {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      const raw = await SecureStore.getItemAsync(STORAGE_KEY);
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -15,7 +15,7 @@ export class LocalAsyncStorageUsuarioRepository implements IUsuarioRepository {
   }
 
   private async salvarTodos(map: Record<string, any>): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(map));
   }
 
   async salvar(usuario: Usuario): Promise<void> {

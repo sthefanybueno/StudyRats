@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { Colors as DarkColors } from '../constants/theme';
 
 export const LightColors = {
@@ -40,11 +40,29 @@ interface ThemeState {
   colors: Record<keyof typeof DarkColors, string>;
 }
 
-export const useAppTheme = create<ThemeState>((set) => ({
+const defaultThemeState: ThemeState = {
   modoEscuro: true,
+  setModoEscuro: () => {},
   colors: DarkColors,
-  setModoEscuro: (ativo: boolean) => set({
-    modoEscuro: ativo,
-    colors: ativo ? DarkColors : LightColors,
-  }),
-}));
+};
+
+const ThemeContext = createContext<ThemeState>(defaultThemeState);
+
+export function AppThemeProvider({ children }: { children: React.ReactNode }) {
+  const [modoEscuro, setModoEscuro] = useState(true);
+
+  const value = useMemo(
+    () => ({
+      modoEscuro,
+      setModoEscuro,
+      colors: modoEscuro ? DarkColors : LightColors,
+    }),
+    [modoEscuro]
+  );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function useAppTheme() {
+  return useContext(ThemeContext);
+}

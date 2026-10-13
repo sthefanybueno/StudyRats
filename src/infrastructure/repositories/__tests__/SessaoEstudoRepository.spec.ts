@@ -1,8 +1,8 @@
-import { LocalAsyncStorageSessaoEstudoRepository } from '../LocalAsyncStorageSessaoEstudoRepository';
+import { SecureStoreSessaoEstudoRepository } from '../SecureStoreSessaoEstudoRepository';
 import { InMemorySessaoEstudoRepository } from '../InMemorySessaoEstudoRepository';
 import { SessaoEstudo } from '@/domain/entities/SessaoEstudo';
 
-describe('SessaoEstudo Repositories (InMemory & LocalAsyncStorage)', () => {
+describe('SessaoEstudo Repositories (InMemory & SecureStore)', () => {
   describe('InMemorySessaoEstudoRepository', () => {
     it('deve salvar, buscar por id, listar por usuario e por disciplina', async () => {
       const repo = new InMemorySessaoEstudoRepository();
@@ -24,9 +24,9 @@ describe('SessaoEstudo Repositories (InMemory & LocalAsyncStorage)', () => {
     });
   });
 
-  describe('LocalAsyncStorageSessaoEstudoRepository', () => {
-    it('deve persistir no AsyncStorage, buscar e listar por usuario e disciplina', async () => {
-      const repo = new LocalAsyncStorageSessaoEstudoRepository();
+  describe('SecureStoreSessaoEstudoRepository', () => {
+    it('deve persistir no SecureStore, buscar e listar por usuario e disciplina', async () => {
+      const repo = new SecureStoreSessaoEstudoRepository();
       const sessao = SessaoEstudo.create({
         usuarioId: 'usr-2',
         disciplinaId: 'disc-2',

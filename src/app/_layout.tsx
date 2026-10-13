@@ -6,13 +6,13 @@ import {
   PlusJakartaSans_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
-import { DarkTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider as NavigationThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SessaoFocoProvider } from '@/providers/SessaoFocoProvider';
-import { useAppTheme } from "@/providers/ThemeProvider";
+import { AppThemeProvider, useAppTheme } from "@/providers/ThemeProvider";
 import { Colors as GlobalColors } from "@/constants/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -71,7 +71,7 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function InnerLayout() {
   const { colors: Colors, modoEscuro } = useAppTheme();
 
   const navTheme = {
@@ -80,13 +80,21 @@ export default function RootLayout() {
   };
 
   return (
-    <ThemeProvider value={navTheme}>
+    <NavigationThemeProvider value={navTheme}>
       <AuthProvider>
         <SessaoFocoProvider>
           <StatusBar style={modoEscuro ? 'light' : 'dark'} />
           <RootNavigator />
         </SessaoFocoProvider>
       </AuthProvider>
-    </ThemeProvider>
+    </NavigationThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <InnerLayout />
+    </AppThemeProvider>
   );
 }
