@@ -25,7 +25,7 @@ export default function DashboardScreen() {
 
   const { usuario } = useAuth();
   const { sessaoAtiva, pausarSessao, retomarSessao, concluirSessao } = useSessaoFoco();
-  const [carregando, setCarregando] = useState(true);
+  const [, setCarregando] = useState(true);
   const [sessoes, setSessoes] = useState<SessaoEstudo[]>([]);
   const [disciplinasMap, setDisciplinasMap] = useState<Map<string, Disciplina>>(new Map());
   const [salvandoSessao, setSalvandoSessao] = useState(false);
@@ -72,7 +72,6 @@ export default function DashboardScreen() {
   const xpSemanal = usuario?.xpSemanal ?? 0;
   const streakAtual = usuario?.streakAtual ?? 0;
   const nivelCalculado = Math.floor(xpTotal / 100) + 1;
-  const xpProximoNivel = nivelCalculado * 100;
   const xpProgressoNivel = xpTotal % 100;
 
   // Minutos estudados hoje

@@ -21,7 +21,7 @@ export default function RankingScreen() {
 
   const { usuario } = useAuth();
   const [usuariosRanking, setUsuariosRanking] = useState<Usuario[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [, setCarregando] = useState(true);
 
   // Carregar usuários reais cadastrados no banco local
   const carregarRanking = useCallback(async () => {
@@ -58,7 +58,6 @@ export default function RankingScreen() {
   const usuarioTop1 = usuariosRanking[0];
   const usuarioTop2 = usuariosRanking[1];
   const usuarioTop3 = usuariosRanking[2];
-  const outrosUsuarios = usuariosRanking.slice(3);
 
   return (
     <Screen contentStyle={styles.content}>

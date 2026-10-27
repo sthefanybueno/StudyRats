@@ -55,9 +55,15 @@ export const DIContainer = {
   atualizarTopico: new AtualizarTopicoUseCase(disciplinaRepository),
   deletarTopico: new DeletarTopicoUseCase(disciplinaRepository),
   gerarResumo: new GerarResumoUseCase(aiGateway, resumoRepository),
-  registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway), // Passar os Gateways reais
+  registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway, locationGateway),
   consultarRanking: new ConsultarRankingUseCase(syncGateway),
   sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway),
+
+  // Gateways expostos para consumo direto pela camada de apresentação (ex.: captura de GPS na sessão)
+  gateways: {
+    camera: cameraGateway,
+    location: locationGateway,
+  },
 
   // Expondo repositórios apenas para uso temporário nos Hooks (até termos Stores globais como Zustand)
   repositories: {

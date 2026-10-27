@@ -48,10 +48,12 @@ interface SessaoFocoProviderProps {
 export function SessaoFocoProvider({ children, container = DIContainer }: SessaoFocoProviderProps) {
   const [sessaoAtiva, setSessaoAtiva] = useState<SessaoAtiva | null>(null);
 
+  const emExecucao = sessaoAtiva?.emExecucao ?? false;
+
   // Timer ticker para cronômetro regressivo em tempo real
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
-    if (sessaoAtiva && sessaoAtiva.emExecucao) {
+    if (emExecucao) {
       interval = setInterval(() => {
         setSessaoAtiva(prev => {
           if (!prev || !prev.emExecucao) return prev;
@@ -77,7 +79,7 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [sessaoAtiva?.emExecucao]);
+  }, [emExecucao]);
 
   const iniciarSessao = (dados: {
     disciplina: Disciplina;
@@ -122,6 +124,8 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
       topicoId: topicoIdFinal,
       duracaoMinutos: duracaoFinal,
       comFoto: !!sessaoAtiva.fotoUri,
+      fotoUri: sessaoAtiva.fotoUri,
+      anexarGps: sessaoAtiva.anexarGps,
     });
 
     if (res.isSuccess) {

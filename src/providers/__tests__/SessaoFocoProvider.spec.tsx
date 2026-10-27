@@ -126,6 +126,33 @@ describe('SessaoFocoProvider & formatarTempoRegressivo', () => {
       expect(mockContainer.registrarSessao.execute).toHaveBeenCalled();
     });
 
+    it('deve repassar anexarGps e fotoUri da sessão ativa ao caso de uso', async () => {
+      const { result } = await renderHook(() => useSessaoFoco(), { wrapper });
+      const disc = Disciplina.create({ usuarioId: 'usr-1', nome: 'Química', cor: '#FFF' });
+
+      await act(async () => {
+        result.current.iniciarSessao({
+          disciplina: disc,
+          topico: null,
+          duracaoAlvoMinutos: 20,
+          anexarGps: true,
+          fotoUri: 'file:///caderno.jpg',
+        });
+      });
+
+      await act(async () => {
+        await result.current.concluirSessao('usr-1');
+      });
+
+      expect(mockContainer.registrarSessao.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          anexarGps: true,
+          fotoUri: 'file:///caderno.jpg',
+          comFoto: true,
+        })
+      );
+    });
+
     it('deve retornar erro ao concluir quando não houver sessão ativa', async () => {
       const { result } = await renderHook(() => useSessaoFoco(), { wrapper });
 

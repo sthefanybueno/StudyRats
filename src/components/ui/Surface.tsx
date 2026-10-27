@@ -5,9 +5,8 @@ import { type ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { AppText } from './AppText';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing , Colors as GlobalColors } from '@/constants/theme';
 import { useAppTheme } from "@/providers/ThemeProvider";
-import { Colors as GlobalColors } from "@/constants/theme";
 
 export function Card({ children, style, accent }: { children: ReactNode; style?: ViewStyle; accent?: string }) {
     const { colors: Colors } = useAppTheme();

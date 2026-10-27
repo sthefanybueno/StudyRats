@@ -1,7 +1,7 @@
 /** Description: This file (src/app/(app)/_layout.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import { Fonts } from '@/constants/theme';
 import { useAppTheme } from "@/providers/ThemeProvider";

@@ -8,11 +8,10 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing , Colors as GlobalColors } from '@/constants/theme';
 import { useAuth } from '@/providers/AuthProvider';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { useAppTheme } from "@/providers/ThemeProvider";
-import { Colors as GlobalColors } from "@/constants/theme";
 
 type Passo = {
   icon: keyof typeof Ionicons.glyphMap;
