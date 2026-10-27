@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/__tests__/SessaoEstudo.spec.ts) contains the implementation for its respective feature. */
 import { SessaoEstudo } from '../SessaoEstudo';
 import { FotoSessao } from '../FotoSessao';
 import { Coordenada } from '../../value-objects/Coordenada';

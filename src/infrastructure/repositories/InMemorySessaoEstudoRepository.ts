@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/InMemorySessaoEstudoRepository.ts) contains the implementation for its respective feature. */
 import { ISessaoEstudoRepository } from '../../domain/repositories/ISessaoEstudoRepository';
 import { SessaoEstudo } from '../../domain/entities/SessaoEstudo';
 

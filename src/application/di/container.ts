@@ -1,3 +1,4 @@
+/** Description: This file (src/application/di/container.ts) contains the implementation for its respective feature. */
 import { SecureStoreUsuarioRepository } from '../../infrastructure/repositories/SecureStoreUsuarioRepository';
 import { SecureStoreDisciplinaRepository } from '../../infrastructure/repositories/SecureStoreDisciplinaRepository';
 import { SecureStoreSessaoEstudoRepository } from '../../infrastructure/repositories/SecureStoreSessaoEstudoRepository';

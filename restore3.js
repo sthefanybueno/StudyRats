@@ -1,3 +1,4 @@
+/** Description: This file (restore3.js) contains the implementation for its respective feature. */
 const fs = require('fs');
 const content = fs.readFileSync('C:\\Desenvolvimento\\MOBILE_StudyRats\\StudyRats\\found_changes.txt', 'utf8').split('\n');
 const firstChange = JSON.parse(content[0]);

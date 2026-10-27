@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/FotoSessao.ts) contains the implementation for its respective feature. */
 export interface FotoSessaoProps {
   id?: string;
   sessaoId: string;

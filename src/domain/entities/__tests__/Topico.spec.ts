@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/__tests__/Topico.spec.ts) contains the implementation for its respective feature. */
 import { Topico } from '../Topico';
 
 describe('Topico Entity', () => {

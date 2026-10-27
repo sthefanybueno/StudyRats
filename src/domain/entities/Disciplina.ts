@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/Disciplina.ts) contains the implementation for its respective feature. */
 import { Topico } from './Topico';
 import { StatusSincronizacao, StatusSincronizacaoType } from '../value-objects/StatusSincronizacao';
 

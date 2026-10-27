@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/gateways/ILocationGateway.ts) contains the implementation for its respective feature. */
 export interface Coordenadas {
   latitude: number;
   longitude: number;

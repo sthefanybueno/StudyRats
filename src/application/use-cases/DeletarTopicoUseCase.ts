@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/DeletarTopicoUseCase.ts) contains the implementation for its respective feature. */
 import { IDisciplinaRepository } from '../../domain/repositories/IDisciplinaRepository';
 
 export interface DeletarTopicoRequest {

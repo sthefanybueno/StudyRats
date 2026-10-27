@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/__tests__/AtualizarPerfilUseCase.spec.ts) contains the implementation for its respective feature. */
 import { AtualizarPerfilUseCase } from '../AtualizarPerfilUseCase';
 import { Usuario } from '../../../domain/entities/Usuario';
 import { IUsuarioRepository } from '../../../domain/repositories/IUsuarioRepository';

@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/gateways/ISyncGateway.ts) contains the implementation for its respective feature. */
 import { Usuario } from '../entities/Usuario';
 
 export interface ISyncGateway {

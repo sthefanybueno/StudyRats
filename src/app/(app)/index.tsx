@@ -1,3 +1,4 @@
+/** Description: This file (src/app/(app)/index.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';

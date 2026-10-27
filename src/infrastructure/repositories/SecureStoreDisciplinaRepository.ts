@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/SecureStoreDisciplinaRepository.ts) contains the implementation for its respective feature. */
 import * as SecureStore from 'expo-secure-store';
 import { IDisciplinaRepository } from '../../domain/repositories/IDisciplinaRepository';
 import { Disciplina } from '../../domain/entities/Disciplina';

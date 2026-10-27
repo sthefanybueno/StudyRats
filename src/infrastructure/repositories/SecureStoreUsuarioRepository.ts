@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/SecureStoreUsuarioRepository.ts) contains the implementation for its respective feature. */
 import * as SecureStore from 'expo-secure-store';
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
 import { Usuario } from '../../domain/entities/Usuario';

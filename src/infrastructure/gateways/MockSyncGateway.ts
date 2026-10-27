@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/gateways/MockSyncGateway.ts) contains the implementation for its respective feature. */
 import { ISyncGateway } from '../../domain/gateways/ISyncGateway';
 import { Usuario } from '../../domain/entities/Usuario';
 

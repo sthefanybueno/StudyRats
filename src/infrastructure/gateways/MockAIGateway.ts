@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/gateways/MockAIGateway.ts) contains the implementation for its respective feature. */
 import { IAIGateway } from '../../domain/gateways/IAIGateway';
 
 export class MockAIGateway implements IAIGateway {

@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/Usuario.ts) contains the implementation for its respective feature. */
 import { Email } from '../value-objects/Email';
 
 export interface UsuarioProps {

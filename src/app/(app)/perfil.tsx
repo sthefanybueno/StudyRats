@@ -1,3 +1,4 @@
+/** Description: This file (src/app/(app)/perfil.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from 'expo-router';

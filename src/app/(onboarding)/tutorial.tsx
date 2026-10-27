@@ -1,3 +1,4 @@
+/** Description: This file (src/app/(onboarding)/tutorial.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';

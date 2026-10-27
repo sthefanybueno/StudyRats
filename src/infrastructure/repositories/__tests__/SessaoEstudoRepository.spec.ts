@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/__tests__/SessaoEstudoRepository.spec.ts) contains the implementation for its respective feature. */
 import { SecureStoreSessaoEstudoRepository } from '../SecureStoreSessaoEstudoRepository';
 import { InMemorySessaoEstudoRepository } from '../InMemorySessaoEstudoRepository';
 import { SessaoEstudo } from '@/domain/entities/SessaoEstudo';

@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/InMemoryUsuarioRepository.ts) contains the implementation for its respective feature. */
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
 import { Usuario } from '../../domain/entities/Usuario';
 

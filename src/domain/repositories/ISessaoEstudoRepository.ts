@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/repositories/ISessaoEstudoRepository.ts) contains the implementation for its respective feature. */
 import { SessaoEstudo } from '../entities/SessaoEstudo';
 
 export interface ISessaoEstudoRepository {

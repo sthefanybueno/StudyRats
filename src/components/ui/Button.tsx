@@ -1,3 +1,4 @@
+/** Description: This file (src/components/ui/Button.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';

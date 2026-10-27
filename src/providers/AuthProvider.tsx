@@ -1,3 +1,4 @@
+/** Description: This file (src/providers/AuthProvider.tsx) contains the implementation for its respective feature. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { DIContainer } from '@/application/di/container';

@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/gateways/__tests__/Gateways.spec.ts) contains the implementation for its respective feature. */
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 

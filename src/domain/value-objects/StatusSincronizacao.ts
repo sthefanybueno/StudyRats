@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/value-objects/StatusSincronizacao.ts) contains the implementation for its respective feature. */
 export type StatusSincronizacaoType = 'pending' | 'synced' | 'error';
 
 export class StatusSincronizacao {

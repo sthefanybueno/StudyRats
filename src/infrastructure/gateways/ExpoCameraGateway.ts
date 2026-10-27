@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/gateways/ExpoCameraGateway.ts) contains the implementation for its respective feature. */
 import { ICameraGateway } from '../../domain/gateways/ICameraGateway';
 import * as ImagePicker from 'expo-image-picker';
 

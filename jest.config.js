@@ -1,3 +1,4 @@
+/** Description: This file (jest.config.js) contains the implementation for its respective feature. */
 /** @type {import('jest').Config} */
 module.exports = {
   preset: 'jest-expo',

@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/__tests__/UsuarioRepository.spec.ts) contains the implementation for its respective feature. */
 import { SecureStoreUsuarioRepository } from '../SecureStoreUsuarioRepository';
 import { InMemoryUsuarioRepository } from '../InMemoryUsuarioRepository';
 import { Usuario } from '@/domain/entities/Usuario';

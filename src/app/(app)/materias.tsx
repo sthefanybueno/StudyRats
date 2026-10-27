@@ -1,3 +1,4 @@
+/** Description: This file (src/app/(app)/materias.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';

@@ -1,3 +1,4 @@
+/** Description: This file (src/providers/__tests__/SessaoFocoProvider.spec.tsx) contains the implementation for its respective feature. */
 import { act, renderHook } from '@testing-library/react-native';
 import React from 'react';
 

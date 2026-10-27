@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/value-objects/Coordenada.ts) contains the implementation for its respective feature. */
 export interface CoordenadaProps {
   latitude: number;
   longitude: number;

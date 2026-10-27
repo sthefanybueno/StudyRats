@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/InMemoryDisciplinaRepository.ts) contains the implementation for its respective feature. */
 import { IDisciplinaRepository } from '../../domain/repositories/IDisciplinaRepository';
 import { Disciplina } from '../../domain/entities/Disciplina';
 

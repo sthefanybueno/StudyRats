@@ -1,3 +1,4 @@
+/** Description: This file (src/hooks/use-color-scheme.web.ts) contains the implementation for its respective feature. */
 import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 

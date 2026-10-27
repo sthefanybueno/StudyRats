@@ -1,3 +1,4 @@
+/** Description: This file (src/components/__tests__/Brand.spec.tsx) contains the implementation for its respective feature. */
 import { render, screen } from '@testing-library/react-native';
 
 import { BrandMark, OnboardingHeader } from '../Brand';

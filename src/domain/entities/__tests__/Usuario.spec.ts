@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/__tests__/Usuario.spec.ts) contains the implementation for its respective feature. */
 import { Usuario } from '../Usuario';
 
 describe('Usuario Entity', () => {

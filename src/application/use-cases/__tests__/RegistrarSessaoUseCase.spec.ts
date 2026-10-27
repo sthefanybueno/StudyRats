@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/__tests__/RegistrarSessaoUseCase.spec.ts) contains the implementation for its respective feature. */
 import { RegistrarSessaoUseCase } from '../RegistrarSessaoUseCase';
 import { ISessaoEstudoRepository } from '../../../domain/repositories/ISessaoEstudoRepository';
 import { IUsuarioRepository } from '../../../domain/repositories/IUsuarioRepository';

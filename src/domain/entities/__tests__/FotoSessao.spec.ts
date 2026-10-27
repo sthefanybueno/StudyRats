@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/__tests__/FotoSessao.spec.ts) contains the implementation for its respective feature. */
 import { FotoSessao } from '../FotoSessao';
 
 describe('FotoSessao Entity', () => {

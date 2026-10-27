@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/InMemoryResumoIARepository.ts) contains the implementation for its respective feature. */
 import { IResumoIARepository } from '../../domain/repositories/IResumoIARepository';
 import { ResumoIA } from '../../domain/entities/ResumoIA';
 

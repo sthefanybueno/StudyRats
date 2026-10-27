@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/ResumoIA.ts) contains the implementation for its respective feature. */
 import { StatusSincronizacao, StatusSincronizacaoType } from '../value-objects/StatusSincronizacao';
 
 export interface ResumoIAProps {

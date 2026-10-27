@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/gateways/ExpoLocationGateway.ts) contains the implementation for its respective feature. */
 import { ILocationGateway, Coordenadas } from '../../domain/gateways/ILocationGateway';
 import * as Location from 'expo-location';
 

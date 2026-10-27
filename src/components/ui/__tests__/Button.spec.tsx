@@ -1,3 +1,4 @@
+/** Description: This file (src/components/ui/__tests__/Button.spec.tsx) contains the implementation for its respective feature. */
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { Button } from '../Button';

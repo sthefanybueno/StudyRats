@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/repositories/IDisciplinaRepository.ts) contains the implementation for its respective feature. */
 import { Disciplina } from '../entities/Disciplina';
 
 export interface IDisciplinaRepository {

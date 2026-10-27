@@ -1,3 +1,4 @@
+/** Description: This file (src/components/ui/__tests__/Screen.spec.tsx) contains the implementation for its respective feature. */
 import { render, screen } from '@testing-library/react-native';
 
 import { Screen } from '../Screen';

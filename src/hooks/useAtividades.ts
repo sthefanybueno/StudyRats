@@ -1,3 +1,4 @@
+/** Description: This file (src/hooks/useAtividades.ts) contains the implementation for its respective feature. */
 import { useState } from 'react';
 import { DIContainer } from '../application/di/container';
 import { Disciplina } from '../domain/entities/Disciplina';

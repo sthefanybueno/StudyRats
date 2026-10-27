@@ -1,3 +1,4 @@
+/** Description: This file (src/components/ui/Screen.tsx) contains the implementation for its respective feature. */
 import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';

@@ -1,3 +1,4 @@
+/** Description: This file (jest.setup.js) contains the implementation for its respective feature. */
 // Mock oficial do AsyncStorage em memória para testes.
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
