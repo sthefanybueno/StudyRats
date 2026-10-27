@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/InMemorySyncQueueRepository.ts) contains the implementation for its respective feature. */
 import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueRepository';
 import { SyncQueueItem } from '../../domain/entities/SyncQueueItem';
 

@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/SecureStoreSessaoEstudoRepository.ts) contains the implementation for its respective feature. */
 import * as SecureStore from 'expo-secure-store';
 import { ISessaoEstudoRepository } from '../../domain/repositories/ISessaoEstudoRepository';
 import { SessaoEstudo } from '../../domain/entities/SessaoEstudo';

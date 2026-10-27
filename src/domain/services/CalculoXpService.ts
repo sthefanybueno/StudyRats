@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/services/CalculoXpService.ts) contains the implementation for its respective feature. */
 export interface CalculoXpParams {
   duracaoMinutos: number;
   comFoto: boolean;

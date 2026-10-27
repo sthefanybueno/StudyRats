@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/value-objects/__tests__/Email.spec.ts) contains the implementation for its respective feature. */
 import { Email } from '../Email';
 
 describe('Email Value Object', () => {

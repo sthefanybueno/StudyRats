@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/GerarResumoUseCase.ts) contains the implementation for its respective feature. */
 import { ResumoIA } from '../../domain/entities/ResumoIA';
 import { IAIGateway } from '../../domain/gateways/IAIGateway';
 import { IResumoIARepository } from '../../domain/repositories/IResumoIARepository';

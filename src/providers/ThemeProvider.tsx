@@ -1,3 +1,4 @@
+/** Description: This file (src/providers/ThemeProvider.tsx) contains the implementation for its respective feature. */
 import React, { createContext, useContext, useState, useMemo } from 'react';
 import { Colors as DarkColors } from '../constants/theme';
 

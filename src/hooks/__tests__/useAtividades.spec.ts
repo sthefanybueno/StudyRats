@@ -1,3 +1,4 @@
+/** Description: This file (src/hooks/__tests__/useAtividades.spec.ts) contains the implementation for its respective feature. */
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useAtividades } from '../useAtividades';

@@ -1,3 +1,4 @@
+/** Description: This file (src/app/_layout.tsx) contains the implementation for its respective feature. */
 import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,

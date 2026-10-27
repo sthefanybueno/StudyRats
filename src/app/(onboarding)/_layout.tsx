@@ -1,3 +1,4 @@
+/** Description: This file (src/app/(onboarding)/_layout.tsx) contains the implementation for its respective feature. */
 import { Stack } from 'expo-router';
 import { OnboardingProvider } from '@/providers/OnboardingProvider';
 import { useAppTheme } from "@/providers/ThemeProvider";

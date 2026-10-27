@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/storage/SessionStorageSecureStore.ts) contains the implementation for its respective feature. */
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { ISessionStorage } from '../../domain/gateways/ISessionStorage';

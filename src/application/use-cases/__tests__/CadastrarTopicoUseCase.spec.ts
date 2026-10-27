@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/__tests__/CadastrarTopicoUseCase.spec.ts) contains the implementation for its respective feature. */
 import { CadastrarTopicoUseCase } from '../CadastrarTopicoUseCase';
 import { IDisciplinaRepository } from '../../../domain/repositories/IDisciplinaRepository';
 import { Disciplina } from '../../../domain/entities/Disciplina';

@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/__tests__/DeletarTopicoUseCase.spec.ts) contains the implementation for its respective feature. */
 import { DeletarTopicoUseCase } from '../DeletarTopicoUseCase';
 import { Disciplina } from '../../../domain/entities/Disciplina';
 import { Topico } from '../../../domain/entities/Topico';

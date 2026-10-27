@@ -1,3 +1,4 @@
+/** Description: This file (refactor.js) contains the implementation for its respective feature. */
 const { Project, SyntaxKind } = require('ts-morph');
 const path = require('path');
 

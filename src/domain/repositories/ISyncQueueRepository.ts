@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/repositories/ISyncQueueRepository.ts) contains the implementation for its respective feature. */
 import { SyncQueueItem } from '../entities/SyncQueueItem';
 
 export interface ISyncQueueRepository {

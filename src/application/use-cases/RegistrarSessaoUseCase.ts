@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/RegistrarSessaoUseCase.ts) contains the implementation for its respective feature. */
 import { SessaoEstudo } from '../../domain/entities/SessaoEstudo';
 import { Usuario } from '../../domain/entities/Usuario';
 import { FotoSessao } from '../../domain/entities/FotoSessao';

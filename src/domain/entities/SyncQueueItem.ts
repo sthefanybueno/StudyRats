@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/SyncQueueItem.ts) contains the implementation for its respective feature. */
 export interface SyncQueueItemProps {
   id?: string;
   entidade: string;

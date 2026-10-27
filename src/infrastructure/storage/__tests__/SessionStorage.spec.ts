@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/storage/__tests__/SessionStorage.spec.ts) contains the implementation for its respective feature. */
 import { SessionStorageSecureStore } from '../SessionStorageSecureStore';
 import { InMemorySessionStorage } from '../InMemorySessionStorage';
 

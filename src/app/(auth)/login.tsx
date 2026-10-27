@@ -1,3 +1,4 @@
+/** Description: This file (src/app/(auth)/login.tsx) contains the implementation for its respective feature. */
 import { Link } from 'expo-router';
 import { useRef, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';

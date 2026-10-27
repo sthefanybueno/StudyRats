@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/__tests__/Disciplina.spec.ts) contains the implementation for its respective feature. */
 import { Disciplina } from '../Disciplina';
 import { Topico } from '../Topico';
 

@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/SessaoEstudo.ts) contains the implementation for its respective feature. */
 import { StatusSincronizacao, StatusSincronizacaoType } from '../value-objects/StatusSincronizacao';
 import { Coordenada } from '../value-objects/Coordenada';
 import { FotoSessao } from './FotoSessao';

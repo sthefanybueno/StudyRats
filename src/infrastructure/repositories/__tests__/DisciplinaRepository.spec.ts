@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/repositories/__tests__/DisciplinaRepository.spec.ts) contains the implementation for its respective feature. */
 import { SecureStoreDisciplinaRepository } from '../SecureStoreDisciplinaRepository';
 import { InMemoryDisciplinaRepository } from '../InMemoryDisciplinaRepository';
 import { Disciplina } from '@/domain/entities/Disciplina';

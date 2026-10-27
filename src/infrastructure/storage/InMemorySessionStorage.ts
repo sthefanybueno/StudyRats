@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/storage/InMemorySessionStorage.ts) contains the implementation for its respective feature. */
 import { ISessionStorage } from '../../domain/gateways/ISessionStorage';
 
 export class InMemorySessionStorage implements ISessionStorage {

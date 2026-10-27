@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/__tests__/AutenticarUsuarioUseCase.spec.ts) contains the implementation for its respective feature. */
 import { AutenticarUsuarioUseCase } from '../AutenticarUsuarioUseCase';
 import { IAuthGateway } from '../../../domain/gateways/IAuthGateway';
 import { IUsuarioRepository } from '../../../domain/repositories/IUsuarioRepository';

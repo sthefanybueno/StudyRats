@@ -1,3 +1,4 @@
+/** Description: This file (src/components/ui/AppText.tsx) contains the implementation for its respective feature. */
 import { Text, type TextProps, type TextStyle } from 'react-native';
 
 import { Fonts } from '@/constants/theme';

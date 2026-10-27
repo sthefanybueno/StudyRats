@@ -1,3 +1,4 @@
+/** Description: This file (src/providers/SessaoFocoProvider.tsx) contains the implementation for its respective feature. */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import type { Topico } from '@/domain/entities/Topico';

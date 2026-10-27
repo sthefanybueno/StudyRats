@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/CadastrarDisciplinaUseCase.ts) contains the implementation for its respective feature. */
 import { Disciplina } from '../../domain/entities/Disciplina';
 import { IDisciplinaRepository } from '../../domain/repositories/IDisciplinaRepository';
 

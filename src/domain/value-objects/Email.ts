@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/value-objects/Email.ts) contains the implementation for its respective feature. */
 export class Email {
   private constructor(private readonly value: string) {}
 

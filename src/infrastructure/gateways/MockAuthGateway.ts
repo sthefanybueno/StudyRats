@@ -1,3 +1,4 @@
+/** Description: This file (src/infrastructure/gateways/MockAuthGateway.ts) contains the implementation for its respective feature. */
 import { IAuthGateway } from '../../domain/gateways/IAuthGateway';
 import { Usuario } from '../../domain/entities/Usuario';
 

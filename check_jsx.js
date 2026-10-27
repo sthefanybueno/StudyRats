@@ -1,3 +1,4 @@
+/** Description: This file (check_jsx.js) contains the implementation for its respective feature. */
 const babel = require('@babel/core');
 const fs = require('fs');
 

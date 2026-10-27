@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/__tests__/ConsultarRankingUseCase.spec.ts) contains the implementation for its respective feature. */
 import { ConsultarRankingUseCase } from '../ConsultarRankingUseCase';
 import { ISyncGateway } from '../../../domain/gateways/ISyncGateway';
 import { Usuario } from '../../../domain/entities/Usuario';

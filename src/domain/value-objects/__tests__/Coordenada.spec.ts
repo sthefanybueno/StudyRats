@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/value-objects/__tests__/Coordenada.spec.ts) contains the implementation for its respective feature. */
 import { Coordenada } from '../Coordenada';
 
 describe('Coordenada Value Object', () => {

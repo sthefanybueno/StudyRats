@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/entities/__tests__/ResumoIA.spec.ts) contains the implementation for its respective feature. */
 import { ResumoIA } from '../ResumoIA';
 
 describe('ResumoIA Entity', () => {

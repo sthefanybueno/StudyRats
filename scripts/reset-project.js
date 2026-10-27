@@ -1,3 +1,4 @@
+/** Description: This file (scripts/reset-project.js) contains the implementation for its respective feature. */
 #!/usr/bin/env node
 
 /**

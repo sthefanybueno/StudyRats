@@ -1,3 +1,4 @@
+/** Description: This file (src/providers/OnboardingProvider.tsx) contains the implementation for its respective feature. */
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
 /**

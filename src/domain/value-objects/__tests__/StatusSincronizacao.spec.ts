@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/value-objects/__tests__/StatusSincronizacao.spec.ts) contains the implementation for its respective feature. */
 import { StatusSincronizacao } from '../StatusSincronizacao';
 
 describe('StatusSincronizacao Value Object', () => {

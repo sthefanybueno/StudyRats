@@ -1,3 +1,4 @@
+/** Description: This file (find_changes.js) contains the implementation for its respective feature. */
 const fs = require('fs');
 const path = 'C:\\Users\\maria\\.gemini\\antigravity-ide\\brain\\5b7ec8c6-0f4a-4e2d-b78b-f2562c15f234\\.system_generated\\logs\\transcript.jsonl';
 const lines = fs.readFileSync(path, 'utf8').split('\n');

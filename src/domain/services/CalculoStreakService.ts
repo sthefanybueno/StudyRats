@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/services/CalculoStreakService.ts) contains the implementation for its respective feature. */
 /**
  * Domain Service puro responsável por calcular a manutenção ou reset do Streak (dias consecutivos de estudo).
  */

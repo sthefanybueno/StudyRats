@@ -1,3 +1,4 @@
+/** Description: This file (src/app/(auth)/__tests__/login.spec.tsx) contains the implementation for its respective feature. */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
 

@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/CadastrarUsuarioUseCase.ts) contains the implementation for its respective feature. */
 import { Usuario } from '../../domain/entities/Usuario';
 import { Email } from '../../domain/value-objects/Email';
 import { IAuthGateway } from '../../domain/gateways/IAuthGateway';

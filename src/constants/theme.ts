@@ -1,3 +1,4 @@
+/** Description: This file (src/constants/theme.ts) contains the implementation for its respective feature. */
 /**
  * Design system StudyRats
  * Tema dinâmico (Atualmente fixado no Escuro)

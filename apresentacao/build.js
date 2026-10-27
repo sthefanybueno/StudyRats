@@ -1,3 +1,4 @@
+/** Description: This file (apresentacao/build.js) contains the implementation for its respective feature. */
 const fs = require('fs');
 const path = require('path');
 

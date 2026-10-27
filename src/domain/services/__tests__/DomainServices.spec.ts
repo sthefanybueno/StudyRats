@@ -1,3 +1,4 @@
+/** Description: This file (src/domain/services/__tests__/DomainServices.spec.ts) contains the implementation for its respective feature. */
 import { CalculoXpService } from '../CalculoXpService';
 import { CalculoStreakService } from '../CalculoStreakService';
 

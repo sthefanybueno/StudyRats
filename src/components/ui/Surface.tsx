@@ -1,3 +1,4 @@
+/** Description: This file (src/components/ui/Surface.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode } from 'react';

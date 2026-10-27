@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/AtualizarPerfilUseCase.ts) contains the implementation for its respective feature. */
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
 
 export interface AtualizarPerfilRequest {

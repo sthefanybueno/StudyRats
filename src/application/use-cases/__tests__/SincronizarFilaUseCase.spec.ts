@@ -1,3 +1,4 @@
+/** Description: This file (src/application/use-cases/__tests__/SincronizarFilaUseCase.spec.ts) contains the implementation for its respective feature. */
 import { SincronizarFilaUseCase } from '../SincronizarFilaUseCase';
 import { ISyncQueueRepository } from '../../../domain/repositories/ISyncQueueRepository';
 import { ISyncGateway } from '../../../domain/gateways/ISyncGateway';
