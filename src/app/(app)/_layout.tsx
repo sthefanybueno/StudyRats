@@ -30,6 +30,15 @@ export default function AppTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="feed"
+        options={{
+          title: 'Feed',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'newspaper' : 'newspaper-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="materias"
         options={{
           title: 'Matérias',

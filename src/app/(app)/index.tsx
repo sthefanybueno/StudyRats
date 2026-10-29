@@ -19,6 +19,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { formatarTempoRegressivo, useSessaoFoco } from '@/providers/SessaoFocoProvider';
 import { useAppTheme } from "@/providers/ThemeProvider";
 
+
 export default function DashboardScreen() {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
