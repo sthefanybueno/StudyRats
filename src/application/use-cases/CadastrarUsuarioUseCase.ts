@@ -37,6 +37,12 @@ export class CadastrarUsuarioUseCase {
         throw new Error(`A senha deve ter pelo menos ${SENHA_MIN_CARACTERES} caracteres`);
       }
 
+      // Validação de unicidade no repositório de domínio
+      const existente = await this.usuarioRepository.buscarPorEmail(request.email.trim());
+      if (existente) {
+        throw new Error('Este email já está em uso');
+      }
+
       const usuario = await this.authGateway.cadastrar(
         request.email.trim(),
         request.senha,

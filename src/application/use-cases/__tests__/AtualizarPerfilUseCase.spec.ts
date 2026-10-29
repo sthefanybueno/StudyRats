@@ -11,6 +11,8 @@ describe('AtualizarPerfilUseCase', () => {
     repository = {
       salvar: jest.fn(),
       buscarPorId: jest.fn(),
+      buscarPorEmail: jest.fn(),
+      buscarPorNomeUsuario: jest.fn(),
       listarTodos: jest.fn(),
     };
     useCase = new AtualizarPerfilUseCase(repository);

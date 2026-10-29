@@ -33,7 +33,20 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O StudyRats usa sua localização para registrar onde você estudou."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O StudyRats usa a câmera para registrar a foto do seu caderno de estudo."
+        }
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

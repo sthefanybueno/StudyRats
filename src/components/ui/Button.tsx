@@ -4,9 +4,8 @@ import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from '
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { AppText } from './AppText';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing , Colors as GlobalColors } from '@/constants/theme';
 import { useAppTheme } from "@/providers/ThemeProvider";
-import { Colors as GlobalColors } from "@/constants/theme";
 
 type Variant = 'primary' | 'ai' | 'secondary' | 'ghost';
 
@@ -56,7 +55,9 @@ export function Button({
         accessibilityState={{ disabled: inactive, busy: loading }}
         disabled={inactive}
         onPress={onPress}
+        // eslint-disable-next-line react-hooks/immutability
         onPressIn={() => (scale.value = withSpring(0.97))}
+        // eslint-disable-next-line react-hooks/immutability
         onPressOut={() => (scale.value = withSpring(1))}
         style={[
           styles.base,

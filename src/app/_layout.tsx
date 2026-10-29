@@ -14,14 +14,8 @@ import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SessaoFocoProvider } from '@/providers/SessaoFocoProvider';
 import { AppThemeProvider, useAppTheme } from "@/providers/ThemeProvider";
-import { Colors as GlobalColors } from "@/constants/theme";
 
 SplashScreen.preventAutoHideAsync();
-
-const navTheme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: GlobalColors.background, card: GlobalColors.surface, primary: GlobalColors.primary },
-};
 
 function RootNavigator() {
     const { colors: Colors } = useAppTheme();

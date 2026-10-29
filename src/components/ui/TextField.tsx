@@ -4,9 +4,8 @@ import { forwardRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { AppText } from './AppText';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Spacing , Colors as GlobalColors } from '@/constants/theme';
 import { useAppTheme } from "@/providers/ThemeProvider";
-import { Colors as GlobalColors } from "@/constants/theme";
 
 interface TextFieldProps extends TextInputProps {
   label: string;

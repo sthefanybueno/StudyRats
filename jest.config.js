@@ -3,6 +3,7 @@
 module.exports = {
   preset: 'jest-expo',
   roots: ['<rootDir>/src'],
+  testMatch: ['**/__tests__/**/*.spec.[jt]s?(x)'],
   moduleNameMapper: {
     '\\.css$': '<rootDir>/jest.styleStub.js',
     '^@/(.*)$': '<rootDir>/src/$1',

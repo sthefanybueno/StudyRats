@@ -14,24 +14,39 @@ jest.mock('expo-location', () => ({
 
 describe('Infrastructure Gateways', () => {
   describe('ExpoCameraGateway', () => {
-    it('deve capturar foto quando permissão concedida', async () => {
+    it('deve capturar foto e devolver a URI permanente quando permissão concedida', async () => {
       jest.spyOn(ImagePicker, 'requestCameraPermissionsAsync').mockResolvedValue({ status: 'granted' } as any);
       jest.spyOn(ImagePicker, 'launchCameraAsync').mockResolvedValue({
         canceled: false,
-        assets: [{ uri: 'file://foto.jpg' }],
+        assets: [{ uri: 'file://cache/foto.jpg' }],
       } as any);
+      const persistir = jest.fn().mockResolvedValue('file://documents/fotos_sessao/foto.jpg');
 
-      const gateway = new ExpoCameraGateway();
+      const gateway = new ExpoCameraGateway(persistir);
       const uri = await gateway.capturarFoto();
 
-      expect(uri).toBe('file://foto.jpg');
+      expect(persistir).toHaveBeenCalledWith('file://cache/foto.jpg');
+      expect(uri).toBe('file://documents/fotos_sessao/foto.jpg');
+    });
+
+    it('deve devolver null e não persistir nada quando o usuário cancelar a captura', async () => {
+      jest.spyOn(ImagePicker, 'requestCameraPermissionsAsync').mockResolvedValue({ status: 'granted' } as any);
+      jest.spyOn(ImagePicker, 'launchCameraAsync').mockResolvedValue({ canceled: true, assets: null } as any);
+      const persistir = jest.fn();
+
+      const gateway = new ExpoCameraGateway(persistir);
+
+      expect(await gateway.capturarFoto()).toBeNull();
+      expect(persistir).not.toHaveBeenCalled();
     });
 
     it('deve lançar erro quando a permissão for negada', async () => {
       jest.spyOn(ImagePicker, 'requestCameraPermissionsAsync').mockResolvedValue({ status: 'denied' } as any);
+      const persistir = jest.fn();
 
-      const gateway = new ExpoCameraGateway();
+      const gateway = new ExpoCameraGateway(persistir);
       await expect(gateway.capturarFoto()).rejects.toThrow('Permissão de câmera negada');
+      expect(persistir).not.toHaveBeenCalled();
     });
   });
 

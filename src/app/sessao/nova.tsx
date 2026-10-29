@@ -128,51 +128,12 @@ export default function NovaSessaoScreen() {
   const handleTirarFoto = async () => {
     setCarregandoFoto(true);
     try {
-      const uri = await DIContainer.registrarSessao['cameraGateway'].capturarFoto();
+      const uri = await DIContainer.gateways.camera.capturarFoto();
       if (uri) setFotoUri(uri);
     } catch (e: any) {
       setErroMsg(e.message || 'Erro ao capturar foto');
     } finally {
       setCarregandoFoto(false);
-    }
-  };
-
-  // Concluir Sessão
-  const handleConcluirSessao = async () => {
-    if (!usuario) return;
-    if (!disciplinaSelecionada) {
-      setErroMsg('Selecione uma disciplina');
-      return;
-    }
-
-    setSalvando(true);
-    setErroMsg(null);
-
-    try {
-      const topicoIdFinal = topicoSelecionado
-        ? topicoSelecionado.id
-        : disciplinaSelecionada.topicos[0]?.id || 'topico-generico';
-
-      const res = await DIContainer.registrarSessao.execute({
-        usuarioId: usuario.id,
-        disciplinaId: disciplinaSelecionada.id,
-        topicoId: topicoIdFinal,
-        duracaoMinutos,
-        comFoto: !!fotoUri,
-      });
-
-      if (res.isSuccess) {
-        setSucessoMsg(`+${duracaoMinutos} XP Registrados!`);
-        setTimeout(() => {
-          router.replace('/(app)');
-        }, 1500);
-      } else {
-        setErroMsg(res.error);
-      }
-    } catch (e: any) {
-      setErroMsg(e.message);
-    } finally {
-      setSalvando(false);
     }
   };
 
@@ -393,7 +354,7 @@ export default function NovaSessaoScreen() {
                     </View>
                   ) : (
                     <AppText variant="caption" color={Colors.textMuted}>
-                      Nenhum tópico cadastrado nesta disciplina. Clique em "+ Criar Rápido" para adicionar.
+                      Nenhum tópico cadastrado nesta disciplina. Clique em &quot;+ Criar Rápido&quot; para adicionar.
                     </AppText>
                   )}
                 </View>
@@ -496,7 +457,7 @@ export default function NovaSessaoScreen() {
                   <View style={styles.flex}>
                     <AppText variant="label">Anexar Localização (GPS)</AppText>
                     <AppText variant="caption" color={Colors.success}>
-                      {anexarGps ? '● Detectado com Alta Precisão (4m)' : 'Desativado'}
+                      {anexarGps ? '● Será capturada ao concluir a sessão' : 'Desativado'}
                     </AppText>
                   </View>
                 </View>

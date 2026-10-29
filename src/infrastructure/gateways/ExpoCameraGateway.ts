@@ -3,6 +3,8 @@ import { ICameraGateway } from '../../domain/gateways/ICameraGateway';
 import * as ImagePicker from 'expo-image-picker';
 
 export class ExpoCameraGateway implements ICameraGateway {
+  constructor(private persistirFoto?: (uriTemp: string) => Promise<string>) {}
+
   async capturarFoto(): Promise<string | null> {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     
@@ -17,7 +19,11 @@ export class ExpoCameraGateway implements ICameraGateway {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      return result.assets[0].uri;
+      const uriTemp = result.assets[0].uri;
+      if (this.persistirFoto) {
+        return await this.persistirFoto(uriTemp);
+      }
+      return uriTemp;
     }
     
     return null; 

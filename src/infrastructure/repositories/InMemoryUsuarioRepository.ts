@@ -13,6 +13,26 @@ export class InMemoryUsuarioRepository implements IUsuarioRepository {
     return this.usuarios.get(id) || null;
   }
 
+  async buscarPorEmail(email: string): Promise<Usuario | null> {
+    const alvo = email.trim().toLowerCase();
+    for (const u of this.usuarios.values()) {
+      if (u.email.getValue.toLowerCase() === alvo) {
+        return u;
+      }
+    }
+    return null;
+  }
+
+  async buscarPorNomeUsuario(nomeUsuario: string): Promise<Usuario | null> {
+    const alvo = nomeUsuario.trim().toLowerCase();
+    for (const u of this.usuarios.values()) {
+      if (u.nomeUsuario && u.nomeUsuario.trim().toLowerCase() === alvo) {
+        return u;
+      }
+    }
+    return null;
+  }
+
   async listarTodos(): Promise<Usuario[]> {
     return Array.from(this.usuarios.values());
   }

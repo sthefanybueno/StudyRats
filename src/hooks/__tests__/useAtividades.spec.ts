@@ -29,7 +29,8 @@ describe('useAtividades hook', () => {
       registrarSessao: new RegistrarSessaoUseCase(
         sessaoRepo,
         usuarioRepo,
-        { tirarFoto: jest.fn().mockResolvedValue('http://foto.jpg') } as any
+        { tirarFoto: jest.fn().mockResolvedValue('http://foto.jpg') } as any,
+        { obterLocalizacaoAtual: jest.fn().mockResolvedValue({ latitude: 0, longitude: 0 }) } as any
       ),
       repositories: {
         disciplina: disciplinaRepo,

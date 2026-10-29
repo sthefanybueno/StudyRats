@@ -23,7 +23,7 @@ export default function MateriasScreen() {
 
   const { usuario } = useAuth();
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [, setCarregando] = useState(true);
 
   // Form para Cadastrar Nova Matéria
   const [mostrarFormMateria, setMostrarFormMateria] = useState(false);
@@ -50,16 +50,16 @@ export default function MateriasScreen() {
       setDisciplinas(list);
 
       // Atualizar a disciplina selecionada se estiver com o modal aberto
-      if (disciplinaSelecionada) {
-        const atual = list.find(d => d.id === disciplinaSelecionada.id);
-        if (atual) setDisciplinaSelecionada(atual);
-      }
+      setDisciplinaSelecionada(prev => {
+        if (!prev) return prev;
+        return list.find(d => d.id === prev.id) ?? prev;
+      });
     } catch (e) {
       console.error('Erro ao carregar matérias:', e);
     } finally {
       setCarregando(false);
     }
-  }, [usuario, disciplinaSelecionada?.id]);
+  }, [usuario]);
 
   useFocusEffect(
     useCallback(() => {
@@ -248,7 +248,7 @@ export default function MateriasScreen() {
             Nenhuma matéria cadastrada
           </AppText>
           <AppText variant="caption" color={Colors.textSecondary} style={styles.centerText}>
-            Clique no botão "+ Cadastrar Nova Matéria" para adicionar suas disciplinas do semestre!
+            Clique no botão &quot;+ Cadastrar Nova Matéria&quot; para adicionar suas disciplinas do semestre!
           </AppText>
         </Card>
       ) : (

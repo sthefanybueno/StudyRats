@@ -1,15 +1,15 @@
 /** Description: This file (src/infrastructure/repositories/SecureStoreDisciplinaRepository.ts) contains the implementation for its respective feature. */
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { IDisciplinaRepository } from '../../domain/repositories/IDisciplinaRepository';
 import { Disciplina } from '../../domain/entities/Disciplina';
 import { Topico } from '../../domain/entities/Topico';
 
-const STORAGE_KEY = '@studyrats:disciplinas';
+const STORAGE_KEY = 'studyrats.disciplinas';
 
 export class SecureStoreDisciplinaRepository implements IDisciplinaRepository {
   private async carregarTodos(): Promise<Record<string, any>> {
     try {
-      const raw = await SecureStore.getItemAsync(STORAGE_KEY);
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -17,7 +17,7 @@ export class SecureStoreDisciplinaRepository implements IDisciplinaRepository {
   }
 
   private async salvarTodos(map: Record<string, any>): Promise<void> {
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(map));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
   }
 
   async salvar(disciplina: Disciplina): Promise<void> {

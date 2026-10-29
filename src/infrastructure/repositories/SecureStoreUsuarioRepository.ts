@@ -1,14 +1,14 @@
 /** Description: This file (src/infrastructure/repositories/SecureStoreUsuarioRepository.ts) contains the implementation for its respective feature. */
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
 import { Usuario } from '../../domain/entities/Usuario';
 
-const STORAGE_KEY = '@studyrats:usuarios';
+const STORAGE_KEY = 'studyrats.usuarios';
 
 export class SecureStoreUsuarioRepository implements IUsuarioRepository {
   private async carregarTodos(): Promise<Record<string, any>> {
     try {
-      const raw = await SecureStore.getItemAsync(STORAGE_KEY);
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -16,7 +16,7 @@ export class SecureStoreUsuarioRepository implements IUsuarioRepository {
   }
 
   private async salvarTodos(map: Record<string, any>): Promise<void> {
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(map));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
   }
 
   async salvar(usuario: Usuario): Promise<void> {
@@ -48,6 +48,30 @@ export class SecureStoreUsuarioRepository implements IUsuarioRepository {
       xpSemanal: item.xpSemanal,
       streakAtual: item.streakAtual,
     });
+  }
+
+  async buscarPorEmail(email: string): Promise<Usuario | null> {
+    const todos = await this.carregarTodos();
+    const alvo = email.trim().toLowerCase();
+    for (const key of Object.keys(todos)) {
+      const item = todos[key];
+      if (item && item.email && item.email.toLowerCase() === alvo) {
+        return this.buscarPorId(item.id);
+      }
+    }
+    return null;
+  }
+
+  async buscarPorNomeUsuario(nomeUsuario: string): Promise<Usuario | null> {
+    const todos = await this.carregarTodos();
+    const alvo = nomeUsuario.trim().toLowerCase();
+    for (const key of Object.keys(todos)) {
+      const item = todos[key];
+      if (item && item.nomeUsuario && item.nomeUsuario.trim().toLowerCase() === alvo) {
+        return this.buscarPorId(item.id);
+      }
+    }
+    return null;
   }
 
   async listarTodos(): Promise<Usuario[]> {

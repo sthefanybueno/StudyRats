@@ -1,16 +1,16 @@
 /** Description: This file (src/infrastructure/repositories/SecureStoreSessaoEstudoRepository.ts) contains the implementation for its respective feature. */
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ISessaoEstudoRepository } from '../../domain/repositories/ISessaoEstudoRepository';
 import { SessaoEstudo } from '../../domain/entities/SessaoEstudo';
 import { Coordenada } from '../../domain/value-objects/Coordenada';
 import { FotoSessao } from '../../domain/entities/FotoSessao';
 
-const STORAGE_KEY = '@studyrats:sessoes';
+const STORAGE_KEY = 'studyrats.sessoes';
 
 export class SecureStoreSessaoEstudoRepository implements ISessaoEstudoRepository {
   private async carregarTodos(): Promise<Record<string, any>> {
     try {
-      const raw = await SecureStore.getItemAsync(STORAGE_KEY);
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -18,7 +18,7 @@ export class SecureStoreSessaoEstudoRepository implements ISessaoEstudoRepositor
   }
 
   private async salvarTodos(map: Record<string, any>): Promise<void> {
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(map));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
   }
 
   async salvar(sessao: SessaoEstudo): Promise<void> {
@@ -62,6 +62,18 @@ export class SecureStoreSessaoEstudoRepository implements ISessaoEstudoRepositor
     return lista.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
+
+  async listarTodas(): Promise<SessaoEstudo[]> {
+    const todos = await this.carregarTodos();
+    const lista: SessaoEstudo[] = [];
+    for (const key of Object.keys(todos)) {
+      const item = todos[key];
+      if (item) {
+        lista.push(this.mapToEntity(item));
+      }
+    }
+    return lista.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
   async listarPorDisciplina(disciplinaId: string): Promise<SessaoEstudo[]> {
     const todos = await this.carregarTodos();
     const lista: SessaoEstudo[] = [];
