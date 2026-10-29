@@ -21,4 +21,9 @@ export interface ISessaoEstudoRepository {
    * Retorna as sessões de uma disciplina específica.
    */
   listarPorDisciplina(disciplinaId: string): Promise<SessaoEstudo[]>;
+
+  /**
+   * Retorna todas as sessões registradas no repositório.
+   */
+  listarTodas(): Promise<SessaoEstudo[]>;
 }

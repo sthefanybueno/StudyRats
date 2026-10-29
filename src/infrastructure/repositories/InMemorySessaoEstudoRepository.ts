@@ -20,4 +20,8 @@ export class InMemorySessaoEstudoRepository implements ISessaoEstudoRepository {
   async listarPorDisciplina(disciplinaId: string): Promise<SessaoEstudo[]> {
     return Array.from(this.sessoes.values()).filter(s => s.disciplinaId === disciplinaId);
   }
+
+  async listarTodas(): Promise<SessaoEstudo[]> {
+    return Array.from(this.sessoes.values());
+  }
 }

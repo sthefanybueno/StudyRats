@@ -62,6 +62,18 @@ export class SecureStoreSessaoEstudoRepository implements ISessaoEstudoRepositor
     return lista.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
+
+  async listarTodas(): Promise<SessaoEstudo[]> {
+    const todos = await this.carregarTodos();
+    const lista: SessaoEstudo[] = [];
+    for (const key of Object.keys(todos)) {
+      const item = todos[key];
+      if (item) {
+        lista.push(this.mapToEntity(item));
+      }
+    }
+    return lista.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
   async listarPorDisciplina(disciplinaId: string): Promise<SessaoEstudo[]> {
     const todos = await this.carregarTodos();
     const lista: SessaoEstudo[] = [];

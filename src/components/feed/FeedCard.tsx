@@ -34,7 +34,14 @@ export function FeedCard({ item, agora }: { item: ItemFeedDTO; agora?: Date }) {
             Nv.{item.autor.nivel} · {formatarTempoRelativo(item.createdAt, agora)}
           </AppText>
         </View>
-        <Pill tone="primary" label={`+${item.xp} XP`} />
+        <View style={styles.headerRight}>
+          {item.syncStatus === 'synced' ? (
+            <Pill tone="success" dot label="Sincronizado" />
+          ) : (
+            <Pill tone="warning" dot label="Local" />
+          )}
+          <Pill tone="primary" label={`+${item.xp} XP`} />
+        </View>
       </View>
 
       <View>
@@ -78,6 +85,7 @@ const useStyles = (Colors: any) =>
   StyleSheet.create({
     card: { gap: Spacing.three, padding: Spacing.three + 2 },
     header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 2 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     avatar: {
       width: 40,
       height: 40,

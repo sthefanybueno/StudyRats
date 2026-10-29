@@ -8,7 +8,7 @@ import { InMemorySyncQueueRepository } from '../../infrastructure/repositories/I
 // Gateways
 import { MockAuthGateway } from '../../infrastructure/gateways/MockAuthGateway';
 import { MockSyncGateway } from '../../infrastructure/gateways/MockSyncGateway';
-import { MockFeedGateway } from '../../infrastructure/gateways/MockFeedGateway';
+
 import { ListarFeedUseCase } from '../use-cases/ListarFeedUseCase';
 import { MockAIGateway } from '../../infrastructure/gateways/MockAIGateway';
 import { ExpoCameraGateway } from '../../infrastructure/gateways/ExpoCameraGateway';
@@ -39,7 +39,7 @@ const sessionStorage = new SessionStorageSecureStore();
 
 const authGateway = new MockAuthGateway();
 const syncGateway = new MockSyncGateway();
-const feedGateway = new MockFeedGateway();
+
 const aiGateway = new MockAIGateway();
 const cameraGateway = new ExpoCameraGateway();
 const locationGateway = new ExpoLocationGateway();
@@ -53,6 +53,12 @@ export const DIContainer = {
     await sessionStorage.removerSessionToken();
     await authGateway.logout();
   },
+  resetarDadosLocais: async () => {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default || require('@react-native-async-storage/async-storage');
+    await AsyncStorage.clear();
+    await sessionStorage.removerSessionToken();
+    await authGateway.logout();
+  },
   cadastrarDisciplina: new CadastrarDisciplinaUseCase(disciplinaRepository),
   cadastrarTopico: new CadastrarTopicoUseCase(disciplinaRepository),
   atualizarTopico: new AtualizarTopicoUseCase(disciplinaRepository),
@@ -60,7 +66,7 @@ export const DIContainer = {
   gerarResumo: new GerarResumoUseCase(aiGateway, resumoRepository),
   registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway, locationGateway),
   consultarRanking: new ConsultarRankingUseCase(syncGateway),
-  listarFeed: new ListarFeedUseCase(feedGateway),
+  listarFeed: new ListarFeedUseCase(sessaoEstudoRepository, usuarioRepository, disciplinaRepository),
   sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway),
 
   // Gateways expostos para consumo direto pela camada de apresentação (ex.: captura de GPS na sessão)

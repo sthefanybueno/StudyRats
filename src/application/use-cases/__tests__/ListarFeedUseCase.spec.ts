@@ -1,131 +1,143 @@
 /** Description: This file (src/application/use-cases/__tests__/ListarFeedUseCase.spec.ts) contains the implementation for its respective feature. */
 import { ListarFeedUseCase, LIMITE_FEED } from '../ListarFeedUseCase';
-import { IFeedGateway, PaginaFeed, SessaoComunidade } from '../../../domain/gateways/IFeedGateway';
 import { SessaoEstudo } from '../../../domain/entities/SessaoEstudo';
 import { Usuario } from '../../../domain/entities/Usuario';
+import { Disciplina } from '../../../domain/entities/Disciplina';
+import { Topico } from '../../../domain/entities/Topico';
 import { FotoSessao } from '../../../domain/entities/FotoSessao';
 import { Coordenada } from '../../../domain/value-objects/Coordenada';
-
-function itemComunidade(
-  id: string,
-  createdAt: Date,
-  extra: { foto?: boolean; coord?: boolean; duracao?: number } = {}
-): SessaoComunidade {
-  const sessao = SessaoEstudo.create({
-    id,
-    usuarioId: 'u-' + id,
-    disciplinaId: 'd1',
-    topicoId: 't1',
-    duracaoMinutos: extra.duracao ?? 30,
-    createdAt,
-    coordenada: extra.coord ? Coordenada.create({ latitude: -19.9191, longitude: -43.9386 }) : undefined,
-  });
-  if (extra.foto) {
-    sessao.anexarFoto(FotoSessao.create({ sessaoId: id, uriLocal: 'file://x.jpg', urlRemota: 'https://img/' + id + '.jpg' }));
-  }
-  const autor = Usuario.create({ id: 'u-' + id, email: `${id}@t.com`, nomeExibicao: 'Autor ' + id, xpTotal: 250 });
-  return { sessao, autor, disciplinaNome: 'Cálculo', topicoNome: 'Derivadas' };
-}
-
-class FakeFeedGateway implements IFeedGateway {
-  public chamadas: { cursor?: string; limite?: number }[] = [];
-  constructor(private pagina: PaginaFeed | Error) {}
-  async obterFeed(cursor?: string, limite?: number): Promise<PaginaFeed> {
-    this.chamadas.push({ cursor, limite });
-    if (this.pagina instanceof Error) throw this.pagina;
-    return this.pagina;
-  }
-}
+import { InMemorySessaoEstudoRepository } from '../../../infrastructure/repositories/InMemorySessaoEstudoRepository';
+import { InMemoryUsuarioRepository } from '../../../infrastructure/repositories/InMemoryUsuarioRepository';
+import { InMemoryDisciplinaRepository } from '../../../infrastructure/repositories/InMemoryDisciplinaRepository';
 
 describe('ListarFeedUseCase', () => {
-  it('limita a página a 50 sessões e pede 50 ao gateway', async () => {
+  let sessaoRepo: InMemorySessaoEstudoRepository;
+  let usuarioRepo: InMemoryUsuarioRepository;
+  let disciplinaRepo: InMemoryDisciplinaRepository;
+
+  beforeEach(async () => {
+    sessaoRepo = new InMemorySessaoEstudoRepository();
+    usuarioRepo = new InMemoryUsuarioRepository();
+    disciplinaRepo = new InMemoryDisciplinaRepository();
+
+    const user = Usuario.create({
+      id: 'usr-1',
+      email: 'user1@teste.com',
+      nomeExibicao: 'Estudante 1',
+      xpTotal: 250,
+    });
+    await usuarioRepo.salvar(user);
+
+    const disc = Disciplina.create({
+      id: 'disc-1',
+      usuarioId: 'usr-1',
+      nome: 'Cálculo',
+      cor: '#FF0000',
+    });
+    disc.adicionarTopico(Topico.create({ id: 'top-1', disciplinaId: 'disc-1', nome: 'Derivadas' }));
+    await disciplinaRepo.salvar(disc);
+  });
+
+  it('lista as sessões manuais e reais salvas no repositório', async () => {
+    const s1 = SessaoEstudo.create({
+      id: 'sess-1',
+      usuarioId: 'usr-1',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 45,
+      createdAt: new Date('2026-02-01T10:00:00Z'),
+    });
+    await sessaoRepo.salvar(s1);
+
+    const useCase = new ListarFeedUseCase(sessaoRepo, usuarioRepo, disciplinaRepo);
+    const r = await useCase.execute();
+
+    expect(r.isSuccess).toBe(true);
+    if (r.isSuccess) {
+      expect(r.value.itens).toHaveLength(1);
+      expect(r.value.itens[0].id).toBe('sess-1');
+      expect(r.value.itens[0].disciplina).toBe('Cálculo');
+      expect(r.value.itens[0].topico).toBe('Derivadas');
+      expect(r.value.itens[0].autor.nome).toBe('Estudante 1');
+    }
+  });
+
+  it('ordena as sessões reais da mais recente para a mais antiga', async () => {
+    const sAntiga = SessaoEstudo.create({
+      id: 'sess-antiga',
+      usuarioId: 'usr-1',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 30,
+      createdAt: new Date('2026-01-01T10:00:00Z'),
+    });
+    const sNova = SessaoEstudo.create({
+      id: 'sess-nova',
+      usuarioId: 'usr-1',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 30,
+      createdAt: new Date('2026-01-05T10:00:00Z'),
+    });
+
+    await sessaoRepo.salvar(sAntiga);
+    await sessaoRepo.salvar(sNova);
+
+    const useCase = new ListarFeedUseCase(sessaoRepo, usuarioRepo, disciplinaRepo);
+    const r = await useCase.execute();
+
+    expect(r.isSuccess).toBe(true);
+    if (r.isSuccess) {
+      expect(r.value.itens.map(i => i.id)).toEqual(['sess-nova', 'sess-antiga']);
+    }
+  });
+
+  it('mapeia foto, coordenada GPS e syncStatus das sessões manuais', async () => {
+    const s = SessaoEstudo.create({
+      id: 'sess-completa',
+      usuarioId: 'usr-1',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 50,
+      coordenada: Coordenada.create({ latitude: -19.9191, longitude: -43.9386 }),
+    });
+    s.anexarFoto(FotoSessao.create({ sessaoId: 'sess-completa', uriLocal: 'file://foto.jpg' }));
+    await sessaoRepo.salvar(s);
+
+    const useCase = new ListarFeedUseCase(sessaoRepo, usuarioRepo, disciplinaRepo);
+    const r = await useCase.execute();
+
+    expect(r.isSuccess).toBe(true);
+    if (r.isSuccess) {
+      const item = r.value.itens[0];
+      expect(item.fotoUri).toBe('file://foto.jpg');
+      expect(item.latitude).toBeCloseTo(-19.9191);
+      expect(item.longitude).toBeCloseTo(-43.9386);
+      expect(item.syncStatus).toBe('pending');
+    }
+  });
+
+  it('limita cada página ao limite configurado (50 itens)', async () => {
     expect(LIMITE_FEED).toBe(50);
-    const itens = Array.from({ length: 60 }, (_, i) => itemComunidade('s' + i, new Date(2026, 0, 1, 0, i)));
-    const gateway = new FakeFeedGateway({ itens, proximoCursor: '60' });
+    for (let i = 0; i < 55; i++) {
+      const s = SessaoEstudo.create({
+        id: `sess-${i}`,
+        usuarioId: 'usr-1',
+        disciplinaId: 'disc-1',
+        topicoId: 'top-1',
+        duracaoMinutos: 15,
+        createdAt: new Date(2026, 0, 1, 0, i),
+      });
+      await sessaoRepo.salvar(s);
+    }
 
-    const r = await new ListarFeedUseCase(gateway).execute();
-
-    expect(gateway.chamadas[0].limite).toBe(50);
-    expect(r.isSuccess).toBe(true);
-    if (r.isSuccess) expect(r.value.itens).toHaveLength(50);
-  });
-
-  it('ordena da mais recente para a mais antiga', async () => {
-    const gateway = new FakeFeedGateway({
-      itens: [
-        itemComunidade('antiga', new Date('2026-01-01T10:00:00Z')),
-        itemComunidade('nova', new Date('2026-01-03T10:00:00Z')),
-        itemComunidade('meio', new Date('2026-01-02T10:00:00Z')),
-      ],
-    });
-
-    const r = await new ListarFeedUseCase(gateway).execute();
+    const useCase = new ListarFeedUseCase(sessaoRepo, usuarioRepo, disciplinaRepo);
+    const r = await useCase.execute();
 
     expect(r.isSuccess).toBe(true);
-    if (r.isSuccess) expect(r.value.itens.map(i => i.id)).toEqual(['nova', 'meio', 'antiga']);
-  });
-
-  it('repassa o cursor ao gateway e devolve o próximo cursor', async () => {
-    const gateway = new FakeFeedGateway({ itens: [itemComunidade('a', new Date())], proximoCursor: '50' });
-
-    const r = await new ListarFeedUseCase(gateway).execute('50');
-
-    expect(gateway.chamadas[0].cursor).toBe('50');
-    expect(r.isSuccess).toBe(true);
-    if (r.isSuccess) expect(r.value.proximoCursor).toBe('50');
-  });
-
-  it('remove sessões duplicadas pelo id', async () => {
-    const d = new Date();
-    const gateway = new FakeFeedGateway({ itens: [itemComunidade('x', d), itemComunidade('x', d)] });
-
-    const r = await new ListarFeedUseCase(gateway).execute();
-
-    expect(r.isSuccess).toBe(true);
-    if (r.isSuccess) expect(r.value.itens).toHaveLength(1);
-  });
-
-  it('mapeia entidades para o DTO de tela (autor, nível, xp, foto e coordenadas)', async () => {
-    const gateway = new FakeFeedGateway({
-      itens: [itemComunidade('s1', new Date('2026-02-01T12:00:00Z'), { foto: true, coord: true, duracao: 50 })],
-    });
-
-    const r = await new ListarFeedUseCase(gateway).execute();
-
-    expect(r.isSuccess).toBe(true);
-    if (!r.isSuccess) return;
-    const item = r.value.itens[0];
-    expect(item.autor).toEqual({ id: 'u-s1', nome: 'Autor s1', fotoUrl: undefined, nivel: 3 });
-    expect(item.disciplina).toBe('Cálculo');
-    expect(item.topico).toBe('Derivadas');
-    expect(item.duracaoMinutos).toBe(50);
-    // 50 min + 10 (foto) + 5 (gps) + 15 (foco estendido) = 80
-    expect(item.xp).toBe(80);
-    expect(item.fotoUri).toBe('https://img/s1.jpg');
-    expect(item.latitude).toBeCloseTo(-19.9191);
-    expect(item.longitude).toBeCloseTo(-43.9386);
-  });
-
-  it('sessão sem foto e sem coordenadas gera DTO válido sem esses campos', async () => {
-    const gateway = new FakeFeedGateway({ itens: [itemComunidade('s2', new Date(), { duracao: 10 })] });
-
-    const r = await new ListarFeedUseCase(gateway).execute();
-
-    expect(r.isSuccess).toBe(true);
-    if (!r.isSuccess) return;
-    const item = r.value.itens[0];
-    expect(item.fotoUri).toBeUndefined();
-    expect(item.latitude).toBeUndefined();
-    expect(item.longitude).toBeUndefined();
-    expect(item.xp).toBe(10);
-  });
-
-  it('retorna falha (sem lançar exceção) quando o gateway erra', async () => {
-    const gateway = new FakeFeedGateway(new Error('Sem conexão'));
-
-    const r = await new ListarFeedUseCase(gateway).execute();
-
-    expect(r).toEqual({ isSuccess: false, error: 'Sem conexão' });
+    if (r.isSuccess) {
+      expect(r.value.itens).toHaveLength(50);
+      expect(r.value.proximoCursor).toBe('50');
+    }
   });
 });
-

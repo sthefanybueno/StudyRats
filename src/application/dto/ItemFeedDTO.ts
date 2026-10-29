@@ -15,6 +15,7 @@ export interface ItemFeedDTO {
   latitude?: number;
   longitude?: number;
   createdAt: Date;
+  syncStatus?: string;
 }
 
 export interface PaginaFeedDTO {

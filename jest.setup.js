@@ -42,6 +42,12 @@ jest.mock('expo-router', () => ({
     push: jest.fn(),
     replace: jest.fn(),
   }),
+  useFocusEffect: (cb: any) => {
+    const React = require('react');
+    React.useEffect(() => {
+      return cb();
+    }, [cb]);
+  },
   useSegments: () => ['(app)'],
   Link: ({ children }: any) => children,
 }));

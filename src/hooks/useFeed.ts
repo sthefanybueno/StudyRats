@@ -1,5 +1,6 @@
 /** Description: Hook de apresentação do Feed: guarda apenas estado de UI e delega ao caso de uso ListarFeedUseCase. */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 
 import { DIContainer } from '@/application/di/container';
 import type { ItemFeedDTO } from '@/application/dto/ItemFeedDTO';
@@ -77,6 +78,13 @@ export function useFeed() {
       ocupado.current = false;
     };
   }, []);
+
+  // Recarrega sempre que a tela ganha foco (ex: após registrar uma nova sessão)
+  useFocusEffect(
+    useCallback(() => {
+      recarregar('inicial');
+    }, [recarregar])
+  );
 
   return {
     itens,

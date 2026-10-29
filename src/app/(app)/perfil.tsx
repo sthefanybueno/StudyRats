@@ -327,7 +327,7 @@ export default function PerfilScreen() {
         </Card>
       </View>
 
-      {/* Logout Button */}
+      {/* Logout & Reset Buttons */}
       <View style={styles.perfilFooter}>
         <Button
           testID="logout-btn"
@@ -335,6 +335,15 @@ export default function PerfilScreen() {
           variant="secondary"
           icon="log-out-outline"
           onPress={logout}
+        />
+        <Button
+          label="Limpar Dados Locais (Reset)"
+          variant="danger"
+          icon="trash-outline"
+          onPress={async () => {
+            await DIContainer.resetarDadosLocais();
+            logout();
+          }}
         />
       </View>
 

@@ -22,7 +22,7 @@ export default function FeedScreen() {
     <View style={styles.header}>
       <BrandMark subtitle="Feed" />
       <AppText variant="overline" color={Colors.textSecondary}>
-        SESSÕES DA COMUNIDADE
+        SESSÕES DE ESTUDO REAIS
       </AppText>
     </View>
   );
@@ -68,7 +68,7 @@ export default function FeedScreen() {
               <Card style={styles.stateCard}>
                 <Ionicons name="newspaper-outline" size={28} color={Colors.textMuted} />
                 <AppText variant="body" style={styles.centerText}>
-                  Ainda não há sessões da comunidade.
+                  Nenhuma sessão registrada ainda. Inicie ou registre uma sessão de foco para vê-la aqui!
                 </AppText>
               </Card>
             }

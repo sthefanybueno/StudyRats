@@ -27,6 +27,13 @@ export class AtualizarPerfilUseCase {
         usuario.atualizarNomeExibicao(request.nomeExibicao);
       }
       if (request.nomeUsuario !== undefined) {
+        const limpo = request.nomeUsuario.trim();
+        if (limpo) {
+          const existente = await this.usuarioRepository.buscarPorNomeUsuario(limpo);
+          if (existente && existente.id !== usuario.id) {
+            throw new Error('Este nome de usuário já está em uso');
+          }
+        }
         usuario.atualizarNomeUsuario(request.nomeUsuario);
       }
       if (request.fotoUrl !== undefined) {

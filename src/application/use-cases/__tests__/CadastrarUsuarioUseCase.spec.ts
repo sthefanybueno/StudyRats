@@ -21,6 +21,7 @@ class MockUsuarioRepository implements IUsuarioRepository {
   usuarios: Usuario[] = [];
   async salvar(usuario: Usuario): Promise<void> { this.usuarios.push(usuario); }
   async buscarPorId(id: string): Promise<Usuario | null> { return this.usuarios.find(u => u.id === id) || null; }
+  async buscarPorEmail(email: string): Promise<Usuario | null> { return this.usuarios.find(u => u.email.getValue.toLowerCase() === email.toLowerCase()) || null; }
   async listarTodos(): Promise<Usuario[]> { return this.usuarios; }
 }
 

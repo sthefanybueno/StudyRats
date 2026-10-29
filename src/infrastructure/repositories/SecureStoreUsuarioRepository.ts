@@ -50,6 +50,30 @@ export class SecureStoreUsuarioRepository implements IUsuarioRepository {
     });
   }
 
+  async buscarPorEmail(email: string): Promise<Usuario | null> {
+    const todos = await this.carregarTodos();
+    const alvo = email.trim().toLowerCase();
+    for (const key of Object.keys(todos)) {
+      const item = todos[key];
+      if (item && item.email && item.email.toLowerCase() === alvo) {
+        return this.buscarPorId(item.id);
+      }
+    }
+    return null;
+  }
+
+  async buscarPorNomeUsuario(nomeUsuario: string): Promise<Usuario | null> {
+    const todos = await this.carregarTodos();
+    const alvo = nomeUsuario.trim().toLowerCase();
+    for (const key of Object.keys(todos)) {
+      const item = todos[key];
+      if (item && item.nomeUsuario && item.nomeUsuario.trim().toLowerCase() === alvo) {
+        return this.buscarPorId(item.id);
+      }
+    }
+    return null;
+  }
+
   async listarTodos(): Promise<Usuario[]> {
     const todos = await this.carregarTodos();
     const lista: Usuario[] = [];
