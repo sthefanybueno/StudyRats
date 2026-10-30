@@ -7,7 +7,7 @@ import { AppText } from './AppText';
 import { Spacing , Colors as GlobalColors } from '@/constants/theme';
 import { useAppTheme } from "@/providers/ThemeProvider";
 
-type Variant = 'primary' | 'ai' | 'secondary' | 'ghost';
+type Variant = 'primary' | 'ai' | 'secondary' | 'ghost' | 'danger';
 
 interface ButtonProps {
   label: string;
@@ -26,6 +26,7 @@ const palette: Record<Variant, { bg: string; fg: string; border?: string }> = {
   ai: { bg: GlobalColors.aiStrong, fg: '#FFFFFF' },
   secondary: { bg: GlobalColors.surfaceRaised, fg: GlobalColors.text, border: GlobalColors.border },
   ghost: { bg: 'transparent', fg: GlobalColors.textSecondary },
+  danger: { bg: GlobalColors.dangerSoft, fg: GlobalColors.danger, border: GlobalColors.danger },
 };
 
 export function Button({
