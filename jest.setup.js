@@ -66,3 +66,17 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+// Mock do expo-sqlite para ambiente de teste hermético
+jest.mock(
+  'expo-sqlite',
+  () => ({
+    openDatabaseAsync: jest.fn(async () => ({
+      execAsync: jest.fn(async () => {}),
+      runAsync: jest.fn(async () => ({ lastInsertRowId: 1, changes: 1 })),
+      getAllAsync: jest.fn(async () => []),
+      getFirstAsync: jest.fn(async () => null),
+      withTransactionAsync: jest.fn(async (cb) => cb()),
+    })),
+  }),
+  { virtual: true }
+);

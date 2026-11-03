@@ -311,84 +311,7 @@
                 )
             },
 
-            // SLIDE 4: TÓPICO 4 - O DOMÍNIO E AS INTERFACES (BASE DO CONTRATO)
-            {
-                id: "dominio-interfaces",
-                section: "4. Domínio e Interfaces",
-                title: "O Domínio e as Interfaces: A Base do Contrato",
-                tempoRecomendado: "1:20",
-                theme: "purple",
-                content: (
-                    <div className="flex flex-col max-w-6xl mx-auto w-full space-y-6">
-                        <div>
-                            <span className="text-brand-purple font-bold text-sm tracking-wider uppercase">Tópico 4 do Roteiro</span>
-                            <h2 className="text-4xl font-extrabold text-brand-black">Contratos Declarativos e Modelagem Rica</h2>
-                            <p className="text-gray-600 text-lg mt-1">Value Objects auto-validados e interfaces agnósticas de hardware.</p>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <CodeSnippet 
-                                    title="src/domain/gateways/ICameraGateway.ts"
-                                    code={`export interface ICameraGateway {
-  /**
-   * Abre a câmera nativa do dispositivo.
-   * @returns URI local da foto, ou null se cancelado.
-   */
-  capturarFoto(): Promise<string | null>;
-}`}
-                                />
-                                <CodeSnippet 
-                                    title="src/domain/gateways/ILocationGateway.ts"
-                                    code={`export interface Coordenadas {
-  latitude: number;
-  longitude: number;
-}
-
-export interface ILocationGateway {
-  /**
-   * Solicita a coordenada atual do GPS.
-   * Lança erro caso a permissão seja negada.
-   */
-  obterLocalizacaoAtual(): Promise<Coordenadas>;
-}`}
-                                />
-                            </div>
-
-                            <div className="space-y-4">
-                                <CodeSnippet 
-                                    title="src/domain/value-objects/Coordenada.ts"
-                                    code={`export class Coordenada {
-  private constructor(private readonly props: Required<CoordenadaProps>) {}
-
-  public static create(props: CoordenadaProps): Coordenada {
-    // Invariante DDD: Limites do globo terrestre
-    if (props.latitude < -90 || props.latitude > 90) {
-      throw new Error('Latitude inválida');
-    }
-    if (props.longitude < -180 || props.longitude > 180) {
-      throw new Error('Longitude inválida');
-    }
-    return new Coordenada({
-      latitude: props.latitude,
-      longitude: props.longitude,
-      timestamp: props.timestamp ?? new Date(),
-    });
-  }
-}`}
-                                />
-                                <div className="bg-brand-purpleLight/50 p-4 rounded-2xl border border-brand-purple/20 text-xs text-gray-700 space-y-2">
-                                    <p className="font-bold text-brand-purple text-sm">Por que isso é poderoso?</p>
-                                    <p>• <strong>Sem acoplamento:</strong> O Domínio não faz ideia se a câmera vem de Expo, CameraX nativa do Android ou AVFoundation do iOS.</p>
-                                    <p>• <strong>Garantia de consistência:</strong> Nenhuma coordenada geográfica impossível consegue entrar no sistema graças ao Value Object imutável.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )
-            },
-
-            // SLIDE 5: TÓPICO 3 - A ESTRATÉGIA DE TDD
+            // SLIDE 4: TÓPICO 3 - A ESTRATÉGIA DE TDD
             {
                 id: "estrategia-tdd",
                 section: "3. Estratégia de TDD",
@@ -462,6 +385,83 @@ it('should register session even when location permission fails', async () => {
   expect(res.value.coordenada).toBeUndefined(); // Resiliente!
 });`}
                         />
+                    </div>
+                )
+            },
+
+            // SLIDE 5: TÓPICO 4 - O DOMÍNIO E AS INTERFACES (BASE DO CONTRATO)
+            {
+                id: "dominio-interfaces",
+                section: "4. Domínio e Interfaces",
+                title: "O Domínio e as Interfaces: A Base do Contrato",
+                tempoRecomendado: "1:20",
+                theme: "purple",
+                content: (
+                    <div className="flex flex-col max-w-6xl mx-auto w-full space-y-6">
+                        <div>
+                            <span className="text-brand-purple font-bold text-sm tracking-wider uppercase">Tópico 4 do Roteiro</span>
+                            <h2 className="text-4xl font-extrabold text-brand-black">Contratos Declarativos e Modelagem Rica</h2>
+                            <p className="text-gray-600 text-lg mt-1">Value Objects auto-validados e interfaces agnósticas de hardware.</p>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <CodeSnippet 
+                                    title="src/domain/gateways/ICameraGateway.ts"
+                                    code={`export interface ICameraGateway {
+  /**
+   * Abre a câmera nativa do dispositivo.
+   * @returns URI local da foto, ou null se cancelado.
+   */
+  capturarFoto(): Promise<string | null>;
+}`}
+                                />
+                                <CodeSnippet 
+                                    title="src/domain/gateways/ILocationGateway.ts"
+                                    code={`export interface Coordenadas {
+  latitude: number;
+  longitude: number;
+}
+
+export interface ILocationGateway {
+  /**
+   * Solicita a coordenada atual do GPS.
+   * Lança erro caso a permissão seja negada.
+   */
+  obterLocalizacaoAtual(): Promise<Coordenadas>;
+}`}
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <CodeSnippet 
+                                    title="src/domain/value-objects/Coordenada.ts"
+                                    code={`export class Coordenada {
+  private constructor(private readonly props: Required<CoordenadaProps>) {}
+
+  public static create(props: CoordenadaProps): Coordenada {
+    // Invariante DDD: Limites do globo terrestre
+    if (props.latitude < -90 || props.latitude > 90) {
+      throw new Error('Latitude inválida');
+    }
+    if (props.longitude < -180 || props.longitude > 180) {
+      throw new Error('Longitude inválida');
+    }
+    return new Coordenada({
+      latitude: props.latitude,
+      longitude: props.longitude,
+      timestamp: props.timestamp ?? new Date(),
+    });
+  }
+}`}
+                                />
+                                <div className="bg-brand-purpleLight/50 p-4 rounded-2xl border border-brand-purple/20 text-xs text-gray-700 space-y-2">
+                                    <p className="font-bold text-brand-purple text-sm">Por que isso é poderoso?</p>
+                                    <p>• <strong>Sem acoplamento:</strong> O Domínio não faz ideia se a câmera vem de Expo, CameraX nativa do Android ou AVFoundation do iOS.</p>
+                                    <p>• <strong>Garantia de consistência:</strong> Nenhuma coordenada geográfica impossível consegue entrar no sistema graças ao Value Object imutável.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )
             },

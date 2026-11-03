@@ -1,7 +1,8 @@
 /** Description: This file (src/application/di/container.ts) contains the implementation for its respective feature. */
 import { SecureStoreUsuarioRepository } from '../../infrastructure/repositories/SecureStoreUsuarioRepository';
 import { SecureStoreDisciplinaRepository } from '../../infrastructure/repositories/SecureStoreDisciplinaRepository';
-import { SecureStoreSessaoEstudoRepository } from '../../infrastructure/repositories/SecureStoreSessaoEstudoRepository';
+import { SQLiteSessaoEstudoRepository } from '../../infrastructure/repositories/SQLiteSessaoEstudoRepository';
+import { persistirFotoLocal } from '../../infrastructure/storage/FotoStorage';
 import { InMemoryResumoIARepository } from '../../infrastructure/repositories/InMemoryResumoIARepository';
 import { InMemorySyncQueueRepository } from '../../infrastructure/repositories/InMemorySyncQueueRepository';
 
@@ -29,10 +30,10 @@ import { SincronizarFilaUseCase } from '../use-cases/SincronizarFilaUseCase';
 
 import { SessionStorageSecureStore } from '../../infrastructure/storage/SessionStorageSecureStore';
 
-// 1. Instanciar Adapters (Singletons com armazenamento local persistente em AsyncStorage / SecureStore)
+// 1. Instanciar Adapters (Persistência SQLite para Sessões e Fotos; SecureStore/AsyncStorage para Perfis)
 const usuarioRepository = new SecureStoreUsuarioRepository();
 const disciplinaRepository = new SecureStoreDisciplinaRepository();
-const sessaoEstudoRepository = new SecureStoreSessaoEstudoRepository();
+const sessaoEstudoRepository = new SQLiteSessaoEstudoRepository();
 const resumoRepository = new InMemoryResumoIARepository();
 const syncQueueRepository = new InMemorySyncQueueRepository();
 const sessionStorage = new SessionStorageSecureStore();
@@ -41,7 +42,7 @@ const authGateway = new MockAuthGateway();
 const syncGateway = new MockSyncGateway();
 
 const aiGateway = new MockAIGateway();
-const cameraGateway = new ExpoCameraGateway();
+const cameraGateway = new ExpoCameraGateway(persistirFotoLocal);
 const locationGateway = new ExpoLocationGateway();
 
 // 2. Instanciar Use Cases injetando as dependências
@@ -75,7 +76,7 @@ export const DIContainer = {
     location: locationGateway,
   },
 
-  // Expondo repositórios apenas para uso temporário nos Hooks (até termos Stores globais como Zustand)
+  // Repositórios
   repositories: {
     usuario: usuarioRepository,
     disciplina: disciplinaRepository,
