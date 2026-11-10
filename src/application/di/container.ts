@@ -7,8 +7,8 @@ import { persistirFotoLocal } from '../../infrastructure/storage/FotoStorage';
 import { InMemoryResumoIARepository } from '../../infrastructure/repositories/InMemoryResumoIARepository';
 
 // Gateways
-import { MockAuthGateway } from '../../infrastructure/gateways/MockAuthGateway';
-import { MockSyncGateway } from '../../infrastructure/gateways/MockSyncGateway';
+import { SupabaseAuthGateway } from '../../infrastructure/gateways/SupabaseAuthGateway';
+import { SupabaseSyncGateway } from '../../infrastructure/gateways/SupabaseSyncGateway';
 
 import { ListarFeedUseCase } from '../use-cases/ListarFeedUseCase';
 import { MockAIGateway } from '../../infrastructure/gateways/MockAIGateway';
@@ -38,8 +38,8 @@ const syncQueueRepository = new SQLiteSyncQueueRepository();
 const resumoRepository = new InMemoryResumoIARepository();
 const sessionStorage = new SessionStorageSecureStore();
 
-const authGateway = new MockAuthGateway();
-const syncGateway = new MockSyncGateway();
+const authGateway = new SupabaseAuthGateway();
+const syncGateway = new SupabaseSyncGateway();
 
 const aiGateway = new MockAIGateway();
 const cameraGateway = new ExpoCameraGateway(persistirFotoLocal);
