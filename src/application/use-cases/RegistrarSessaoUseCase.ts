@@ -1,8 +1,10 @@
 /** Description: This file (src/application/use-cases/RegistrarSessaoUseCase.ts) contains the implementation for its respective feature. */
 import { SessaoEstudo } from '../../domain/entities/SessaoEstudo';
 import { FotoSessao } from '../../domain/entities/FotoSessao';
+import { SyncQueueItem } from '../../domain/entities/SyncQueueItem';
 import { ISessaoEstudoRepository } from '../../domain/repositories/ISessaoEstudoRepository';
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
+import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueRepository';
 import { ICameraGateway } from '../../domain/gateways/ICameraGateway';
 import { ILocationGateway } from '../../domain/gateways/ILocationGateway';
 import { Coordenada } from '../../domain/value-objects/Coordenada';
@@ -28,7 +30,8 @@ export class RegistrarSessaoUseCase {
     private sessaoRepository: ISessaoEstudoRepository,
     private usuarioRepository: IUsuarioRepository,
     private cameraGateway: ICameraGateway,
-    private locationGateway: ILocationGateway
+    private locationGateway: ILocationGateway,
+    private syncQueueRepository?: ISyncQueueRepository
   ) {}
 
   async execute(request: RegistrarSessaoRequest): Promise<RegistrarSessaoResponse> {
@@ -71,6 +74,27 @@ export class RegistrarSessaoUseCase {
       // 6. Salvar agregados
       await this.sessaoRepository.salvar(sessao);
       await this.usuarioRepository.salvar(usuario);
+
+      // 7. Enfileirar para sincronização remota (Outbox Pattern)
+      if (this.syncQueueRepository) {
+        await this.syncQueueRepository.enfileirar(
+          SyncQueueItem.create({
+            entidade: 'sessoes_estudo',
+            operacao: 'INSERT',
+            payloadJson: JSON.stringify({
+              id: sessao.id,
+              usuarioId: sessao.usuarioId,
+              disciplinaId: sessao.disciplinaId,
+              topicoId: sessao.topicoId,
+              duracaoMinutos: sessao.duracaoMinutos,
+              createdAt: sessao.createdAt.toISOString(),
+              latitude: sessao.coordenada?.latitude ?? null,
+              longitude: sessao.coordenada?.longitude ?? null,
+              fotoLocal: sessao.foto?.uriLocal ?? null,
+            }),
+          })
+        );
+      }
 
       return {
         isSuccess: true,

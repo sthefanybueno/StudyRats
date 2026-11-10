@@ -1,10 +1,10 @@
 /** Description: This file (src/application/di/container.ts) contains the implementation for its respective feature. */
 import { SecureStoreUsuarioRepository } from '../../infrastructure/repositories/SecureStoreUsuarioRepository';
-import { SecureStoreDisciplinaRepository } from '../../infrastructure/repositories/SecureStoreDisciplinaRepository';
+import { SQLiteDisciplinaRepository } from '../../infrastructure/repositories/SQLiteDisciplinaRepository';
 import { SQLiteSessaoEstudoRepository } from '../../infrastructure/repositories/SQLiteSessaoEstudoRepository';
+import { SQLiteSyncQueueRepository } from '../../infrastructure/repositories/SQLiteSyncQueueRepository';
 import { persistirFotoLocal } from '../../infrastructure/storage/FotoStorage';
 import { InMemoryResumoIARepository } from '../../infrastructure/repositories/InMemoryResumoIARepository';
-import { InMemorySyncQueueRepository } from '../../infrastructure/repositories/InMemorySyncQueueRepository';
 
 // Gateways
 import { MockAuthGateway } from '../../infrastructure/gateways/MockAuthGateway';
@@ -30,12 +30,12 @@ import { SincronizarFilaUseCase } from '../use-cases/SincronizarFilaUseCase';
 
 import { SessionStorageSecureStore } from '../../infrastructure/storage/SessionStorageSecureStore';
 
-// 1. Instanciar Adapters (Persistência SQLite para Sessões e Fotos; SecureStore/AsyncStorage para Perfis)
+// 1. Instanciar Adapters (Persistência SQLite para Sessões, Fotos, Disciplinas, Tópicos e Fila Outbox)
 const usuarioRepository = new SecureStoreUsuarioRepository();
-const disciplinaRepository = new SecureStoreDisciplinaRepository();
+const disciplinaRepository = new SQLiteDisciplinaRepository();
 const sessaoEstudoRepository = new SQLiteSessaoEstudoRepository();
+const syncQueueRepository = new SQLiteSyncQueueRepository();
 const resumoRepository = new InMemoryResumoIARepository();
-const syncQueueRepository = new InMemorySyncQueueRepository();
 const sessionStorage = new SessionStorageSecureStore();
 
 const authGateway = new MockAuthGateway();
@@ -60,12 +60,12 @@ export const DIContainer = {
     await sessionStorage.removerSessionToken();
     await authGateway.logout();
   },
-  cadastrarDisciplina: new CadastrarDisciplinaUseCase(disciplinaRepository),
-  cadastrarTopico: new CadastrarTopicoUseCase(disciplinaRepository),
-  atualizarTopico: new AtualizarTopicoUseCase(disciplinaRepository),
-  deletarTopico: new DeletarTopicoUseCase(disciplinaRepository),
+  cadastrarDisciplina: new CadastrarDisciplinaUseCase(disciplinaRepository, syncQueueRepository),
+  cadastrarTopico: new CadastrarTopicoUseCase(disciplinaRepository, syncQueueRepository),
+  atualizarTopico: new AtualizarTopicoUseCase(disciplinaRepository, syncQueueRepository),
+  deletarTopico: new DeletarTopicoUseCase(disciplinaRepository, syncQueueRepository),
   gerarResumo: new GerarResumoUseCase(aiGateway, resumoRepository),
-  registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway, locationGateway),
+  registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway, locationGateway, syncQueueRepository),
   consultarRanking: new ConsultarRankingUseCase(syncGateway),
   listarFeed: new ListarFeedUseCase(sessaoEstudoRepository, usuarioRepository, disciplinaRepository),
   sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway),
@@ -81,5 +81,6 @@ export const DIContainer = {
     usuario: usuarioRepository,
     disciplina: disciplinaRepository,
     sessao: sessaoEstudoRepository,
+    syncQueue: syncQueueRepository,
   }
 };

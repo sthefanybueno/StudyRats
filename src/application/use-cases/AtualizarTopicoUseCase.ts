@@ -1,5 +1,7 @@
 /** Description: This file (src/application/use-cases/AtualizarTopicoUseCase.ts) contains the implementation for its respective feature. */
+import { SyncQueueItem } from '../../domain/entities/SyncQueueItem';
 import { IDisciplinaRepository } from '../../domain/repositories/IDisciplinaRepository';
+import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueRepository';
 
 export interface AtualizarTopicoRequest {
   disciplinaId: string;
@@ -12,7 +14,10 @@ export type AtualizarTopicoResponse =
   | { isSuccess: false; error: string };
 
 export class AtualizarTopicoUseCase {
-  constructor(private disciplinaRepository: IDisciplinaRepository) {}
+  constructor(
+    private disciplinaRepository: IDisciplinaRepository,
+    private syncQueueRepository?: ISyncQueueRepository
+  ) {}
 
   async execute(request: AtualizarTopicoRequest): Promise<AtualizarTopicoResponse> {
     try {
@@ -24,6 +29,21 @@ export class AtualizarTopicoUseCase {
 
       disciplina.atualizarTopico(request.topicoId, request.novoNome);
       await this.disciplinaRepository.salvar(disciplina);
+
+      if (this.syncQueueRepository) {
+        await this.syncQueueRepository.enfileirar(
+          SyncQueueItem.create({
+            entidade: 'topicos',
+            operacao: 'UPDATE',
+            payloadJson: JSON.stringify({
+              id: request.topicoId,
+              disciplinaId: request.disciplinaId,
+              nome: request.novoNome,
+              updatedAt: new Date().toISOString(),
+            }),
+          })
+        );
+      }
 
       return { isSuccess: true };
     } catch (error: any) {
