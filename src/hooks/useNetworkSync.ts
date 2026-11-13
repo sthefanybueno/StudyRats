@@ -1,23 +1,60 @@
-import { useEffect } from 'react';
+/** Description: Hook to monitor network status and trigger automatic background sync for the outbox queue. */
+import { useEffect, useState, useCallback, useRef } from 'react';
 import * as Network from 'expo-network';
-import { syncPendingUploads } from '@/services/offlineFileService';
+import { DIContainer } from '../application/di/container';
 
-/**
- * Hook que verifica a conectividade e dispara a sincronização de uploads pendentes.
- * Deve ser usado em um nível alto da árvore (ex.: na raiz da aplicação ou dentro do Provider).
- */
 export function useNetworkSync() {
-  useEffect(() => {
-    const checkAndSync = async () => {
-      const net = await Network.getNetworkStateAsync();
-      if (net.isConnected) {
-        await syncPendingUploads();
-      }
-    };
-    // Verifica imediatamente ao montar
-    checkAndSync();
-    // Também escuta mudanças de estado (expo-network não tem listener nativo, então usamos polling simples)
-    const interval = setInterval(checkAndSync, 30_000); // a cada 30s
-    return () => clearInterval(interval);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [ultimoSync, setUltimoSync] = useState<Date | null>(null);
+  const isSyncingRef = useRef<boolean>(false);
+
+  const sincronizar = useCallback(async () => {
+    if (isSyncingRef.current) return;
+    try {
+      isSyncingRef.current = true;
+      setIsSyncing(true);
+      await DIContainer.sincronizarFila.execute();
+      setUltimoSync(new Date());
+    } catch (e) {
+      console.warn('[useNetworkSync] Falha na sincronização:', e);
+    } finally {
+      isSyncingRef.current = false;
+      setIsSyncing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    let montado = true;
+
+    async function checarRedeESincronizar() {
+      try {
+        const state = await Network.getNetworkStateAsync();
+        const online = Boolean(state.isConnected && (state.isInternetReachable ?? true));
+        if (montado) {
+          setIsOnline(online);
+          if (online) {
+            await sincronizar();
+          }
+        }
+      } catch {
+        if (montado) setIsOnline(false);
+      }
+    }
+
+    checarRedeESincronizar();
+    const intervalo = setInterval(checarRedeESincronizar, 15000);
+
+    return () => {
+      montado = false;
+      clearInterval(intervalo);
+    };
+  }, [sincronizar]);
+
+  return {
+    isOnline,
+    isSyncing,
+    ultimoSync,
+    sincronizarManualmente: sincronizar,
+  };
 }

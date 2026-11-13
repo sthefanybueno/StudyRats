@@ -51,6 +51,10 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "supabaseUrl": "https://hiteiaczpsplaivbzmat.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpdGVpYWN6cHNwbGFpdmJ6bWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzMzM1NTAsImV4cCI6MjEwOTkwOTU1MH0.zYkNuYua5RoaB2ETzuLUPbhul2fOXWHkJZib3nYwYCY"
     }
   }
 }

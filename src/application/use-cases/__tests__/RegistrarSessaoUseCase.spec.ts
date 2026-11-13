@@ -192,4 +192,34 @@ describe('RegistrarSessaoUseCase', () => {
     expect(sessao.foto?.uriLocal).toBe('file:///foto.jpg');
     expect(sessao.coordenada).toBeDefined();
   });
+
+  it('deve enfileirar a sessão na fila outbox quando syncQueueRepository for fornecido', async () => {
+    const itensEnfileirados: any[] = [];
+    const mockSyncQueueRepo: any = {
+      enfileirar: async (item: any) => { itensEnfileirados.push(item); },
+    };
+
+    const useCaseComSync = new RegistrarSessaoUseCase(
+      sessaoRepo,
+      usuarioRepo,
+      cameraGateway,
+      locationGateway,
+      mockSyncQueueRepo
+    );
+
+    await useCaseComSync.execute({
+      usuarioId: 'user-123',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 40,
+      comFoto: false,
+    });
+
+    expect(itensEnfileirados).toHaveLength(1);
+    expect(itensEnfileirados[0].entidade).toBe('sessoes_estudo');
+    expect(itensEnfileirados[0].operacao).toBe('INSERT');
+    const payload = JSON.parse(itensEnfileirados[0].payloadJson);
+    expect(payload.usuarioId).toBe('user-123');
+    expect(payload.duracaoMinutos).toBe(40);
+  });
 });

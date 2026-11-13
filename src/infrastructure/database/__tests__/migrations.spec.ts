@@ -12,8 +12,34 @@ describe('migrate', () => {
     );
     const versao = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
 
-    expect(tabelas.map((t) => t.name)).toEqual(['fotos_sessao', 'sessoes_estudo']);
+    expect(tabelas.map((t) => t.name)).toEqual([
+      'disciplinas',
+      'fotos_sessao',
+      'sessoes_estudo',
+      'sync_queue',
+      'topicos',
+    ]);
     expect(versao?.user_version).toBe(DATABASE_VERSION);
+  });
+
+  it('deve criar as tabelas da versão 2 com as colunas esperadas', async () => {
+    const db = await SqlJsExecutor.create();
+    await migrate(db);
+
+    const colunasDisc = await db.getAllAsync<{ name: string }>("PRAGMA table_info('disciplinas')");
+    expect(colunasDisc.map((c) => c.name)).toEqual(
+      expect.arrayContaining(['id', 'usuario_id', 'nome', 'cor', 'created_at', 'updated_at', 'deleted_at', 'sync_status'])
+    );
+
+    const colunasTop = await db.getAllAsync<{ name: string }>("PRAGMA table_info('topicos')");
+    expect(colunasTop.map((c) => c.name)).toEqual(
+      expect.arrayContaining(['id', 'disciplina_id', 'nome', 'created_at', 'updated_at', 'deleted_at', 'sync_status'])
+    );
+
+    const colunasSync = await db.getAllAsync<{ name: string }>("PRAGMA table_info('sync_queue')");
+    expect(colunasSync.map((c) => c.name)).toEqual(
+      expect.arrayContaining(['id', 'entidade', 'operacao', 'payload_json', 'tentativas', 'erro_msg', 'status', 'created_at'])
+    );
   });
 
   it('deve guardar a coordenada (latitude, longitude, timestamp) como colunas da sessão', async () => {
