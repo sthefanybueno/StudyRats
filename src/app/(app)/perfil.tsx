@@ -5,6 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DIContainer } from '@/application/di/container';
 import { BrandMark } from '@/components/Brand';
@@ -20,6 +21,8 @@ import { useAppTheme } from "@/providers/ThemeProvider";
 export default function PerfilScreen() {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
+  // O Modal transparente cobre a tela inteira: o card não pode invadir notch / home indicator.
+  const insets = useSafeAreaInsets();
 
   const { usuario, logout, atualizarPerfil } = useAuth();
 
@@ -121,7 +124,7 @@ export default function PerfilScreen() {
   };
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen contentStyle={styles.content} edges={['top']}>
       {/* Header Superior */}
       <View style={styles.topHeader}>
         <BrandMark subtitle="Meu Perfil" />
@@ -353,7 +356,11 @@ export default function PerfilScreen() {
         transparent
         animationType="fade"
         onRequestClose={() => setMostrarModalEditar(false)}>
-        <View style={styles.modalOverlay}>
+        <View
+          style={[
+            styles.modalOverlay,
+            { paddingTop: insets.top + Spacing.three, paddingBottom: insets.bottom + Spacing.three },
+          ]}>
           <Card style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <AppText variant="title">Editar Perfil</AppText>

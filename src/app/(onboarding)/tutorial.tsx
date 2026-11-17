@@ -52,14 +52,6 @@ const PASSOS: Passo[] = [
     ],
   },
   {
-    icon: 'sparkles',
-    cor: GlobalColors.aiText,
-    fundo: GlobalColors.aiSoft,
-    titulo: 'Resumos com IA',
-    texto: 'Gere resumos dos seus tópicos e leia depois, mesmo offline. Gerar precisa de internet.',
-    selos: [{ label: 'Até 10 por dia', tone: 'ai' }],
-  },
-  {
     icon: 'trophy',
     cor: GlobalColors.primary,
     fundo: GlobalColors.primarySoft,

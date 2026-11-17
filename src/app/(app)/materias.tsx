@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DIContainer } from '@/application/di/container';
 import { BrandMark } from '@/components/Brand';
@@ -20,6 +21,8 @@ import { useAppTheme } from "@/providers/ThemeProvider";
 export default function MateriasScreen() {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
+  // O Modal transparente cobre a tela inteira: o bottom sheet precisa respeitar o home indicator / barra de navegação.
+  const insets = useSafeAreaInsets();
 
   const { usuario } = useAuth();
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
@@ -161,7 +164,7 @@ export default function MateriasScreen() {
   };
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen contentStyle={styles.content} edges={['top']}>
       {/* Top Header */}
       <View style={styles.topHeader}>
         <BrandMark subtitle="Gerenciamento de Matérias" />
@@ -300,8 +303,8 @@ export default function MateriasScreen() {
         animationType="slide"
         transparent
         onRequestClose={() => setDisciplinaSelecionada(null)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+        <View style={[styles.modalOverlay, { paddingTop: insets.top }]}>
+          <View style={[styles.modalContainer, { paddingBottom: insets.bottom }]}>
             {disciplinaSelecionada && (
               <>
                 {/* Header do Modal */}
