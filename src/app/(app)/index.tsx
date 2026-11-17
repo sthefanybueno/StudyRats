@@ -87,7 +87,7 @@ export default function DashboardScreen() {
   const primeiroNome = usuario?.nomeExibicao.split(' ')[0] ?? 'Estudante';
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen contentStyle={styles.content} edges={['top']}>
       {/* Top Header */}
       <Animated.View entering={FadeInDown.duration(400)} style={styles.topHeader}>
         <BrandMark subtitle="Dashboard" />

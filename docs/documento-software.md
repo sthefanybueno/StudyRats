@@ -1,7 +1,7 @@
 # Documento de Especificação de Software — StudyRats
 
-> **Versão:** 1.3 — Fases 1 a 3 (Fundações + Modelagem + Arquitetura)  
-> **Data:** 16 de Setembro de 2026  
+> **Versão:** 1.4 — Fases 1 a 4 (Fundações + Modelagem + Arquitetura + Implementação MVP)  
+> **Data:** Novembro de 2026  
 > **Equipe:** Maria Clara Miguel, Sthefany Bueno  
 > **Referência metodológica:** [`mobile-design-doc/SKILL.md`](../projeto2026-SKILLs/mobile-design-doc/SKILL.md)  
 > **Proposta conceitual:** [`proposta-produto.md`](proposta-produto.md)
@@ -38,6 +38,7 @@
   - [7.1 UC08 — Registrar Sessão de Estudo](#71-uc08--registrar-sessão-de-estudo-decisões-de-permissão--conectividade)
   - [7.2 Sync Engine Ponta-a-Ponta](#72-processo-de-sincronização-ponta-a-ponta-sync-engine)
 - [8. Diagrama de Componentes (Fase 3)](#8-diagrama-de-componentes-fase-3)
+- [9. Checklist Final de Implementação (Fase 4 / MVP)](#9-checklist-final-de-implementação-fase-4--mvp)
 
 ---
 
@@ -1114,3 +1115,52 @@ flowchart TB
 - [x] Diagrama de Atividades UC08 com decisão de permissão (localização + câmera) e conectividade.
 - [x] Diagrama de Atividades do Sync Engine ponta-a-ponta.
 - [x] Diagrama de Componentes com todas as camadas Clean Architecture, gateways nativos e regra de dependência documentada.
+
+---
+
+## 9. Checklist Final de Implementação (Fase 4 / MVP)
+
+### 9.1 Arquitetura & Pureza de Domínio (DDD)
+- [x] **Camada de Domínio 100% Pura:** Zero dependências de React, React Native, Expo, SQLite ou Supabase (`src/domain/`).
+- [x] **Entidades e Agregados com Invariantes:** `Usuario`, `Disciplina`, `Topico`, `SessaoEstudo`, `FotoSessao`, `ResumoIA` e `SyncQueueItem`.
+- [x] **Value Objects Auto-validados e Imutáveis:** `Email`, `Coordenada` ($\text{lat} \in [-90, +90]$, $\text{lng} \in [-180, +180]$) e `StatusSincronizacao`.
+- [x] **Regra de Dependência Validada:** Teste de arquitetura estática AST (`architecture.spec.ts`) aprovado.
+
+### 9.2 Hardware Nativo & Sensores Móveis
+- [x] **Câmera Fotográfica (`ExpoCameraGateway`):** Captura de evidência visual do caderno via `expo-image-picker` com permissões tratadas em tempo de uso.
+- [x] **Persistência de Fotos Segura (`FotoStorage`):** Salvamento no diretório permanente do aplicativo (`FileSystem.Paths.document`) protegendo contra expurgo de cache do SO.
+- [x] **Geolocalização Resiliente (`ExpoLocationGateway`):** Captura de latitude e longitude via satélite em primeiro plano; permissão negada não impede o registro da sessão de foco.
+
+### 9.3 Persistência Relacional Local (SQLite Nativo)
+- [x] **Modo WAL e Integridade Referencial:** SQLite nativo configurado com `PRAGMA journal_mode = WAL;` e `PRAGMA foreign_keys = ON;`.
+- [x] **Migrations Idempotentes Versionadas (`migrations.ts`):**
+  - **v1:** Tabelas `sessoes_estudo` e `fotos_sessao` com cascata (`ON DELETE CASCADE`).
+  - **v2:** Tabelas `disciplinas`, `topicos` e `sync_queue` com índices por usuário, disciplina e status.
+- [x] **Repositórios Relacionais Implementados e Testados:**
+  - `SQLiteSessaoEstudoRepository`: upsert com transação atômica e reconstituição de foto/coordenada.
+  - `SQLiteDisciplinaRepository`: gestão de matérias e tópicos com integridade relacional.
+  - `SQLiteSyncQueueRepository`: fila Outbox indexada com ordenação FIFO.
+
+### 9.4 Sincronização Offline-First & Nuvem (Supabase)
+- [x] **Outbox Pattern Ativo:** Casos de uso de registro e gerenciamento (`RegistrarSessao`, `CadastrarDisciplina`, `CadastrarTopico`, etc.) enfileiram mutações automaticamente.
+- [x] **Supabase Auth Gateway (`SupabaseAuthGateway`):** Login, cadastro de novos alunos e logout conectados à nuvem e persistidos com segurança (`expo-secure-store`).
+- [x] **Supabase Sync Gateway (`SupabaseSyncGateway`):** Upload de arquivos binários para o bucket `fotos_sessao`, sincronização de mutações com PostgreSQL e consulta ao ranking global Top 50.
+- [x] **Listener de Conectividade (`useNetworkSync`):** Detecção de restabelecimento de internet via `expo-network` com disparo automático da fila e suporte a sincronização manual.
+- [x] **Segurança no Backend Remoto:** Row Level Security (RLS) habilitado nas tabelas com políticas restritas por usuário (`auth.uid() = usuario_id`).
+
+### 9.5 Interface de Usuário & Experiência Mobile (Expo Router)
+- [x] **Fluxo de Onboarding:** Apresentação guiada de 3 telas (disciplinas, meta diária e tutorial com animações Reanimated).
+- [x] **Autenticação Visual:** Telas de Login e Cadastro estilizadas com feedback de validação.
+- [x] **Dashboard:** Indicador visual de sync, card de ofensiva (streaks de fogo), XP total, barra de nível e timer regressivo de foco.
+- [x] **Gestão de Matérias & Tópicos:** CRUD visual completo com paleta de cores temática e contagem de tópicos.
+- [x] **Feed da Comunidade:** Visualização social com rolagem infinita das sessões concluídas pelos estudantes.
+- [x] **Ranking Semanal:** Top 50 estudantes com maior pontuação semanal.
+- [x] **Perfil:** Estatísticas consolidadas e customização do avatar.
+
+### 9.6 Testes Automatizados (TDD)
+- [x] **Suíte Hermética Completa:** 191 testes unitários aprovados em 48 suítes verdes sem falhas.
+- [x] **Emulador de SQLite em Memória:** Testes de infraestrutura relacional executados hermeticamente com `sql.js`.
+- [x] **Mocks de Sensores e Redes:** Cobertura de cenários de permissão negada, cancelamento gracioso e offline.
+
+> **Status Geral do MVP:** **100% dos requisitos arquiteturais, de hardware, persistência relacional local e integração com Supabase concluídos com sucesso.**  
+> *(Nota: A interface visual da funcionalidade de Resumos por IA foi postergada para a v2.0 de acordo com o planejamento do escopo).*

@@ -23,18 +23,26 @@ export default function RankingScreen() {
   const [usuariosRanking, setUsuariosRanking] = useState<Usuario[]>([]);
   const [, setCarregando] = useState(true);
 
-  // Carregar usuários reais cadastrados no banco local
+  // Carregar ranking do Supabase (com fallback local se offline)
   const carregarRanking = useCallback(async () => {
     setCarregando(true);
     try {
-      const lista = await DIContainer.repositories.usuario.listarTodos();
-      // Garantir que o usuário atual está na lista se estiver logado
-      if (usuario && !lista.some(u => u.id === usuario.id)) {
-        lista.push(usuario);
+      const res = await DIContainer.consultarRanking.execute();
+      if (res.isSuccess && res.value.length > 0) {
+        let lista = [...res.value];
+        if (usuario && !lista.some(u => u.id === usuario.id)) {
+          lista.push(usuario);
+        }
+        lista.sort((a, b) => b.xpSemanal - a.xpSemanal);
+        setUsuariosRanking(lista);
+      } else {
+        const lista = await DIContainer.repositories.usuario.listarTodos();
+        if (usuario && !lista.some(u => u.id === usuario.id)) {
+          lista.push(usuario);
+        }
+        lista.sort((a, b) => b.xpSemanal - a.xpSemanal);
+        setUsuariosRanking(lista);
       }
-      // Ordenar por XP Total (decrescente)
-      lista.sort((a, b) => b.xpTotal - a.xpTotal);
-      setUsuariosRanking(lista);
     } catch (e) {
       console.error('Erro ao carregar ranking:', e);
       if (usuario) setUsuariosRanking([usuario]);
@@ -60,7 +68,7 @@ export default function RankingScreen() {
   const usuarioTop3 = usuariosRanking[2];
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen contentStyle={styles.content} edges={['top']}>
       {/* Header Superior */}
       <View style={styles.topHeader}>
         <BrandMark subtitle="Ranking Local" />
