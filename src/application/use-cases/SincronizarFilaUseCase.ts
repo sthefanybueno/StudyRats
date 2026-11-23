@@ -1,6 +1,7 @@
 /** Description: This file (src/application/use-cases/SincronizarFilaUseCase.ts) contains the implementation for its respective feature. */
 import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueRepository';
 import { ISyncGateway } from '../../domain/gateways/ISyncGateway';
+import { ISessaoEstudoRepository } from '../../domain/repositories/ISessaoEstudoRepository';
 
 export type SincronizarFilaResponse = {
   processados: number;
@@ -10,7 +11,8 @@ export type SincronizarFilaResponse = {
 export class SincronizarFilaUseCase {
   constructor(
     private syncQueueRepository: ISyncQueueRepository,
-    private syncGateway: ISyncGateway
+    private syncGateway: ISyncGateway,
+    private sessaoRepository?: ISessaoEstudoRepository
   ) {}
 
   async execute(): Promise<SincronizarFilaResponse> {
@@ -21,11 +23,22 @@ export class SincronizarFilaUseCase {
 
     for (const item of itensPendentes) {
       try {
-        await this.syncGateway.enviarParaNuvem(
-          item.entidade,
-          item.operacao,
-          JSON.parse(item.payloadJson)
-        );
+        const payload = JSON.parse(item.payloadJson);
+
+        // Evidência fotográfica: sobe ao Storage antes de gravar a sessão; se falhar, o item volta a ser tentado.
+        let caminhoFoto: string | undefined;
+        if (item.entidade === 'sessoes_estudo' && item.operacao !== 'DELETE' && payload.fotoLocal) {
+          caminhoFoto = await this.syncGateway.fazerUploadFoto(
+            payload.fotoLocal,
+            `${payload.usuarioId}/${payload.id}.jpg`
+          );
+        }
+
+        await this.syncGateway.enviarParaNuvem(item.entidade, item.operacao, payload);
+
+        if (caminhoFoto && this.sessaoRepository) {
+          await this.sessaoRepository.atualizarFoto(payload.id, caminhoFoto);
+        }
 
         // Se sucesso, remove da fila local (Outbox)
         await this.syncQueueRepository.remover(item.id);

@@ -24,7 +24,7 @@ export default function DashboardScreen() {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
 
-  const { usuario } = useAuth();
+  const { usuario, recarregarUsuario } = useAuth();
   const { sessaoAtiva, pausarSessao, retomarSessao, concluirSessao } = useSessaoFoco();
   const [, setCarregando] = useState(true);
   const [sessoes, setSessoes] = useState<SessaoEstudo[]>([]);
@@ -38,6 +38,7 @@ export default function DashboardScreen() {
     const res = await concluirSessao(usuario.id);
     setSalvandoSessao(false);
     if (res.isSuccess) {
+      await recarregarUsuario();
       await carregarDadosLocais();
     }
   };

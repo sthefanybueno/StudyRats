@@ -81,6 +81,14 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
     });
   }
 
+  async atualizarFoto(sessaoId: string, urlRemota: string): Promise<void> {
+    const db = await this.getDb();
+    await db.runAsync(
+      `UPDATE fotos_sessao SET url_remota = ?, upload_status = 'completed' WHERE sessao_id = ?;`,
+      [urlRemota, sessaoId]
+    );
+  }
+
   async buscarPorId(id: string): Promise<SessaoEstudo | null> {
     const db = await this.getDb();
     const row = await db.getFirstAsync<SessaoRow>(

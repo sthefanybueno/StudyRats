@@ -1,6 +1,6 @@
 /** Description: This file (src/app/(app)/materias.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -25,6 +25,7 @@ export default function MateriasScreen() {
   const insets = useSafeAreaInsets();
 
   const { usuario } = useAuth();
+  const { novo } = useLocalSearchParams<{ novo?: string }>();
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [, setCarregando] = useState(true);
 
@@ -68,6 +69,16 @@ export default function MateriasScreen() {
     useCallback(() => {
       carregarDisciplinas();
     }, [carregarDisciplinas])
+  );
+
+  // Vindo da Sessão de Foco sem disciplinas: abre direto o formulário de nova matéria
+  useFocusEffect(
+    useCallback(() => {
+      if (novo === '1') {
+        setMostrarFormMateria(true);
+        router.setParams({ novo: undefined });
+      }
+    }, [novo])
   );
 
   // Cadastrar Matéria Funcional

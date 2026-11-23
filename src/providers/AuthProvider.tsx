@@ -18,6 +18,8 @@ interface AuthContextValue {
   login: (email: string, senha: string) => Promise<string | null>;
   cadastrar: (nome: string, email: string, senha: string) => Promise<string | null>;
   atualizarPerfil: (payload: AtualizarPerfilPayload) => Promise<string | null>;
+  /** Relê o usuário do repositório local (ex.: após ganhar XP numa sessão) e atualiza a UI. */
+  recarregarUsuario: () => Promise<void>;
   concluirOnboarding: () => void;
   logout: () => Promise<void>;
 }
@@ -75,6 +77,12 @@ export function AuthProvider({ children, container = DIContainer }: AuthProvider
     return null;
   }, [usuario, container]);
 
+  const recarregarUsuario = useCallback(async () => {
+    if (!usuario) return;
+    const atualizado = await container.repositories.usuario.buscarPorId(usuario.id);
+    if (atualizado) setUsuario(atualizado);
+  }, [usuario, container]);
+
   const concluirOnboarding = useCallback(() => setPrecisaOnboarding(false), []);
 
   const logout = useCallback(async () => {
@@ -84,8 +92,8 @@ export function AuthProvider({ children, container = DIContainer }: AuthProvider
   }, [container]);
 
   const value = useMemo(
-    () => ({ usuario, restaurando, precisaOnboarding, login, cadastrar, atualizarPerfil, concluirOnboarding, logout }),
-    [usuario, restaurando, precisaOnboarding, login, cadastrar, atualizarPerfil, concluirOnboarding, logout]
+    () => ({ usuario, restaurando, precisaOnboarding, login, cadastrar, atualizarPerfil, recarregarUsuario, concluirOnboarding, logout }),
+    [usuario, restaurando, precisaOnboarding, login, cadastrar, atualizarPerfil, recarregarUsuario, concluirOnboarding, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

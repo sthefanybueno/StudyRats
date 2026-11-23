@@ -68,7 +68,7 @@ export const DIContainer = {
   registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway, locationGateway, syncQueueRepository),
   consultarRanking: new ConsultarRankingUseCase(syncGateway),
   listarFeed: new ListarFeedUseCase(sessaoEstudoRepository, usuarioRepository, disciplinaRepository),
-  sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway),
+  sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway, sessaoEstudoRepository),
 
   // Gateways expostos para consumo direto pela camada de apresentação (ex.: captura de GPS na sessão)
   gateways: {

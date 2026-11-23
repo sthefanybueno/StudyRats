@@ -23,7 +23,7 @@ export default function NovaSessaoScreen() {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
 
-  const { usuario } = useAuth();
+  const { usuario, recarregarUsuario } = useAuth();
   const { sessaoAtiva, iniciarSessao, pausarSessao, retomarSessao, concluirSessao, cancelarSessao } = useSessaoFoco();
 
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
@@ -85,6 +85,7 @@ export default function NovaSessaoScreen() {
     const res = await concluirSessao(usuario.id);
     setSalvando(false);
     if (res.isSuccess) {
+      await recarregarUsuario();
       setSucessoMsg(`+${res.xpGanho} XP Registrados com sucesso!`);
       setTimeout(() => {
         router.replace('/(app)');
@@ -278,7 +279,7 @@ export default function NovaSessaoScreen() {
                     <Button
                       label="Cadastrar Disciplina"
                       variant="secondary"
-                      onPress={() => router.push('/(onboarding)/disciplinas')}
+                      onPress={() => router.push({ pathname: '/(app)/materias', params: { novo: '1' } })}
                     />
                   </View>
                 ) : (

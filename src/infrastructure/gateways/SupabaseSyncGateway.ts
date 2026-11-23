@@ -23,13 +23,17 @@ export class SupabaseSyncGateway implements ISyncGateway {
         throw new Error(`Falha no upload da foto: ${error.message}`);
       }
 
-      const { data: publicUrlData } = this.client.storage
-        .from('fotos_sessao')
-        .getPublicUrl(caminhoRemoto);
-
-      return publicUrlData.publicUrl;
+      // Bucket privado (ver docs/supabase/seguranca.sql): guardamos o caminho e geramos URL assinada sob demanda.
+      return caminhoRemoto;
     } catch (err: any) {
       throw new Error(err.message || 'Erro ao fazer upload da evidência fotográfica');
+    }
+  }
+
+  /** Lança erro quando o Supabase rejeita a operação (RLS, rede, constraint), evitando perda silenciosa na outbox. */
+  private verificar(resultado: { error?: { message: string } | null } | undefined, tabela: string): void {
+    if (resultado?.error) {
+      throw new Error(`Falha ao sincronizar '${tabela}': ${resultado.error.message}`);
     }
   }
 
@@ -39,9 +43,10 @@ export class SupabaseSyncGateway implements ISyncGateway {
     switch (tabela) {
       case 'sessoes_estudo': {
         if (operacao === 'DELETE') {
-          await this.client.from('sessoes_estudo').delete().eq('id', dados.id);
+          this.verificar(await this.client.from('sessoes_estudo').delete().eq('id', dados.id), 'sessoes_estudo');
         } else {
-          await this.client.from('sessoes_estudo').upsert({
+          this.verificar(
+            await this.client.from('sessoes_estudo').upsert({
             id: dados.id,
             usuario_id: dados.usuarioId,
             disciplina_id: dados.disciplinaId,
@@ -50,16 +55,19 @@ export class SupabaseSyncGateway implements ISyncGateway {
             latitude: dados.latitude ?? null,
             longitude: dados.longitude ?? null,
             created_at: dados.createdAt,
-          });
+            }),
+            'sessoes_estudo'
+          );
         }
         break;
       }
 
       case 'disciplinas': {
         if (operacao === 'DELETE') {
-          await this.client.from('disciplinas').delete().eq('id', dados.id);
+          this.verificar(await this.client.from('disciplinas').delete().eq('id', dados.id), 'disciplinas');
         } else {
-          await this.client.from('disciplinas').upsert({
+          this.verificar(
+            await this.client.from('disciplinas').upsert({
             id: dados.id,
             usuario_id: dados.usuarioId,
             nome: dados.nome,
@@ -67,24 +75,44 @@ export class SupabaseSyncGateway implements ISyncGateway {
             created_at: dados.createdAt,
             updated_at: dados.updatedAt ?? new Date().toISOString(),
             deleted_at: dados.deletedAt ?? null,
-          });
+            }),
+            'disciplinas'
+          );
         }
         break;
       }
 
       case 'topicos': {
         if (operacao === 'DELETE') {
-          await this.client.from('topicos').delete().eq('id', dados.id);
+          this.verificar(await this.client.from('topicos').delete().eq('id', dados.id), 'topicos');
         } else {
-          await this.client.from('topicos').upsert({
+          this.verificar(
+            await this.client.from('topicos').upsert({
             id: dados.id,
             disciplina_id: dados.disciplinaId,
             nome: dados.nome,
             created_at: dados.createdAt,
             updated_at: dados.updatedAt ?? new Date().toISOString(),
             deleted_at: dados.deletedAt ?? null,
-          });
+            }),
+            'topicos'
+          );
         }
+        break;
+      }
+
+      case 'perfis': {
+        this.verificar(
+          await this.client
+            .from('perfis')
+            .update({
+              xp_total: dados.xpTotal,
+              xp_semanal: dados.xpSemanal,
+              streak_atual: dados.streakAtual,
+            })
+            .eq('id', dados.id),
+          'perfis'
+        );
         break;
       }
 
