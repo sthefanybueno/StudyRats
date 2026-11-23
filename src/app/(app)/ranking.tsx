@@ -22,22 +22,34 @@ export default function RankingScreen() {
   const { usuario } = useAuth();
   const [usuariosRanking, setUsuariosRanking] = useState<Usuario[]>([]);
   const [, setCarregando] = useState(true);
+  const [origem, setOrigem] = useState<'nuvem' | 'local'>('local');
 
-  // Carregar usuários reais cadastrados no banco local
+  // Carregar ranking do Supabase (com fallback local se offline)
   const carregarRanking = useCallback(async () => {
     setCarregando(true);
     try {
-      const lista = await DIContainer.repositories.usuario.listarTodos();
-      // Garantir que o usuário atual está na lista se estiver logado
-      if (usuario && !lista.some(u => u.id === usuario.id)) {
-        lista.push(usuario);
+      const res = await DIContainer.consultarRanking.execute();
+      if (res.isSuccess && res.value.length > 0) {
+        let lista = [...res.value];
+        if (usuario && !lista.some(u => u.id === usuario.id)) {
+          lista.push(usuario);
+        }
+        lista.sort((a, b) => b.xpSemanal - a.xpSemanal);
+        setUsuariosRanking(lista);
+        setOrigem('nuvem');
+      } else {
+        const lista = await DIContainer.repositories.usuario.listarTodos();
+        if (usuario && !lista.some(u => u.id === usuario.id)) {
+          lista.push(usuario);
+        }
+        lista.sort((a, b) => b.xpSemanal - a.xpSemanal);
+        setUsuariosRanking(lista);
+        setOrigem('local');
       }
-      // Ordenar por XP Total (decrescente)
-      lista.sort((a, b) => b.xpTotal - a.xpTotal);
-      setUsuariosRanking(lista);
     } catch (e) {
       console.error('Erro ao carregar ranking:', e);
       if (usuario) setUsuariosRanking([usuario]);
+      setOrigem('local');
     } finally {
       setCarregando(false);
     }
@@ -60,12 +72,12 @@ export default function RankingScreen() {
   const usuarioTop3 = usuariosRanking[2];
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen contentStyle={styles.content} edges={['top']}>
       {/* Header Superior */}
       <View style={styles.topHeader}>
-        <BrandMark subtitle="Ranking Local" />
+        <BrandMark subtitle={origem === 'nuvem' ? 'Ranking Global' : 'Ranking Local'} />
         <View style={styles.topHeaderRight}>
-          <Pill tone="success" dot label="Sync Local" />
+          <Pill tone={origem === 'nuvem' ? 'success' : 'warning'} dot label={origem === 'nuvem' ? 'Online' : 'Offline'} />
           <View style={styles.avatarBox}>
             {usuario?.fotoUrl ? (
               <Image source={{ uri: usuario.fotoUrl }} style={styles.avatarImageSmall} />
@@ -83,7 +95,7 @@ export default function RankingScreen() {
         <View style={styles.rowGap}>
           <View style={styles.greenDot} />
           <AppText variant="caption" color={Colors.textSecondary}>
-            Ranking Local Atualizado • <AppText variant="caption" color={Colors.text} style={styles.boldText}>{usuariosRanking.length} {usuariosRanking.length === 1 ? 'Usuário Cadastrado' : 'Usuários Cadastrados'}</AppText>
+            {origem === 'nuvem' ? 'Ranking Global Atualizado' : 'Ranking Local (sem conexão)'} • <AppText variant="caption" color={Colors.text} style={styles.boldText}>{usuariosRanking.length} {usuariosRanking.length === 1 ? 'Usuário Cadastrado' : 'Usuários Cadastrados'}</AppText>
           </AppText>
         </View>
         <Ionicons name="people-outline" size={16} color={Colors.textMuted} />
@@ -118,7 +130,7 @@ export default function RankingScreen() {
           </View>
           <View style={styles.userRankFooter}>
             <Pill tone="warning" icon="flame" label={`${userStreak} Dias de Streak`} />
-            <Pill tone="neutral" label="Dados Locais do Aparelho" />
+            <Pill tone="neutral" label={origem === 'nuvem' ? 'Dados da Nuvem' : 'Dados Locais do Aparelho'} />
           </View>
         </Card>
       </Animated.View>
@@ -310,7 +322,9 @@ export default function RankingScreen() {
       <Card style={styles.warningFooterCard}>
         <Ionicons name="cube-outline" size={20} color={Colors.success} />
         <AppText variant="caption" color={Colors.textSecondary} style={styles.flex}>
-          Exibindo apenas os usuários reais cadastrados no banco de dados local do seu aplicativo.
+          {origem === 'nuvem'
+            ? 'Exibindo o ranking global dos 50 estudantes com mais XP na semana, direto do Supabase.'
+            : 'Sem conexão com a nuvem: exibindo apenas os usuários cadastrados neste aparelho.'}
         </AppText>
       </Card>
     </Screen>

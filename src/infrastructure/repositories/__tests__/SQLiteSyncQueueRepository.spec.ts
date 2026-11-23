@@ -91,9 +91,9 @@ describe('SQLiteSyncQueueRepository', () => {
     item.registrarFalha('Conexão recusada pelo servidor');
     await repo.registrarFalha(item);
 
-    // Como o status foi alterado para 'error', não deve vir mais na lista de pendentes imediatos
-    const pendentes = await repo.buscarPendentes();
-    expect(pendentes).toHaveLength(0);
+    // Falhas continuam elegíveis para retry até o limite de tentativas
+    expect(await repo.buscarPendentes()).toHaveLength(1);
+
 
     // Mas no banco a linha existe com erro registrado
     const raw = await db.getFirstAsync<{ tentativas: number; erro_msg: string; status: string }>(
@@ -103,6 +103,16 @@ describe('SQLiteSyncQueueRepository', () => {
     expect(raw?.tentativas).toBe(1);
     expect(raw?.erro_msg).toBe('Conexão recusada pelo servidor');
     expect(raw?.status).toBe('error');
+  });
+
+  it('deixa de reprocessar o item após 5 tentativas com falha', async () => {
+    const item = SyncQueueItem.create({ id: 'sq-2', entidade: 'sessoes_estudo', operacao: 'INSERT', payloadJson: '{}' });
+    await repo.enfileirar(item);
+    for (let i = 0; i < 5; i++) {
+      item.registrarFalha('erro');
+      await repo.registrarFalha(item);
+    }
+    expect(await repo.buscarPendentes()).toHaveLength(0);
   });
 });
 

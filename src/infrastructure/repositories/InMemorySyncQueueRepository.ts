@@ -11,7 +11,7 @@ export class InMemorySyncQueueRepository implements ISyncQueueRepository {
 
   async buscarPendentes(limite: number = 10): Promise<SyncQueueItem[]> {
     return Array.from(this.fila.values())
-      .filter(item => item.status === 'pending' || item.status === 'error')
+      .filter(item => item.status === 'pending' || (item.status === 'error' && item.tentativas < 5))
       .slice(0, limite);
   }
 

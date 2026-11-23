@@ -1,14 +1,21 @@
 /** Description: This file (src/app/(app)/_layout.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Fonts } from '@/constants/theme';
 import { useAppTheme } from "@/providers/ThemeProvider";
 
+/** Altura útil da tab bar (ícone + rótulo), sem contar o inset do sistema. */
+const TAB_BAR_CONTENT_HEIGHT = 58;
+
 export default function AppTabsLayout() {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
+  // Inset inferior real do aparelho (home indicator do iOS / barra de navegação do Android edge-to-edge).
+  const insets = useSafeAreaInsets();
+  const paddingBottom = Math.max(insets.bottom, 10);
 
   return (
     <Tabs
@@ -16,7 +23,7 @@ export default function AppTabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { height: TAB_BAR_CONTENT_HEIGHT + paddingBottom, paddingBottom }],
         tabBarLabelStyle: styles.tabBarLabel,
         sceneStyle: { backgroundColor: Colors.background },
       }}>
@@ -74,8 +81,6 @@ const useStyles = (Colors: any) => StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopColor: Colors.border,
     borderTopWidth: 1,
-    height: Platform.OS === 'ios' ? 88 : 68,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 10,
     paddingTop: 8,
     elevation: 8,
   },

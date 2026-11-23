@@ -94,6 +94,20 @@ export class RegistrarSessaoUseCase {
             }),
           })
         );
+
+      // 8. Espelhar XP/streak no perfil remoto (alimenta o ranking global)
+        await this.syncQueueRepository.enfileirar(
+          SyncQueueItem.create({
+            entidade: 'perfis',
+            operacao: 'UPDATE',
+            payloadJson: JSON.stringify({
+              id: usuario.id,
+              xpTotal: usuario.xpTotal,
+              xpSemanal: usuario.xpSemanal,
+              streakAtual: usuario.streakAtual,
+            }),
+          })
+        );
       }
 
       return {
