@@ -69,6 +69,9 @@ export class SupabaseAuthGateway implements IAuthGateway {
       },
     });
 
+    if (error && /already registered|already been registered/i.test(error.message)) {
+      throw new Error('Este email já está em uso');
+    }
     if (error || !data.user) {
       throw new Error(error?.message || 'Falha ao cadastrar usuário');
     }

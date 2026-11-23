@@ -1,9 +1,10 @@
 /** Description: This file (src/app/(app)/materias.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DIContainer } from '@/application/di/container';
 import { BrandMark } from '@/components/Brand';
@@ -20,8 +21,11 @@ import { useAppTheme } from "@/providers/ThemeProvider";
 export default function MateriasScreen() {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
+  // O Modal transparente cobre a tela inteira: o bottom sheet precisa respeitar o home indicator / barra de navegação.
+  const insets = useSafeAreaInsets();
 
   const { usuario } = useAuth();
+  const { novo } = useLocalSearchParams<{ novo?: string }>();
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [, setCarregando] = useState(true);
 
@@ -65,6 +69,16 @@ export default function MateriasScreen() {
     useCallback(() => {
       carregarDisciplinas();
     }, [carregarDisciplinas])
+  );
+
+  // Vindo da Sessão de Foco sem disciplinas: abre direto o formulário de nova matéria
+  useFocusEffect(
+    useCallback(() => {
+      if (novo === '1') {
+        setMostrarFormMateria(true);
+        router.setParams({ novo: undefined });
+      }
+    }, [novo])
   );
 
   // Cadastrar Matéria Funcional
@@ -161,7 +175,7 @@ export default function MateriasScreen() {
   };
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen contentStyle={styles.content} edges={['top']}>
       {/* Top Header */}
       <View style={styles.topHeader}>
         <BrandMark subtitle="Gerenciamento de Matérias" />
@@ -300,8 +314,8 @@ export default function MateriasScreen() {
         animationType="slide"
         transparent
         onRequestClose={() => setDisciplinaSelecionada(null)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+        <View style={[styles.modalOverlay, { paddingTop: insets.top }]}>
+          <View style={[styles.modalContainer, { paddingBottom: insets.bottom }]}>
             {disciplinaSelecionada && (
               <>
                 {/* Header do Modal */}

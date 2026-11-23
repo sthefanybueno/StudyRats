@@ -2,7 +2,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAppTheme } from "@/providers/ThemeProvider";
@@ -12,10 +12,15 @@ interface ScreenProps {
   /** Conteúdo fixo no rodapé (ex.: botão de avançar). */
   footer?: ReactNode;
   contentStyle?: ViewStyle;
+  /**
+   * Bordas protegidas pela safe area. Padrão: topo e base.
+   * Telas dentro das Tabs devem usar ['top'], pois a tab bar já respeita o inset inferior.
+   */
+  edges?: Edge[];
 }
 
 /** Fundo navy com brilhos suaves âmbar/roxo, scroll e teclado tratados. */
-export function Screen({ children, footer, contentStyle }: ScreenProps) {
+export function Screen({ children, footer, contentStyle, edges = ['top', 'bottom'] }: ScreenProps) {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
 
@@ -31,7 +36,7 @@ export function Screen({ children, footer, contentStyle }: ScreenProps) {
         colors={['transparent', 'rgba(136,84,208,0.06)']}
         style={styles.glowBottom}
       />
-      <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.flex} edges={edges}>
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView
             style={styles.flex}

@@ -15,6 +15,9 @@ interface SyncQueueRow {
   created_at: string;
 }
 
+/** Itens com falha são reprocessados até este limite de tentativas. */
+export const MAX_TENTATIVAS = 5;
+
 export class SQLiteSyncQueueRepository implements ISyncQueueRepository {
   constructor(private readonly getDb: () => Promise<SQLiteExecutor> = getDatabase) {}
 
@@ -48,7 +51,7 @@ export class SQLiteSyncQueueRepository implements ISyncQueueRepository {
     const db = await this.getDb();
     const rows = await db.getAllAsync<SyncQueueRow>(
       `SELECT * FROM sync_queue
-       WHERE status = 'pending'
+       WHERE status = 'pending' OR (status = 'error' AND tentativas < ${MAX_TENTATIVAS})
        ORDER BY created_at ASC, id ASC
        LIMIT ?;`,
       [limite]

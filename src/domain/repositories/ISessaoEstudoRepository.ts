@@ -8,6 +8,11 @@ export interface ISessaoEstudoRepository {
   salvar(sessao: SessaoEstudo): Promise<void>;
   
   /**
+   * Registra o upload concluído da foto da sessão (url_remota + upload_status = completed).
+   */
+  atualizarFoto(sessaoId: string, urlRemota: string): Promise<void>;
+
+  /**
    * Retorna a sessão pelo ID.
    */
   buscarPorId(id: string): Promise<SessaoEstudo | null>;

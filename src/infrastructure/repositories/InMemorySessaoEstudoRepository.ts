@@ -9,6 +9,10 @@ export class InMemorySessaoEstudoRepository implements ISessaoEstudoRepository {
     this.sessoes.set(sessao.id, sessao);
   }
 
+  async atualizarFoto(sessaoId: string, urlRemota: string): Promise<void> {
+    this.sessoes.get(sessaoId)?.foto?.marcarComoUploadConcluido(urlRemota);
+  }
+
   async buscarPorId(id: string): Promise<SessaoEstudo | null> {
     return this.sessoes.get(id) || null;
   }

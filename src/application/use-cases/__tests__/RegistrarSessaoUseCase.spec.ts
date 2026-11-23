@@ -215,7 +215,8 @@ describe('RegistrarSessaoUseCase', () => {
       comFoto: false,
     });
 
-    expect(itensEnfileirados).toHaveLength(1);
+    expect(itensEnfileirados).toHaveLength(2); // sessão + espelho de XP no perfil
+    expect(itensEnfileirados[1].entidade).toBe('perfis');
     expect(itensEnfileirados[0].entidade).toBe('sessoes_estudo');
     expect(itensEnfileirados[0].operacao).toBe('INSERT');
     const payload = JSON.parse(itensEnfileirados[0].payloadJson);

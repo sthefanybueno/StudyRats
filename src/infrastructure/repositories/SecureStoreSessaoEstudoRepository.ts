@@ -43,6 +43,15 @@ export class SecureStoreSessaoEstudoRepository implements ISessaoEstudoRepositor
     await this.salvarTodos(todos);
   }
 
+  async atualizarFoto(sessaoId: string, urlRemota: string): Promise<void> {
+    const todos = await this.carregarTodos();
+    if (todos[sessaoId]?.foto) {
+      todos[sessaoId].foto.urlRemota = urlRemota;
+      todos[sessaoId].foto.uploadStatus = 'completed';
+      await this.salvarTodos(todos);
+    }
+  }
+
   async buscarPorId(id: string): Promise<SessaoEstudo | null> {
     const todos = await this.carregarTodos();
     const item = todos[id];
