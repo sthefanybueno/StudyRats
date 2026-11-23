@@ -9,12 +9,17 @@ import { Card, Pill } from '@/components/ui/Surface';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAppTheme } from '@/providers/ThemeProvider';
 
-import { formatarCoordenadas, formatarTempoRelativo } from './formatadores';
+import { formatarLocalizacaoFeed, formatarTempoRelativo } from './formatadores';
 
 export function FeedCard({ item, agora }: { item: ItemFeedDTO; agora?: Date }) {
   const { colors: Colors } = useAppTheme();
   const styles = useStyles(Colors);
-  const temCoordenadas = item.latitude !== undefined && item.longitude !== undefined;
+  const textoLocalizacao = formatarLocalizacaoFeed(
+    item.latitude,
+    item.longitude,
+    item.localAproximado,
+    item.distanciaMetros
+  );
 
   return (
     <Card style={styles.card}>
@@ -68,11 +73,11 @@ export function FeedCard({ item, agora }: { item: ItemFeedDTO; agora?: Date }) {
             {item.duracaoMinutos} min
           </AppText>
         </View>
-        {temCoordenadas && (
+        {textoLocalizacao && (
           <View style={styles.meta}>
             <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
             <AppText variant="caption" color={Colors.textSecondary}>
-              {formatarCoordenadas(item.latitude as number, item.longitude as number)}
+              {textoLocalizacao}
             </AppText>
           </View>
         )}

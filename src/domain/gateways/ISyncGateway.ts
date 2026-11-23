@@ -6,6 +6,11 @@ export interface ISyncGateway {
    * Faz o upload de um arquivo binário (como uma foto) e retorna a URL remota hospedada.
    */
   fazerUploadFoto(uriLocal: string, caminhoRemoto: string): Promise<string>;
+
+  /**
+   * Gera URL temporária assinada (createSignedUrl) para acesso seguro a arquivo em bucket privado (PDF 03, slide 28).
+   */
+  criarUrlAssinadaFoto?(caminhoRemoto: string, expiraEmSegundos?: number): Promise<string | null>;
   
   /**
    * Executa uma chamada genérica para sincronizar dados JSON (usado para processar a SyncQueue local).
@@ -16,4 +21,9 @@ export interface ISyncGateway {
    * Busca os 50 usuários com maior XP semanal (para uso no ConsultarRankingUseCase).
    */
   obterRanking(): Promise<Usuario[]>;
+
+  /**
+   * Executa a política de retenção no servidor (PostGIS/Supabase - expurgar_coordenadas_antigas).
+   */
+  expurgarCoordenadasAntigas?(diasRetencao: number): Promise<number>;
 }

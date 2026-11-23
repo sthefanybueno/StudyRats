@@ -1,6 +1,6 @@
 /** Description: Supabase implementation of IAuthGateway. */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { IAuthGateway } from '../../domain/gateways/IAuthGateway';
+import { IAuthGateway, EventoMudancaSessao, SubscricaoSessaoAuth } from '../../domain/gateways/IAuthGateway';
 import { Usuario } from '../../domain/entities/Usuario';
 import { supabase } from '../../lib/supabase';
 
@@ -89,6 +89,38 @@ export class SupabaseAuthGateway implements IAuthGateway {
 
   async logout(): Promise<void> {
     await this.client.auth.signOut();
+  }
+
+  onAuthStateChange(callback: (evento: EventoMudancaSessao, usuario: Usuario | null) => void): SubscricaoSessaoAuth {
+    if (typeof this.client.auth?.onAuthStateChange !== 'function') {
+      return { unsubscribe: () => {} };
+    }
+
+    const { data } = this.client.auth.onAuthStateChange((evento, sessao) => {
+      if (evento === 'SIGNED_OUT' || !sessao?.user) {
+        callback(evento, null);
+        return;
+      }
+
+      const user = sessao.user;
+      try {
+        const usuario = Usuario.create({
+          id: user.id,
+          email: user.email ?? '',
+          nomeExibicao: user.user_metadata?.nome_exibicao ?? user.email?.split('@')[0] ?? 'Estudante',
+          xpTotal: 0,
+          xpSemanal: 0,
+          streakAtual: 0,
+        });
+        callback(evento, usuario);
+      } catch {
+        callback(evento, null);
+      }
+    });
+
+    return {
+      unsubscribe: () => data?.subscription?.unsubscribe?.(),
+    };
   }
 }
 

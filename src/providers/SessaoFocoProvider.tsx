@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import type { Topico } from '@/domain/entities/Topico';
+import { CalculoXpService } from '@/domain/services/CalculoXpService';
 import { DIContainer } from '@/application/di/container';
 
 export interface SessaoAtiva {
@@ -11,6 +12,7 @@ export interface SessaoAtiva {
   segundosDecorridos: number;
   emExecucao: boolean;
   anexarGps: boolean;
+  enderecoManual?: string | null;
   fotoUri: string | null;
   dataInicio: Date;
 }
@@ -30,11 +32,12 @@ interface SessaoFocoContextData {
     topico: Topico | null;
     duracaoAlvoMinutos: number;
     anexarGps: boolean;
+    enderecoManual?: string | null;
     fotoUri: string | null;
   }) => void;
   pausarSessao: () => void;
   retomarSessao: () => void;
-  concluirSessao: (usuarioId: string) => Promise<{ isSuccess: boolean; error?: string; xpGanho?: number }>;
+  concluirSessao: (usuarioId: string) => Promise<{ isSuccess: boolean; error?: string; xpGanho?: number; avisoGps?: string }>;
   cancelarSessao: () => void;
 }
 
@@ -86,6 +89,7 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
     topico: Topico | null;
     duracaoAlvoMinutos: number;
     anexarGps: boolean;
+    enderecoManual?: string | null;
     fotoUri: string | null;
   }) => {
     setSessaoAtiva({
@@ -95,6 +99,7 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
       segundosDecorridos: 0,
       emExecucao: true,
       anexarGps: dados.anexarGps,
+      enderecoManual: dados.enderecoManual ?? null,
       fotoUri: dados.fotoUri,
       dataInicio: new Date(),
     });
@@ -126,11 +131,19 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
       comFoto: !!sessaoAtiva.fotoUri,
       fotoUri: sessaoAtiva.fotoUri,
       anexarGps: sessaoAtiva.anexarGps,
+      enderecoManual: sessaoAtiva.enderecoManual,
     });
 
     if (res.isSuccess) {
+      const xpGanho = res.value
+        ? CalculoXpService.calcular({
+            duracaoMinutos: duracaoFinal,
+            comFoto: !!res.value.foto,
+            comGps: !!res.value.coordenada,
+          })
+        : duracaoFinal;
       setSessaoAtiva(null);
-      return { isSuccess: true, xpGanho: duracaoFinal };
+      return { isSuccess: true, xpGanho, avisoGps: res.avisoGps };
     } else {
       return { isSuccess: false, error: res.error };
     }

@@ -13,7 +13,7 @@ export class ExpoCameraGateway implements ICameraGateway {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'] as any,
       allowsEditing: true,
       quality: 0.8,
     });

@@ -9,6 +9,7 @@ import { InMemoryResumoIARepository } from '../../infrastructure/repositories/In
 // Gateways
 import { SupabaseAuthGateway } from '../../infrastructure/gateways/SupabaseAuthGateway';
 import { SupabaseSyncGateway } from '../../infrastructure/gateways/SupabaseSyncGateway';
+import { SupabaseFeedGateway } from '../../infrastructure/gateways/SupabaseFeedGateway';
 
 import { ListarFeedUseCase } from '../use-cases/ListarFeedUseCase';
 import { MockAIGateway } from '../../infrastructure/gateways/MockAIGateway';
@@ -27,6 +28,7 @@ import { GerarResumoUseCase } from '../use-cases/GerarResumoUseCase';
 import { RegistrarSessaoUseCase } from '../use-cases/RegistrarSessaoUseCase';
 import { ConsultarRankingUseCase } from '../use-cases/ConsultarRankingUseCase';
 import { SincronizarFilaUseCase } from '../use-cases/SincronizarFilaUseCase';
+import { LimparHistoricoLocalizacaoUseCase } from '../use-cases/LimparHistoricoLocalizacaoUseCase';
 
 import { SessionStorageSecureStore } from '../../infrastructure/storage/SessionStorageSecureStore';
 
@@ -40,6 +42,7 @@ const sessionStorage = new SessionStorageSecureStore();
 
 const authGateway = new SupabaseAuthGateway();
 const syncGateway = new SupabaseSyncGateway();
+const feedGateway = new SupabaseFeedGateway();
 
 const aiGateway = new MockAIGateway();
 const cameraGateway = new ExpoCameraGateway(persistirFotoLocal);
@@ -48,18 +51,20 @@ const locationGateway = new ExpoLocationGateway();
 // 2. Instanciar Use Cases injetando as dependências
 export const DIContainer = {
   autenticarUsuario: new AutenticarUsuarioUseCase(authGateway, usuarioRepository, sessionStorage),
-  cadastrarUsuario: new CadastrarUsuarioUseCase(authGateway, usuarioRepository),
-  atualizarPerfil: new AtualizarPerfilUseCase(usuarioRepository),
+  cadastrarUsuario: new CadastrarUsuarioUseCase(authGateway, usuarioRepository, sessionStorage, syncQueueRepository),
+  atualizarPerfil: new AtualizarPerfilUseCase(usuarioRepository, syncQueueRepository),
   logout: async () => {
     await sessionStorage.removerSessionToken();
     await authGateway.logout();
   },
   resetarDadosLocais: async () => {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default || require('@react-native-async-storage/async-storage');
+    await sessaoEstudoRepository.limparTudo();
     await AsyncStorage.clear();
     await sessionStorage.removerSessionToken();
     await authGateway.logout();
   },
+  limparHistoricoLocalizacao: new LimparHistoricoLocalizacaoUseCase(sessaoEstudoRepository, syncQueueRepository),
   cadastrarDisciplina: new CadastrarDisciplinaUseCase(disciplinaRepository, syncQueueRepository),
   cadastrarTopico: new CadastrarTopicoUseCase(disciplinaRepository, syncQueueRepository),
   atualizarTopico: new AtualizarTopicoUseCase(disciplinaRepository, syncQueueRepository),
@@ -67,11 +72,12 @@ export const DIContainer = {
   gerarResumo: new GerarResumoUseCase(aiGateway, resumoRepository),
   registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway, locationGateway, syncQueueRepository),
   consultarRanking: new ConsultarRankingUseCase(syncGateway),
-  listarFeed: new ListarFeedUseCase(sessaoEstudoRepository, usuarioRepository, disciplinaRepository),
+  listarFeed: new ListarFeedUseCase(sessaoEstudoRepository, usuarioRepository, disciplinaRepository, feedGateway, locationGateway),
   sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway, sessaoEstudoRepository),
 
-  // Gateways expostos para consumo direto pela camada de apresentação (ex.: captura de GPS na sessão)
+  // Gateways expostos para consumo direto pela camada de apresentação (ex.: captura de GPS na sessão e eventos de Auth)
   gateways: {
+    auth: authGateway,
     camera: cameraGateway,
     location: locationGateway,
   },

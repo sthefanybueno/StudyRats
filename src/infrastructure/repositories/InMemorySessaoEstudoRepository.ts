@@ -13,6 +13,10 @@ export class InMemorySessaoEstudoRepository implements ISessaoEstudoRepository {
     this.sessoes.get(sessaoId)?.foto?.marcarComoUploadConcluido(urlRemota);
   }
 
+  async marcarComoSincronizada(sessaoId: string): Promise<void> {
+    this.sessoes.get(sessaoId)?.atualizarSyncStatus('synced');
+  }
+
   async buscarPorId(id: string): Promise<SessaoEstudo | null> {
     return this.sessoes.get(id) || null;
   }
@@ -27,5 +31,31 @@ export class InMemorySessaoEstudoRepository implements ISessaoEstudoRepository {
 
   async listarTodas(): Promise<SessaoEstudo[]> {
     return Array.from(this.sessoes.values());
+  }
+
+  async removerCoordenadasPorUsuario(usuarioId: string): Promise<number> {
+    let removidas = 0;
+    for (const sessao of this.sessoes.values()) {
+      if (sessao.usuarioId === usuarioId && sessao.coordenada) {
+        sessao.removerCoordenada();
+        removidas++;
+      }
+    }
+    return removidas;
+  }
+
+  async expurgarCoordenadasAntigas(dataLimite: Date): Promise<number> {
+    let removidas = 0;
+    for (const sessao of this.sessoes.values()) {
+      if (sessao.coordenada && sessao.createdAt.getTime() < dataLimite.getTime()) {
+        sessao.removerCoordenada();
+        removidas++;
+      }
+    }
+    return removidas;
+  }
+
+  async limparTudo(): Promise<void> {
+    this.sessoes.clear();
   }
 }

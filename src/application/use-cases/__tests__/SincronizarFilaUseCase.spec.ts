@@ -18,11 +18,16 @@ class MockSyncQueueRepo implements ISyncQueueRepository {
 
 class MockSyncGateway implements ISyncGateway {
   shouldFail = false;
+  expurgoChamado = false;
   async enviarParaNuvem(): Promise<void> {
     if (this.shouldFail) throw new Error('Network error');
   }
   async fazerUploadFoto(): Promise<string> { return ''; }
   async obterRanking(): Promise<Usuario[]> { return []; }
+  async expurgarCoordenadasAntigas(): Promise<number> {
+    this.expurgoChamado = true;
+    return 3;
+  }
 }
 
 describe('SincronizarFilaUseCase', () => {
@@ -38,6 +43,8 @@ describe('SincronizarFilaUseCase', () => {
 
     expect(response.processados).toBe(1);
     expect(response.falhas).toBe(0);
+    expect(response.coordenadasExpurgadas).toBe(3);
+    expect(gateway.expurgoChamado).toBe(true);
     expect(repo.itens).toHaveLength(0); // Removido
   });
 

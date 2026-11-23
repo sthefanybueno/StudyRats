@@ -99,7 +99,12 @@ describe('ListarFeedUseCase', () => {
       disciplinaId: 'disc-1',
       topicoId: 'top-1',
       duracaoMinutos: 50,
-      coordenada: Coordenada.create({ latitude: -19.9191, longitude: -43.9386 }),
+      coordenada: Coordenada.create({
+        latitude: -19.9191,
+        longitude: -43.9386,
+        accuracy: 14,
+        localAproximado: 'Savassi, Belo Horizonte',
+      }),
     });
     s.anexarFoto(FotoSessao.create({ sessaoId: 'sess-completa', uriLocal: 'file://foto.jpg' }));
     await sessaoRepo.salvar(s);
@@ -113,6 +118,8 @@ describe('ListarFeedUseCase', () => {
       expect(item.fotoUri).toBe('file://foto.jpg');
       expect(item.latitude).toBeCloseTo(-19.9191);
       expect(item.longitude).toBeCloseTo(-43.9386);
+      expect(item.accuracy).toBe(14);
+      expect(item.localAproximado).toBe('Savassi, Belo Horizonte');
       expect(item.syncStatus).toBe('pending');
     }
   });
@@ -138,6 +145,52 @@ describe('ListarFeedUseCase', () => {
     if (r.isSuccess) {
       expect(r.value.itens).toHaveLength(50);
       expect(r.value.proximoCursor).toBe('50');
+    }
+  });
+
+  it('filtra sessões num raio de 1 km quando o filtro espacial "Perto de mim" está ativo (PostGIS / Haversine)', async () => {
+    const sPerto = SessaoEstudo.create({
+      id: 'sess-perto',
+      usuarioId: 'usr-1',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 30,
+      coordenada: Coordenada.create({
+        latitude: -21.558,
+        longitude: -45.4345,
+        localAproximado: 'Centro, Varginha',
+      }),
+    });
+    const sLonge = SessaoEstudo.create({
+      id: 'sess-longe',
+      usuarioId: 'usr-1',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 30,
+      coordenada: Coordenada.create({
+        latitude: -23.5505,
+        longitude: -46.6333,
+        localAproximado: 'Sé, São Paulo',
+      }),
+    });
+    await sessaoRepo.salvar(sPerto);
+    await sessaoRepo.salvar(sLonge);
+
+    const mockLocationGw = {
+      obterLocalizacaoAtual: jest.fn().mockResolvedValue({
+        latitude: -21.5561,
+        longitude: -45.4345,
+      }),
+    };
+
+    const useCase = new ListarFeedUseCase(sessaoRepo, usuarioRepo, disciplinaRepo, undefined, mockLocationGw);
+    const r = await useCase.execute(undefined, { pertoDeMim: true, raioMetros: 1000 });
+
+    expect(r.isSuccess).toBe(true);
+    if (r.isSuccess) {
+      expect(r.value.itens).toHaveLength(1);
+      expect(r.value.itens[0].id).toBe('sess-perto');
+      expect(r.value.itens[0].distanciaMetros).toBeLessThanOrEqual(1000);
     }
   });
 });

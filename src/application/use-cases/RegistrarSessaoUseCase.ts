@@ -7,6 +7,7 @@ import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository
 import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueRepository';
 import { ICameraGateway } from '../../domain/gateways/ICameraGateway';
 import { ILocationGateway } from '../../domain/gateways/ILocationGateway';
+import { CalculoXpService } from '../../domain/services/CalculoXpService';
 import { Coordenada } from '../../domain/value-objects/Coordenada';
 
 export interface RegistrarSessaoRequest {
@@ -19,10 +20,12 @@ export interface RegistrarSessaoRequest {
   fotoUri?: string | null;
   /** Quando verdadeiro, anexa a localização atual do dispositivo à sessão. */
   anexarGps?: boolean;
+  /** Endereço/local opcional para Forward Geocoding (geocodeAsync) quando GPS não for usado ou falhar. */
+  enderecoManual?: string | null;
 }
 
 export type RegistrarSessaoResponse = 
-  | { isSuccess: true; value: SessaoEstudo }
+  | { isSuccess: true; value: SessaoEstudo; avisoGps?: string }
   | { isSuccess: false; error: string };
 
 export class RegistrarSessaoUseCase {
@@ -42,8 +45,24 @@ export class RegistrarSessaoUseCase {
         return { isSuccess: false, error: 'Usuário não encontrado' };
       }
 
-      // 2. Obter localização se solicitado (evidência opcional: se falhar, a sessão ainda é registrada)
-      const coordenada = request.anexarGps ? await this.obterCoordenada() : undefined;
+      // 2. Obter localização via GPS ou Forward Geocoding (endereço manual) se solicitado
+      let coordenada: Coordenada | undefined;
+      let avisoGps: string | undefined;
+      const enderecoLimpo = request.enderecoManual?.trim() || undefined;
+
+      if (request.anexarGps) {
+        const resultadoGps = await this.obterCoordenada();
+        coordenada = resultadoGps.coordenada;
+        avisoGps = resultadoGps.avisoGps;
+      }
+
+      if (!coordenada && enderecoLimpo) {
+        const coordEndereco = await this.obterCoordenadaPorEndereco(enderecoLimpo);
+        if (coordEndereco) {
+          coordenada = coordEndereco;
+          avisoGps = undefined;
+        }
+      }
 
       // 3. Criar a sessão
       const sessao = SessaoEstudo.create({
@@ -66,9 +85,12 @@ export class RegistrarSessaoUseCase {
         }
       }
 
-      // 5. Adicionar recompensa (XP) ao usuário
-      // Exemplo: 1 XP por minuto estudado
-      const xpGanho = request.duracaoMinutos;
+      // 5. Adicionar recompensa (XP) ao usuário com bônus de foto (+10), GPS (+5) e foco >= 45m (+15)
+      const xpGanho = CalculoXpService.calcular({
+        duracaoMinutos: request.duracaoMinutos,
+        comFoto: !!sessao.foto,
+        comGps: !!sessao.coordenada,
+      });
       usuario.adicionarXP(xpGanho);
 
       // 6. Salvar agregados
@@ -90,6 +112,8 @@ export class RegistrarSessaoUseCase {
               createdAt: sessao.createdAt.toISOString(),
               latitude: sessao.coordenada?.latitude ?? null,
               longitude: sessao.coordenada?.longitude ?? null,
+              accuracy: sessao.coordenada?.accuracy ?? null,
+              localAproximado: sessao.coordenada?.localAproximado ?? null,
               fotoLocal: sessao.foto?.uriLocal ?? null,
             }),
           })
@@ -113,6 +137,7 @@ export class RegistrarSessaoUseCase {
       return {
         isSuccess: true,
         value: sessao,
+        avisoGps,
       };
     } catch (error: any) {
       return {
@@ -123,13 +148,38 @@ export class RegistrarSessaoUseCase {
   }
 
   /**
-   * A localização é uma evidência opcional: permissão negada, GPS desligado ou leitura inválida
-   * não devem impedir o registro da sessão de estudo.
+   * A localização é uma evidência opcional: permissão negada, GPS desligado, mock location ou accuracy ruim
+   * não devem impedir o registro da sessão de estudo, mas retornam aviso claro ao usuário (RNF02 / FA1).
    */
-  private async obterCoordenada(): Promise<Coordenada | undefined> {
+  private async obterCoordenada(): Promise<{ coordenada?: Coordenada; avisoGps?: string }> {
     try {
-      const { latitude, longitude } = await this.locationGateway.obterLocalizacaoAtual();
-      return Coordenada.create({ latitude, longitude });
+      const { latitude, longitude, accuracy, localAproximado } = await this.locationGateway.obterLocalizacaoAtual();
+      return {
+        coordenada: Coordenada.create({ latitude, longitude, accuracy, localAproximado }),
+      };
+    } catch (err: any) {
+      return {
+        coordenada: undefined,
+        avisoGps:
+          err?.message ||
+          'Sessão salva sem localização. Ative o GPS nas configurações para registrar onde você estuda.',
+      };
+    }
+  }
+
+  private async obterCoordenadaPorEndereco(endereco: string): Promise<Coordenada | undefined> {
+    if (!this.locationGateway.obterCoordenadasPorEndereco) {
+      return undefined;
+    }
+    try {
+      const resultado = await this.locationGateway.obterCoordenadasPorEndereco(endereco);
+      if (!resultado) return undefined;
+      return Coordenada.create({
+        latitude: resultado.latitude,
+        longitude: resultado.longitude,
+        accuracy: resultado.accuracy,
+        localAproximado: resultado.localAproximado ?? endereco,
+      });
     } catch {
       return undefined;
     }

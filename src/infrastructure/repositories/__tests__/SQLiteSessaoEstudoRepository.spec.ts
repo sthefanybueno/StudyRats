@@ -39,10 +39,16 @@ describe('SQLiteSessaoEstudoRepository', () => {
     expect(achada?.foto).toBeUndefined();
   });
 
-  it('deve persistir a coordenada de geolocalização, incluindo o timestamp', async () => {
+  it('deve persistir a coordenada de geolocalização, incluindo timestamp, accuracy e localAproximado', async () => {
     const capturadaEm = new Date('2026-05-10T14:30:00.000Z');
     const sessao = novaSessao({
-      coordenada: Coordenada.create({ latitude: -23.5505, longitude: -46.6333, timestamp: capturadaEm }),
+      coordenada: Coordenada.create({
+        latitude: -23.5505,
+        longitude: -46.6333,
+        timestamp: capturadaEm,
+        accuracy: 15.2,
+        localAproximado: 'Sé, São Paulo',
+      }),
     });
     await repo.salvar(sessao);
 
@@ -51,6 +57,49 @@ describe('SQLiteSessaoEstudoRepository', () => {
     expect(achada?.coordenada?.latitude).toBe(-23.5505);
     expect(achada?.coordenada?.longitude).toBe(-46.6333);
     expect(achada?.coordenada?.timestamp.toISOString()).toBe(capturadaEm.toISOString());
+    expect(achada?.coordenada?.accuracy).toBeCloseTo(15.2);
+    expect(achada?.coordenada?.localAproximado).toBe('Sé, São Paulo');
+  });
+
+  it('deve remover as coordenadas das sessões do usuário mantendo as sessões (direito de exclusão LGPD)', async () => {
+    const s1 = novaSessao({
+      usuarioId: 'usr-1',
+      coordenada: Coordenada.create({ latitude: -21.55, longitude: -45.43, accuracy: 10, localAproximado: 'Centro, Varginha' }),
+    });
+    const s2 = novaSessao({ usuarioId: 'usr-1' });
+    const sOutro = novaSessao({
+      usuarioId: 'usr-2',
+      coordenada: Coordenada.create({ latitude: -19.91, longitude: -43.93 }),
+    });
+    await repo.salvar(s1);
+    await repo.salvar(s2);
+    await repo.salvar(sOutro);
+
+    const removidas = await repo.removerCoordenadasPorUsuario('usr-1');
+
+    expect(removidas).toBe(1);
+    expect((await repo.buscarPorId(s1.id))?.coordenada).toBeUndefined();
+    expect((await repo.buscarPorId(sOutro.id))?.coordenada?.latitude).toBe(-19.91);
+  });
+
+  it('deve expurgar automaticamente coordenadas antigas anteriores à data limite (política de retenção 90 dias)', async () => {
+    const antiga = novaSessao({
+      createdAt: new Date('2025-11-01T10:00:00.000Z'),
+      coordenada: Coordenada.create({ latitude: -21.55, longitude: -45.43 }),
+    });
+    const recente = novaSessao({
+      createdAt: new Date('2026-05-01T10:00:00.000Z'),
+      coordenada: Coordenada.create({ latitude: -19.91, longitude: -43.93 }),
+    });
+    await repo.salvar(antiga);
+    await repo.salvar(recente);
+
+    const expurgadas = await repo.expurgarCoordenadasAntigas(new Date('2026-01-01T00:00:00.000Z'));
+
+    expect(expurgadas).toBe(1);
+    expect((await repo.buscarPorId(antiga.id))?.coordenada).toBeUndefined();
+    expect((await repo.buscarPorId(antiga.id))?.duracaoMinutos).toBe(45);
+    expect((await repo.buscarPorId(recente.id))?.coordenada?.latitude).toBe(-19.91);
   });
 
   it('deve persistir a foto da câmera como entidade fraca da sessão', async () => {

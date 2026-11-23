@@ -13,6 +13,11 @@ export interface ISessaoEstudoRepository {
   atualizarFoto(sessaoId: string, urlRemota: string): Promise<void>;
 
   /**
+   * Marca a sessão como sincronizada ('synced') após envio bem-sucedido da fila Outbox ao Supabase.
+   */
+  marcarComoSincronizada?(sessaoId: string): Promise<void>;
+
+  /**
    * Retorna a sessão pelo ID.
    */
   buscarPorId(id: string): Promise<SessaoEstudo | null>;
@@ -31,4 +36,21 @@ export interface ISessaoEstudoRepository {
    * Retorna todas as sessões registradas no repositório.
    */
   listarTodas(): Promise<SessaoEstudo[]>;
+
+  /**
+   * Remove (define como null) as coordenadas e dados de localização de todas as sessões do usuário (LGPD).
+   * Retorna a quantidade de sessões que tinham localização e foram limpas.
+   */
+  removerCoordenadasPorUsuario?(usuarioId: string): Promise<number>;
+
+  /**
+   * Política de retenção LGPD (PDF 01, slides 41 e 44; PDF 02, slide 42):
+   * Remove coordenadas de sessões anteriores a `dataLimite`, preservando a sessão, duração e XP.
+   */
+  expurgarCoordenadasAntigas?(dataLimite: Date): Promise<number>;
+
+  /**
+   * Apaga todas as sessões locais (usado no reset completo de dados locais do aparelho).
+   */
+  limparTudo?(): Promise<void>;
 }

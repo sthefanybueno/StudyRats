@@ -10,9 +10,11 @@ import { Usuario } from '../../../domain/entities/Usuario';
 class MockSessaoRepository implements ISessaoEstudoRepository {
   sessoes: SessaoEstudo[] = [];
   async salvar(sessao: SessaoEstudo): Promise<void> { this.sessoes.push(sessao); }
+  async atualizarFoto(_sessaoId: string, _urlRemota: string): Promise<void> {}
   async buscarPorId(id: string): Promise<SessaoEstudo | null> { return this.sessoes.find(s => s.id === id) || null; }
-  async listarPorUsuario(id: string): Promise<SessaoEstudo[]> { return this.sessoes; }
-  async listarPorDisciplina(id: string): Promise<SessaoEstudo[]> { return this.sessoes; }
+  async listarPorUsuario(_id: string): Promise<SessaoEstudo[]> { return this.sessoes; }
+  async listarPorDisciplina(_id: string): Promise<SessaoEstudo[]> { return this.sessoes; }
+  async listarTodas(): Promise<SessaoEstudo[]> { return this.sessoes; }
 }
 
 class MockUsuarioRepository implements IUsuarioRepository {
@@ -23,6 +25,8 @@ class MockUsuarioRepository implements IUsuarioRepository {
     else this.usuarios.push(usuario);
   }
   async buscarPorId(id: string): Promise<Usuario | null> { return this.usuarios.find(u => u.id === id) || null; }
+  async buscarPorEmail(email: string): Promise<Usuario | null> { return this.usuarios.find(u => u.email.getValue === email) || null; }
+  async buscarPorNomeUsuario(nome: string): Promise<Usuario | null> { return this.usuarios.find(u => u.nomeUsuario === nome) || null; }
   async listarTodos(): Promise<Usuario[]> { return this.usuarios; }
 }
 
@@ -39,10 +43,24 @@ class MockCameraGateway implements ICameraGateway {
 class MockLocationGateway implements ILocationGateway {
   permissaoNegada = false;
   chamadas = 0;
+  chamadasEndereco = 0;
   async obterLocalizacaoAtual(): Promise<Coordenadas> {
     this.chamadas++;
     if (this.permissaoNegada) throw new Error('Permissão de localização negada');
-    return { latitude: -23.5505, longitude: -46.6333 };
+    return {
+      latitude: -23.5505,
+      longitude: -46.6333,
+      accuracy: 15,
+      localAproximado: 'Centro, São Paulo',
+    };
+  }
+  async obterCoordenadasPorEndereco(endereco: string): Promise<Coordenadas | null> {
+    this.chamadasEndereco++;
+    return {
+      latitude: -21.5561,
+      longitude: -45.4345,
+      localAproximado: endereco,
+    };
   }
 }
 
@@ -175,6 +193,9 @@ describe('RegistrarSessaoUseCase', () => {
     expect(response.isSuccess).toBe(true);
     expect(sessaoRepo.sessoes).toHaveLength(1);
     expect(sessaoRepo.sessoes[0].coordenada).toBeUndefined();
+    if (response.isSuccess) {
+      expect(response.avisoGps).toContain('Permissão de localização negada');
+    }
   });
 
   it('should save photo and coordinate together in the same session', async () => {
@@ -222,5 +243,24 @@ describe('RegistrarSessaoUseCase', () => {
     const payload = JSON.parse(itensEnfileirados[0].payloadJson);
     expect(payload.usuarioId).toBe('user-123');
     expect(payload.duracaoMinutos).toBe(40);
+  });
+
+  it('deve usar Forward Geocoding (enderecoManual) quando GPS estiver desativado ou falhar', async () => {
+    locationGateway.permissaoNegada = true;
+
+    const response = await useCase.execute({
+      usuarioId: 'user-123',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 35,
+      comFoto: false,
+      anexarGps: true,
+      enderecoManual: 'Biblioteca Central, Varginha',
+    });
+
+    expect(response.isSuccess).toBe(true);
+    expect(locationGateway.chamadasEndereco).toBe(1);
+    expect(sessaoRepo.sessoes[0].coordenada?.latitude).toBe(-21.5561);
+    expect(sessaoRepo.sessoes[0].coordenada?.localAproximado).toBe('Biblioteca Central, Varginha');
   });
 });

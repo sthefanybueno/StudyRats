@@ -31,7 +31,14 @@ export class SecureStoreSessaoEstudoRepository implements ISessaoEstudoRepositor
       duracaoMinutos: sessao.duracaoMinutos,
       createdAt: sessao.createdAt.toISOString(),
       syncStatus: sessao.syncStatus.value,
-      coordenada: sessao.coordenada ? { latitude: sessao.coordenada.latitude, longitude: sessao.coordenada.longitude } : null,
+      coordenada: sessao.coordenada
+        ? {
+            latitude: sessao.coordenada.latitude,
+            longitude: sessao.coordenada.longitude,
+            accuracy: sessao.coordenada.accuracy,
+            localAproximado: sessao.coordenada.localAproximado,
+          }
+        : null,
       foto: sessao.foto ? {
         id: sessao.foto.id,
         sessaoId: sessao.foto.sessaoId,
@@ -48,6 +55,14 @@ export class SecureStoreSessaoEstudoRepository implements ISessaoEstudoRepositor
     if (todos[sessaoId]?.foto) {
       todos[sessaoId].foto.urlRemota = urlRemota;
       todos[sessaoId].foto.uploadStatus = 'completed';
+      await this.salvarTodos(todos);
+    }
+  }
+
+  async marcarComoSincronizada(sessaoId: string): Promise<void> {
+    const todos = await this.carregarTodos();
+    if (todos[sessaoId]) {
+      todos[sessaoId].syncStatus = 'synced';
       await this.salvarTodos(todos);
     }
   }
@@ -104,7 +119,14 @@ export class SecureStoreSessaoEstudoRepository implements ISessaoEstudoRepositor
       duracaoMinutos: item.duracaoMinutos,
       createdAt: new Date(item.createdAt),
       syncStatus: item.syncStatus,
-      coordenada: item.coordenada ? Coordenada.create({ latitude: item.coordenada.latitude, longitude: item.coordenada.longitude }) : undefined,
+      coordenada: item.coordenada
+        ? Coordenada.create({
+            latitude: item.coordenada.latitude,
+            longitude: item.coordenada.longitude,
+            accuracy: item.coordenada.accuracy,
+            localAproximado: item.coordenada.localAproximado,
+          })
+        : undefined,
     });
 
     if (item.foto) {
@@ -119,5 +141,40 @@ export class SecureStoreSessaoEstudoRepository implements ISessaoEstudoRepositor
     }
 
     return sessao;
+  }
+
+  async removerCoordenadasPorUsuario(usuarioId: string): Promise<number> {
+    const todos = await this.carregarTodos();
+    let removidas = 0;
+    for (const key of Object.keys(todos)) {
+      if (todos[key]?.usuarioId === usuarioId && todos[key]?.coordenada) {
+        todos[key].coordenada = null;
+        removidas++;
+      }
+    }
+    if (removidas > 0) {
+      await this.salvarTodos(todos);
+    }
+    return removidas;
+  }
+
+  async expurgarCoordenadasAntigas(dataLimite: Date): Promise<number> {
+    const todos = await this.carregarTodos();
+    let removidas = 0;
+    for (const key of Object.keys(todos)) {
+      const item = todos[key];
+      if (item?.coordenada && new Date(item.createdAt).getTime() < dataLimite.getTime()) {
+        item.coordenada = null;
+        removidas++;
+      }
+    }
+    if (removidas > 0) {
+      await this.salvarTodos(todos);
+    }
+    return removidas;
+  }
+
+  async limparTudo(): Promise<void> {
+    await AsyncStorage.removeItem(STORAGE_KEY);
   }
 }

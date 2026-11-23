@@ -42,14 +42,14 @@ describe('migrate', () => {
     );
   });
 
-  it('deve guardar a coordenada (latitude, longitude, timestamp) como colunas da sessão', async () => {
+  it('deve guardar a coordenada (latitude, longitude, timestamp, accuracy, local_aproximado) como colunas da sessão', async () => {
     const db = await SqlJsExecutor.create();
     await migrate(db);
 
     const colunas = await db.getAllAsync<{ name: string }>("PRAGMA table_info('sessoes_estudo')");
 
     expect(colunas.map((c) => c.name)).toEqual(
-      expect.arrayContaining(['latitude', 'longitude', 'coordenada_timestamp'])
+      expect.arrayContaining(['latitude', 'longitude', 'coordenada_timestamp', 'accuracy', 'local_aproximado'])
     );
   });
 

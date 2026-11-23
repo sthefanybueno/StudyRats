@@ -64,5 +64,23 @@ describe('useFeed', () => {
     expect(result.current.erro).toBeNull();
     expect(result.current.itens.map(i => i.id)).toEqual(['9']);
   });
+
+  it('alterna o filtro espacial "Perto de mim (1 km)" chamando o caso de uso com raioMetros = 1000', async () => {
+    mockExecute
+      .mockResolvedValueOnce({ isSuccess: true, value: { itens: [item('1'), item('2')] } })
+      .mockResolvedValueOnce({ isSuccess: true, value: { itens: [item('1')] } });
+
+    const { result } = await renderHook(() => useFeed());
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(result.current.pertoDeMim).toBe(false);
+
+    await act(async () => {
+      await result.current.alternarPertoDeMim();
+    });
+
+    expect(result.current.pertoDeMim).toBe(true);
+    expect(mockExecute).toHaveBeenLastCalledWith(undefined, { pertoDeMim: true, raioMetros: 1000 });
+    expect(result.current.itens.map(i => i.id)).toEqual(['1']);
+  });
 });
 

@@ -40,6 +40,11 @@ export class SessaoEstudo {
     this.props.syncStatus = StatusSincronizacao.create(status);
   }
 
+  /** Remove os dados de geolocalização da sessão (direito de exclusão/revogação LGPD). */
+  public removerCoordenada(): void {
+    this.props.coordenada = undefined;
+  }
+
   public static create(props: Omit<SessaoEstudoProps, 'id' | 'createdAt' | 'syncStatus'> & Partial<SessaoEstudoProps>): SessaoEstudo {
     if (!props.usuarioId || props.usuarioId.trim() === '') throw new Error('O ID do usuário é obrigatório');
     if (!props.disciplinaId || props.disciplinaId.trim() === '') throw new Error('O ID da disciplina é obrigatório');

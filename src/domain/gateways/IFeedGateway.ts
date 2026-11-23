@@ -23,5 +23,10 @@ export interface IFeedGateway {
    * @param limite quantidade máxima de itens da página.
    */
   obterFeed(cursor?: string, limite?: number): Promise<PaginaFeed>;
+
+  /**
+   * Consulta espacial (PostGIS ST_DWithin - PDF 01, slide 40): retorna sessões dentro de `raioMetros`.
+   */
+  obterFeedProximo?(latitude: number, longitude: number, raioMetros: number, limite?: number): Promise<PaginaFeed>;
 }
 

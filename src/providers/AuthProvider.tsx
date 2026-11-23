@@ -51,6 +51,20 @@ export function AuthProvider({ children, container = DIContainer }: AuthProvider
         if (res.isSuccess) setUsuario(res.value);
       })
       .finally(() => setRestaurando(false));
+
+    // Escuta mudanças de sessão (SIGNED_OUT, TOKEN_REFRESHED - PDF 03, slides 14 e 43)
+    const sub = container.gateways?.auth?.onAuthStateChange?.((evento, usuarioSessao) => {
+      if (evento === 'SIGNED_OUT') {
+        setUsuario(null);
+        setPrecisaOnboarding(false);
+      } else if (evento === 'SIGNED_IN' && usuarioSessao) {
+        setUsuario(atual => atual ?? usuarioSessao);
+      }
+    });
+
+    return () => {
+      sub?.unsubscribe();
+    };
   }, [container]);
 
   const login = useCallback(async (email: string, senha: string) => {

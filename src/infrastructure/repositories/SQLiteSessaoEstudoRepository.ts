@@ -18,6 +18,8 @@ interface SessaoRow {
   latitude: number | null;
   longitude: number | null;
   coordenada_timestamp: string | null;
+  accuracy: number | null;
+  local_aproximado: string | null;
   foto_id: string | null;
   foto_uri_local: string | null;
   foto_url_remota: string | null;
@@ -34,8 +36,8 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
       await db.runAsync(
         `INSERT INTO sessoes_estudo (
           id, usuario_id, disciplina_id, topico_id, duracao_minutos,
-          created_at, sync_status, latitude, longitude, coordenada_timestamp
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          created_at, sync_status, latitude, longitude, coordenada_timestamp, accuracy, local_aproximado
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           usuario_id = excluded.usuario_id,
           disciplina_id = excluded.disciplina_id,
@@ -45,7 +47,9 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
           sync_status = excluded.sync_status,
           latitude = excluded.latitude,
           longitude = excluded.longitude,
-          coordenada_timestamp = excluded.coordenada_timestamp;`,
+          coordenada_timestamp = excluded.coordenada_timestamp,
+          accuracy = excluded.accuracy,
+          local_aproximado = excluded.local_aproximado;`,
         [
           sessao.id,
           sessao.usuarioId,
@@ -57,6 +61,8 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
           sessao.coordenada ? sessao.coordenada.latitude : null,
           sessao.coordenada ? sessao.coordenada.longitude : null,
           sessao.coordenada ? sessao.coordenada.timestamp.toISOString() : null,
+          sessao.coordenada?.accuracy ?? null,
+          sessao.coordenada?.localAproximado ?? null,
         ]
       );
 
@@ -89,12 +95,17 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
     );
   }
 
+  async marcarComoSincronizada(sessaoId: string): Promise<void> {
+    const db = await this.getDb();
+    await db.runAsync(`UPDATE sessoes_estudo SET sync_status = 'synced' WHERE id = ?;`, [sessaoId]);
+  }
+
   async buscarPorId(id: string): Promise<SessaoEstudo | null> {
     const db = await this.getDb();
     const row = await db.getFirstAsync<SessaoRow>(
       `SELECT
         s.id, s.usuario_id, s.disciplina_id, s.topico_id, s.duracao_minutos,
-        s.created_at, s.sync_status, s.latitude, s.longitude, s.coordenada_timestamp,
+        s.created_at, s.sync_status, s.latitude, s.longitude, s.coordenada_timestamp, s.accuracy, s.local_aproximado,
         f.id AS foto_id, f.uri_local AS foto_uri_local, f.url_remota AS foto_url_remota, f.upload_status AS foto_upload_status
       FROM sessoes_estudo s
       LEFT JOIN fotos_sessao f ON f.sessao_id = s.id
@@ -111,7 +122,7 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
     const rows = await db.getAllAsync<SessaoRow>(
       `SELECT
         s.id, s.usuario_id, s.disciplina_id, s.topico_id, s.duracao_minutos,
-        s.created_at, s.sync_status, s.latitude, s.longitude, s.coordenada_timestamp,
+        s.created_at, s.sync_status, s.latitude, s.longitude, s.coordenada_timestamp, s.accuracy, s.local_aproximado,
         f.id AS foto_id, f.uri_local AS foto_uri_local, f.url_remota AS foto_url_remota, f.upload_status AS foto_upload_status
       FROM sessoes_estudo s
       LEFT JOIN fotos_sessao f ON f.sessao_id = s.id
@@ -128,7 +139,7 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
     const rows = await db.getAllAsync<SessaoRow>(
       `SELECT
         s.id, s.usuario_id, s.disciplina_id, s.topico_id, s.duracao_minutos,
-        s.created_at, s.sync_status, s.latitude, s.longitude, s.coordenada_timestamp,
+        s.created_at, s.sync_status, s.latitude, s.longitude, s.coordenada_timestamp, s.accuracy, s.local_aproximado,
         f.id AS foto_id, f.uri_local AS foto_uri_local, f.url_remota AS foto_url_remota, f.upload_status AS foto_upload_status
       FROM sessoes_estudo s
       LEFT JOIN fotos_sessao f ON f.sessao_id = s.id
@@ -145,7 +156,7 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
     const rows = await db.getAllAsync<SessaoRow>(
       `SELECT
         s.id, s.usuario_id, s.disciplina_id, s.topico_id, s.duracao_minutos,
-        s.created_at, s.sync_status, s.latitude, s.longitude, s.coordenada_timestamp,
+        s.created_at, s.sync_status, s.latitude, s.longitude, s.coordenada_timestamp, s.accuracy, s.local_aproximado,
         f.id AS foto_id, f.uri_local AS foto_uri_local, f.url_remota AS foto_url_remota, f.upload_status AS foto_upload_status
       FROM sessoes_estudo s
       LEFT JOIN fotos_sessao f ON f.sessao_id = s.id
@@ -155,6 +166,59 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
     return rows.map((r) => this.mapToEntity(r));
   }
 
+  async removerCoordenadasPorUsuario(usuarioId: string): Promise<number> {
+    const db = await this.getDb();
+    const comCoordenada = await db.getAllAsync<{ id: string }>(
+      `SELECT id FROM sessoes_estudo WHERE usuario_id = ? AND (latitude IS NOT NULL OR longitude IS NOT NULL);`,
+      [usuarioId]
+    );
+    if (comCoordenada.length === 0) {
+      return 0;
+    }
+
+    await db.runAsync(
+      `UPDATE sessoes_estudo
+       SET latitude = NULL, longitude = NULL, coordenada_timestamp = NULL, accuracy = NULL, local_aproximado = NULL
+       WHERE usuario_id = ?;`,
+      [usuarioId]
+    );
+
+    return comCoordenada.length;
+  }
+
+  async expurgarCoordenadasAntigas(dataLimite: Date): Promise<number> {
+    const db = await this.getDb();
+    const limiteIso = dataLimite.toISOString();
+    const expiradas = await db.getAllAsync<{ id: string }>(
+      `SELECT id FROM sessoes_estudo
+       WHERE created_at < ? AND (latitude IS NOT NULL OR longitude IS NOT NULL);`,
+      [limiteIso]
+    );
+    if (expiradas.length === 0) {
+      return 0;
+    }
+
+    await db.runAsync(
+      `UPDATE sessoes_estudo
+       SET latitude = NULL, longitude = NULL, coordenada_timestamp = NULL, accuracy = NULL, local_aproximado = NULL
+       WHERE created_at < ? AND (latitude IS NOT NULL OR longitude IS NOT NULL);`,
+      [limiteIso]
+    );
+
+    return expiradas.length;
+  }
+
+  async limparTudo(): Promise<void> {
+    const db = await this.getDb();
+    await db.withTransactionAsync(async () => {
+      await db.runAsync('DELETE FROM fotos_sessao;');
+      await db.runAsync('DELETE FROM sessoes_estudo;');
+      await db.runAsync('DELETE FROM topicos;');
+      await db.runAsync('DELETE FROM disciplinas;');
+      await db.runAsync('DELETE FROM sync_queue;');
+    });
+  }
+
   private mapToEntity(row: SessaoRow): SessaoEstudo {
     let coordenada: Coordenada | undefined;
     if (row.latitude !== null && row.longitude !== null && row.latitude !== undefined && row.longitude !== undefined) {
@@ -162,6 +226,8 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
         latitude: row.latitude,
         longitude: row.longitude,
         timestamp: row.coordenada_timestamp ? new Date(row.coordenada_timestamp) : undefined,
+        accuracy: row.accuracy ?? undefined,
+        localAproximado: row.local_aproximado ?? undefined,
       });
     }
 

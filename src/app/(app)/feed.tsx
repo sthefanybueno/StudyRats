@@ -1,6 +1,6 @@
 /** Description: Tela Feed: sessões da comunidade, da mais recente para a mais antiga (50 por página). Somente visualização. */
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandMark } from '@/components/Brand';
@@ -8,21 +8,47 @@ import { FeedCard } from '@/components/feed/FeedCard';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Surface';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useFeed } from '@/hooks/useFeed';
 import { useAppTheme } from '@/providers/ThemeProvider';
 
 export default function FeedScreen() {
   const { colors: Colors } = useAppTheme();
   const styles = useStyles(Colors);
-  const { itens, carregando, atualizando, carregandoMais, erro, temMais, atualizar, tentarNovamente, carregarMais } =
-    useFeed();
+  const {
+    itens,
+    carregando,
+    atualizando,
+    carregandoMais,
+    erro,
+    pertoDeMim,
+    temMais,
+    atualizar,
+    tentarNovamente,
+    alternarPertoDeMim,
+    carregarMais,
+  } = useFeed();
 
   const cabecalho = (
     <View style={styles.header}>
-      <BrandMark subtitle="Feed" />
+      <View style={styles.headerTopRow}>
+        <BrandMark subtitle="Feed" />
+        <Pressable
+          testID="filtro-perto-de-mim-btn"
+          onPress={alternarPertoDeMim}
+          style={[styles.spatialChip, pertoDeMim && styles.spatialChipActive]}>
+          <Ionicons
+            name={pertoDeMim ? 'location' : 'location-outline'}
+            size={14}
+            color={pertoDeMim ? '#FFF' : Colors.primary}
+          />
+          <AppText variant="caption" color={pertoDeMim ? '#FFF' : Colors.primary}>
+            {pertoDeMim ? 'Raio 1 km ativo' : 'Perto de mim (1 km)'}
+          </AppText>
+        </Pressable>
+      </View>
       <AppText variant="overline" color={Colors.textSecondary}>
-        SESSÕES DE ESTUDO REAIS
+        {pertoDeMim ? 'CONSULTA ESPACIAL (RAIO DE 1 KM)' : 'SESSÕES DE ESTUDO REAIS'}
       </AppText>
     </View>
   );
@@ -95,6 +121,22 @@ const useStyles = (Colors: any) =>
     root: { flex: 1, backgroundColor: Colors.background },
     flex: { flex: 1 },
     header: { gap: Spacing.two, marginBottom: Spacing.three },
+    headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two },
+    spatialChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: 6,
+      borderRadius: Radius.pill,
+      backgroundColor: Colors.surfaceRaised,
+      borderWidth: 1,
+      borderColor: Colors.primary,
+    },
+    spatialChipActive: {
+      backgroundColor: Colors.primary,
+      borderColor: Colors.primary,
+    },
     content: {
       width: '100%',
       maxWidth: MaxContentWidth,

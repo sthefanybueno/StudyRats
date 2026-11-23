@@ -160,4 +160,39 @@ describe('AuthProvider & useAuth', () => {
     expect(result.current.usuario).toBeNull();
     expect(mockContainer.logout).toHaveBeenCalled();
   });
+
+  it('deve reagir a eventos de onAuthStateChange (SIGNED_OUT) e cancelar inscrição ao desmontar', async () => {
+    const mockUnsubscribe = jest.fn();
+    let listenerCapturado: ((ev: string, u: Usuario | null) => void) | undefined;
+
+    const user = Usuario.create({
+      id: 'usr-1',
+      nomeExibicao: 'Estudante Teste',
+      email: 'teste@estudo.com',
+    });
+    await usuarioRepo.salvar(user);
+    (authGateway as any).usuarioAtual = user;
+
+    mockContainer.gateways = {
+      auth: {
+        onAuthStateChange: jest.fn((cb: any) => {
+          listenerCapturado = cb;
+          return { unsubscribe: mockUnsubscribe };
+        }),
+      },
+    };
+
+    const { result, unmount } = await renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.restaurando).toBe(false));
+    expect(result.current.usuario?.id).toBe('usr-1');
+
+    await act(async () => {
+      listenerCapturado?.('SIGNED_OUT', null);
+    });
+
+    expect(result.current.usuario).toBeNull();
+
+    await unmount();
+    expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+  });
 });

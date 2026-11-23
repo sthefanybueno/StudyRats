@@ -15,6 +15,7 @@ import { Card, Pill, ProgressBar } from '@/components/ui/Surface';
 import { Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import type { SessaoEstudo } from '@/domain/entities/SessaoEstudo';
+import { CalculoXpService } from '@/domain/services/CalculoXpService';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatarTempoRegressivo, useSessaoFoco } from '@/providers/SessaoFocoProvider';
 import { useAppTheme } from "@/providers/ThemeProvider";
@@ -339,7 +340,15 @@ export default function DashboardScreen() {
                       Sessão de {sessao.duracaoMinutos} minutos
                     </AppText>
                   </View>
-                  <Pill tone="primary" icon="flash" label="+10 XP" />
+                  <Pill
+                    tone="primary"
+                    icon="flash"
+                    label={`+${CalculoXpService.calcular({
+                      duracaoMinutos: sessao.duracaoMinutos,
+                      comFoto: !!sessao.foto,
+                      comGps: !!sessao.coordenada,
+                    })} XP`}
+                  />
                 </View>
 
                 {sessao.foto && (
@@ -361,7 +370,11 @@ export default function DashboardScreen() {
                     <Pill tone="warning" dot label="Salvo Localmente (Offline)" />
                   )}
                   {sessao.coordenada && (
-                    <Pill tone="neutral" icon="location-outline" label="Localização capturada" />
+                    <Pill
+                      tone="neutral"
+                      icon="location-outline"
+                      label={sessao.coordenada.localAproximado || 'Localização capturada'}
+                    />
                   )}
                 </View>
 

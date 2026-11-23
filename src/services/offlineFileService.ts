@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import * as Network from 'expo-network';
 
-const BUCKET = 'study-rats-files';
+const BUCKET = 'fotos_sessao';
 const PENDING_KEY = 'pendingUploads';
 
 type PendingUpload = {
@@ -58,24 +58,13 @@ export async function syncPendingUploads(): Promise<void> {
  */
 async function uploadFileInternal({ userId, uri, name, mimeType }: PendingUpload): Promise<void> {
   const remotePath = `${userId}/${uuidv4()}-${name}`;
+  const response = await fetch(uri);
+  const blob = await response.blob();
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(remotePath, { uri, type: mimeType ?? 'application/octet-stream' }, { upsert: false });
+    .upload(remotePath, blob, { contentType: mimeType ?? 'image/jpeg', upsert: false });
 
   if (uploadError) throw uploadError;
-
-  const info = await FileSystem.getInfoAsync(uri) as any;
-  const size = (info as any).size ?? 0;
-
-  const { error: dbError } = await supabase.from('files').insert({
-    user_id: userId,
-    file_path: remotePath,
-    file_name: name,
-    content_type: mimeType ?? 'application/octet-stream',
-    size,
-  });
-
-  if (dbError) throw dbError;
 }
 
 /**

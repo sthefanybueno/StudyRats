@@ -1,7 +1,7 @@
 /** Description: Versioned schema migrations for the local SQLite database (PRAGMA user_version pattern from the Expo docs). */
 import type { SQLiteExecutor } from './SQLiteExecutor';
 
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 
 /**
  * Cria/atualiza o schema local. É idempotente: só aplica as versões que ainda não foram executadas.
@@ -84,6 +84,13 @@ export async function migrate(db: SQLiteExecutor): Promise<void> {
         created_at TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue (status, created_at ASC);
+    `);
+  }
+
+  if (versaoAtual < 3) {
+    await db.execAsync(`
+      ALTER TABLE sessoes_estudo ADD COLUMN accuracy REAL;
+      ALTER TABLE sessoes_estudo ADD COLUMN local_aproximado TEXT;
     `);
   }
 

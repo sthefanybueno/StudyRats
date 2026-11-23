@@ -1,8 +1,11 @@
 /** Description: This file (src/application/use-cases/CadastrarUsuarioUseCase.ts) contains the implementation for its respective feature. */
 import { Usuario } from '../../domain/entities/Usuario';
+import { SyncQueueItem } from '../../domain/entities/SyncQueueItem';
 import { Email } from '../../domain/value-objects/Email';
 import { IAuthGateway } from '../../domain/gateways/IAuthGateway';
+import { ISessionStorage } from '../../domain/gateways/ISessionStorage';
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
+import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueRepository';
 
 export const SENHA_MIN_CARACTERES = 6;
 
@@ -24,7 +27,9 @@ export type CadastrarUsuarioResponse =
 export class CadastrarUsuarioUseCase {
   constructor(
     private authGateway: IAuthGateway,
-    private usuarioRepository: IUsuarioRepository
+    private usuarioRepository: IUsuarioRepository,
+    private sessionStorage?: ISessionStorage,
+    private syncQueueRepository?: ISyncQueueRepository
   ) {}
 
   async execute(request: CadastrarUsuarioRequest): Promise<CadastrarUsuarioResponse> {
@@ -45,7 +50,26 @@ export class CadastrarUsuarioUseCase {
         request.nomeExibicao.trim()
       );
 
+      await this.sessionStorage?.salvarSessionToken(usuario.id);
       await this.usuarioRepository.salvar(usuario);
+
+      if (this.syncQueueRepository) {
+        await this.syncQueueRepository.enfileirar(
+          SyncQueueItem.create({
+            entidade: 'perfis',
+            operacao: 'INSERT',
+            payloadJson: JSON.stringify({
+              id: usuario.id,
+              email: usuario.email.getValue,
+              nomeExibicao: usuario.nomeExibicao,
+              xpTotal: usuario.xpTotal,
+              xpSemanal: usuario.xpSemanal,
+              streakAtual: usuario.streakAtual,
+            }),
+          })
+        );
+      }
+
       return { isSuccess: true, value: usuario };
     } catch (error: any) {
       return { isSuccess: false, error: error.message };

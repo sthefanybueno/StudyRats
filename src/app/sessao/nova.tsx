@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { DIContainer } from '@/application/di/container';
@@ -15,7 +15,9 @@ import { TextField } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import type { Topico } from '@/domain/entities/Topico';
+import { CalculoXpService } from '@/domain/services/CalculoXpService';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLocation } from '@/hooks/useLocation';
 import { formatarTempoRegressivo, useSessaoFoco } from '@/providers/SessaoFocoProvider';
 import { useAppTheme } from "@/providers/ThemeProvider";
 
@@ -39,12 +41,29 @@ export default function NovaSessaoScreen() {
 
   // Passo 3: Evidências
   const [anexarGps, setAnexarGps] = useState(true);
+  const [monitorarSinalGps, setMonitorarSinalGps] = useState(false);
+  const [enderecoManual, setEnderecoManual] = useState('');
   const [fotoUri, setFotoUri] = useState<string | null>(null);
   const [carregandoFoto, setCarregandoFoto] = useState(false);
+
+  // Só inicia watchPositionAsync após o usuário interagir ou quando a permissão já estiver concedida (RNF02/RNF03)
+  const { coords: coordsMonitoradas } = useLocation({
+    ativo: anexarGps && monitorarSinalGps && !sessaoAtiva,
+    distanceInterval: 10,
+  });
+
+  const xpPrevisto = CalculoXpService.calcular({
+    duracaoMinutos,
+    comFoto: !!fotoUri,
+    comGps: anexarGps || !!enderecoManual.trim(),
+  });
+  const bonusPrevisto = xpPrevisto - Math.max(1, Math.floor(duracaoMinutos));
 
   // Status de Envio
   const [salvando, setSalvando] = useState(false);
   const [sucessoMsg, setSucessoMsg] = useState<string | null>(null);
+  const [avisoGpsMsg, setAvisoGpsMsg] = useState<string | null>(null);
+  const [podeAbrirAjustesGps, setPodeAbrirAjustesGps] = useState(false);
   const [erroMsg, setErroMsg] = useState<string | null>(null);
 
   // Carregar disciplinas do usuário
@@ -73,9 +92,43 @@ export default function NovaSessaoScreen() {
       topico: topicoSelecionado,
       duracaoAlvoMinutos: duracaoMinutos,
       anexarGps,
+      enderecoManual: enderecoManual.trim() || null,
       fotoUri,
     });
     router.replace('/(app)');
+  };
+
+  // Diagnosticar status de GPS e permissão quando o usuário ativa o toggle (PDF 02, slides 9, 10 e 18)
+  const handleAlternarGps = async () => {
+    const novoValor = !anexarGps;
+    setAnexarGps(novoValor);
+    setAvisoGpsMsg(null);
+    setPodeAbrirAjustesGps(false);
+
+    if (novoValor && DIContainer.gateways.location.diagnosticarPermissao) {
+      try {
+        const diag = await DIContainer.gateways.location.diagnosticarPermissao();
+        if (!diag.servicosAtivos) {
+          setAvisoGpsMsg('O GPS do aparelho está desligado. A sessão poderá ser salva sem localização.');
+          setPodeAbrirAjustesGps(true);
+          setMonitorarSinalGps(false);
+        } else if (!diag.permissaoConcedida && !diag.canAskAgain) {
+          setAvisoGpsMsg('Permissão de localização bloqueada. Habilite nas configurações do sistema.');
+          setPodeAbrirAjustesGps(true);
+          setMonitorarSinalGps(false);
+        } else if (diag.permissaoConcedida) {
+          setMonitorarSinalGps(true);
+        }
+      } catch {
+        // Diagnóstico é opcional e não bloqueia a interação
+      }
+    } else {
+      setMonitorarSinalGps(false);
+    }
+  };
+
+  const handleAbrirConfiguracoesSistema = () => {
+    Linking.openSettings().catch(() => {});
   };
 
   // Finalizar Sessão Ativa em Execução
@@ -86,10 +139,13 @@ export default function NovaSessaoScreen() {
     setSalvando(false);
     if (res.isSuccess) {
       await recarregarUsuario();
+      if (res.avisoGps) {
+        setAvisoGpsMsg(res.avisoGps);
+      }
       setSucessoMsg(`+${res.xpGanho} XP Registrados com sucesso!`);
       setTimeout(() => {
         router.replace('/(app)');
-      }, 1200);
+      }, 1500);
     } else {
       setErroMsg(res.error || 'Erro ao concluir sessão');
     }
@@ -202,6 +258,11 @@ export default function NovaSessaoScreen() {
             <AppText variant="body" color={Colors.textSecondary} style={styles.centerText}>
               Sua sessão foi blindada localmente no dispositivo. Retornando ao Dashboard...
             </AppText>
+            {avisoGpsMsg && (
+              <AppText variant="caption" color={Colors.warning} style={styles.centerText}>
+                Aviso GPS: {avisoGpsMsg}
+              </AppText>
+            )}
           </Card>
         </Animated.View>
       ) : sessaoAtiva ? (
@@ -423,10 +484,10 @@ export default function NovaSessaoScreen() {
                   {duracaoMinutos} XP Base
                 </AppText>
                 <AppText variant="caption" color={Colors.textSecondary}>
-                  + 7 Bônus =
+                  + {bonusPrevisto} Bônus =
                 </AppText>
                 <AppText variant="heading" color={Colors.primary}>
-                  {duracaoMinutos + 7} XP
+                  {xpPrevisto} XP
                 </AppText>
               </View>
             </Card>
@@ -458,16 +519,47 @@ export default function NovaSessaoScreen() {
                   <View style={styles.flex}>
                     <AppText variant="label">Anexar Localização (GPS)</AppText>
                     <AppText variant="caption" color={Colors.success}>
-                      {anexarGps ? '● Será capturada ao concluir a sessão' : 'Desativado'}
+                      {anexarGps
+                        ? coordsMonitoradas
+                          ? `● Sinal GPS ativo (±${Math.round(coordsMonitoradas.accuracy ?? 10)} m) · +5 XP`
+                          : '● Será capturada ao concluir a sessão · +5 XP'
+                        : 'Desativado'}
                     </AppText>
                   </View>
                 </View>
                 <Pressable
-                  onPress={() => setAnexarGps(g => !g)}
+                  onPress={handleAlternarGps}
                   style={[styles.toggleSwitch, anexarGps && styles.toggleSwitchActive]}>
                   <View style={[styles.toggleKnob, anexarGps && styles.toggleKnobActive]} />
                 </Pressable>
               </View>
+
+              {avisoGpsMsg && (
+                <View style={styles.gpsWarningBox}>
+                  <AppText variant="caption" color={Colors.warning}>
+                    {avisoGpsMsg}
+                  </AppText>
+                  {podeAbrirAjustesGps && (
+                    <Button
+                      label="Abrir Configurações"
+                      variant="secondary"
+                      icon="settings-outline"
+                      onPress={handleAbrirConfiguracoesSistema}
+                    />
+                  )}
+                </View>
+              )}
+
+              {(!anexarGps || !!avisoGpsMsg) && (
+                <TextField
+                  label="Local ou endereço manual (Geocoding opcional)"
+                  icon="map-outline"
+                  value={enderecoManual}
+                  onChangeText={setEnderecoManual}
+                  placeholder="Ex: Biblioteca Central, Varginha"
+                  hint="Convertido em coordenadas aproximadas se o GPS não for usado"
+                />
+              )}
 
               {/* Photo Attachment */}
               <View style={styles.evidenceItem}>
@@ -665,6 +757,14 @@ const useStyles = (Colors: any) => StyleSheet.create({
     borderRadius: Radius.pill,
   },
   sucessoCard: { alignItems: 'center', gap: Spacing.three, padding: Spacing.five },
+  gpsWarningBox: {
+    gap: Spacing.two,
+    padding: Spacing.two + 2,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceRaised,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
   erroCard: { backgroundColor: Colors.dangerSoft, padding: Spacing.three },
   flex: { flex: 1 },
   boldText: { fontFamily: 'PlusJakartaSans_700Bold' },

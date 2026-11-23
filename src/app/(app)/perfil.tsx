@@ -40,19 +40,41 @@ export default function PerfilScreen() {
 
   // Estatísticas Reais Carregadas do Armazenamento Local
   const [sessoesCount, setSessoesCount] = useState(0);
+  const [sessoesComGpsCount, setSessoesComGpsCount] = useState(0);
   const [minutosTotais, setMinutosTotais] = useState(0);
+  const [limpandoGps, setLimpandoGps] = useState(false);
+  const [msgPrivacidade, setMsgPrivacidade] = useState<string | null>(null);
 
   const carregarEstatísticasReais = useCallback(async () => {
     if (!usuario) return;
     try {
       const listSessoes = await DIContainer.repositories.sessao.listarPorUsuario(usuario.id);
       setSessoesCount(listSessoes.length);
+      setSessoesComGpsCount(listSessoes.filter(s => !!s.coordenada).length);
       const totalMins = listSessoes.reduce((acc, s) => acc + s.duracaoMinutos, 0);
       setMinutosTotais(totalMins);
     } catch (e) {
       console.error('Erro ao carregar estatísticas reais:', e);
     }
   }, [usuario]);
+
+  const handleLimparHistoricoLocalizacao = async () => {
+    if (!usuario) return;
+    setLimpandoGps(true);
+    setMsgPrivacidade(null);
+    const res = await DIContainer.limparHistoricoLocalizacao.execute({ usuarioId: usuario.id });
+    setLimpandoGps(false);
+    if (res.isSuccess) {
+      setSessoesComGpsCount(0);
+      setMsgPrivacidade(
+        res.value.sessoesAfetadas > 0
+          ? `Localização removida de ${res.value.sessoesAfetadas} ${res.value.sessoesAfetadas === 1 ? 'sessão' : 'sessões'} (local e fila de nuvem).`
+          : 'Nenhuma coordenada pendente encontrada. Histórico limpo.'
+      );
+    } else {
+      setMsgPrivacidade(res.error);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -330,6 +352,39 @@ export default function PerfilScreen() {
         </Card>
       </View>
 
+      {/* Privacidade & Localização (LGPD - Art. 13, 14 e 18) */}
+      <View style={styles.configSection}>
+        <View style={styles.sectionHeader}>
+          <AppText variant="heading">Privacidade & Localização (LGPD)</AppText>
+          <Pill tone="neutral" icon="shield-checkmark-outline" label={`${sessoesComGpsCount} com GPS`} />
+        </View>
+
+        <Card style={styles.lgpdCard}>
+          <AppText variant="caption" color={Colors.textSecondary}>
+            • Finalidade e Minimização: o GPS é coletado apenas em primeiro plano (foreground) quando você conclui uma sessão com a opção ativa. No Feed, exibimos apenas Bairro/Cidade ou posição aproximada (~1 km).
+          </AppText>
+          <AppText variant="caption" color={Colors.textSecondary}>
+            • Direito de Eliminação (Art. 18 LGPD): você pode apagar todas as coordenadas salvas mantendo suas horas de estudo e XP.
+          </AppText>
+          <AppText variant="caption" color={Colors.textSecondary}>
+            • Retenção Automática: coordenadas com mais de 90 dias são expurgadas automaticamente durante a sincronização.
+          </AppText>
+          {msgPrivacidade && (
+            <AppText variant="caption" color={Colors.success} style={styles.boldText}>
+              {msgPrivacidade}
+            </AppText>
+          )}
+          <Button
+            testID="limpar-localizacao-btn"
+            label="Excluir Histórico de Localização"
+            variant="secondary"
+            icon="location-outline"
+            loading={limpandoGps}
+            onPress={handleLimparHistoricoLocalizacao}
+          />
+        </Card>
+      </View>
+
       {/* Logout & Reset Buttons */}
       <View style={styles.perfilFooter}>
         <Button
@@ -504,6 +559,7 @@ const useStyles = (Colors: any) => StyleSheet.create({
   gridStatCard: { width: '48%', gap: 4, padding: Spacing.three },
   configSection: { gap: Spacing.two + 4 },
   configCard: { padding: Spacing.three },
+  lgpdCard: { padding: Spacing.three, gap: Spacing.two + 2 },
   configItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three - 2, paddingVertical: 4 },
   configIconBox: { width: 36, height: 36, borderRadius: Radius.md, backgroundColor: Colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
   toggleSwitch: { width: 44, height: 24, borderRadius: 12, backgroundColor: Colors.surfaceInput, borderWidth: 1, borderColor: Colors.border, padding: 2 },
