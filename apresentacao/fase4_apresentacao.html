@@ -507,7 +507,7 @@
                                 <h3 className="font-extrabold text-lg text-gray-900 flex items-center gap-2 mb-2">
                                     <i data-lucide="image" className="w-5 h-5 text-brand-purple"></i> 3. Supabase Storage
                                 </h3>
-                                <p className="text-sm text-gray-600">Bucket privado <code className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">fotos_sessao</code> (acesso via <code className="font-mono text-xs">createSignedUrl</code> para usuários autenticados no Feed) e bucket <code className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">avatares</code> (leitura pública, escrita restrita ao dono).</p>
+                                <p className="text-sm text-gray-600">Buckets <code className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">fotos_sessao</code> e <code className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">avatares</code> com leitura para exibição no Feed/Ranking e escrita/exclusão restritas à pasta do dono (<code className="font-mono text-xs">auth.uid()</code>).</p>
                             </div>
 
                             <div className="bg-white p-6 squircle border border-gray-200 shadow-sm">
@@ -603,7 +603,7 @@
                                 <ul className="space-y-2 text-sm text-gray-700">
                                     <li>• <strong>Zero acesso anônimo:</strong> <code className="font-mono text-xs">REVOKE ALL ON TABLE ... FROM anon</code>.</li>
                                     <li>• <strong>Row Level Security (RLS):</strong> escrita/edição/exclusão restritas a <code className="font-mono text-xs">usuario_id = auth.uid()</code> em todas as tabelas.</li>
-                                    <li>• <strong>Bucket Privado (<code className="font-mono text-xs">fotos_sessao</code>):</strong> limite de 5 MB, apenas JPEG/PNG, pasta obrigatória por <code className="font-mono text-xs">auth.uid()</code> e acesso via URL assinada temporária.</li>
+                                    <li>• <strong>Storage (<code className="font-mono text-xs">fotos_sessao</code> / <code className="font-mono text-xs">avatares</code>):</strong> limite de 5 MB, apenas JPEG/PNG e escrita/exclusão restritas à pasta <code className="font-mono text-xs">auth.uid()</code>; metadados em tabela protegida por RLS.</li>
                                 </ul>
                             </div>
                         </div>

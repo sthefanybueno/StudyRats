@@ -90,8 +90,19 @@ export class ListarFeedUseCase {
               : await this.feedGateway.obterFeed(cursor, LIMITE_FEED);
           proximoCursorRemoto = paginaRemota.proximoCursor;
           for (const item of paginaRemota.itens) {
-            if (!mapaItens.has(item.sessao.id)) {
+            const existente = mapaItens.get(item.sessao.id);
+            if (!existente) {
               mapaItens.set(item.sessao.id, item);
+            } else {
+              // Prioriza a sessão e a URL da foto vindas do Supabase; se o remoto vier sem foto, preserva a foto local
+              if (!item.sessao.foto && existente.sessao.foto) {
+                item.sessao.anexarFoto(existente.sessao.foto);
+              }
+              mapaItens.set(item.sessao.id, {
+                ...item,
+                disciplinaNome: item.disciplinaNome === 'Disciplina' ? existente.disciplinaNome : item.disciplinaNome,
+                topicoNome: item.topicoNome === 'Estudo Livre' ? existente.topicoNome : item.topicoNome,
+              });
             }
           }
         } catch {

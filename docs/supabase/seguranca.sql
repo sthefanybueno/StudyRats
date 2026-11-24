@@ -56,9 +56,13 @@ create table if not exists public.sessoes_estudo (
   longitude double precision,
   accuracy real,
   local_aproximado text,
+  foto_url text,
   geom geography(Point, 4326),
   created_at timestamptz not null default now()
 );
+
+alter table public.sessoes_estudo
+  add column if not exists foto_url text;
 
 create table if not exists public.fotos_sessao (
   id text primary key,
@@ -66,6 +70,10 @@ create table if not exists public.fotos_sessao (
   storage_path text,
   created_at timestamptz not null default now()
 );
+
+alter table public.fotos_sessao
+  add column if not exists storage_path text,
+  add column if not exists created_at timestamptz not null default now();
 
 alter table public.fotos_sessao enable row level security;
 
@@ -177,11 +185,12 @@ create index if not exists idx_disciplinas_usuario_id on public.disciplinas (usu
 create index if not exists idx_topicos_disciplina_id on public.topicos (disciplina_id);
 create index if not exists idx_fotos_sessao_sessao_id on public.fotos_sessao (sessao_id);
 
--- 2) Storage: bucket privado com limite de 5 MB e MIME types restritos (PDF 03, slides 24-26)
+-- 2) Storage: bucket de fotos de sessão (leitura pública igual ao bucket de avatares para exibir no Feed;
+-- escrita/exclusão apenas pelo dono na sua pasta auth.uid(), limite de 5 MB e MIME types restritos)
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('fotos_sessao', 'fotos_sessao', false, 5242880, array['image/jpeg', 'image/png'])
+values ('fotos_sessao', 'fotos_sessao', true, 5242880, array['image/jpeg', 'image/png'])
 on conflict (id) do update set
-  public = false,
+  public = true,
   file_size_limit = 5242880,
   allowed_mime_types = array['image/jpeg', 'image/png'];
 
@@ -192,11 +201,34 @@ drop policy if exists fotos_update on storage.objects;
 create policy fotos_update on storage.objects for update to authenticated
   using (bucket_id = 'fotos_sessao' and (storage.foldername(name))[1] = (select auth.uid())::text);
 drop policy if exists fotos_select on storage.objects;
-create policy fotos_select on storage.objects for select to authenticated
+create policy fotos_select on storage.objects for select to public
   using (bucket_id = 'fotos_sessao');
 drop policy if exists fotos_delete on storage.objects;
 create policy fotos_delete on storage.objects for delete to authenticated
   using (bucket_id = 'fotos_sessao' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- Backfill: vincula em public.fotos_sessao as fotos já enviadas ao bucket antes da liberação da tabela
+insert into public.fotos_sessao (id, sessao_id, storage_path, created_at)
+select
+  s.id || '-foto',
+  s.id,
+  o.name,
+  coalesce(o.created_at, s.created_at)
+from storage.objects o
+join public.sessoes_estudo s
+  on o.bucket_id = 'fotos_sessao'
+ and split_part(o.name, '/', 1) = s.usuario_id::text
+ and split_part(split_part(o.name, '/', 2), '.', 1) = s.id
+on conflict (id) do update set
+  storage_path = excluded.storage_path;
+
+-- Backfill de foto_url direto em sessoes_estudo (mesmo padrão de perfis.foto_url)
+update public.sessoes_estudo s
+set foto_url = f.storage_path
+from public.fotos_sessao f
+where f.sessao_id = s.id
+  and f.storage_path is not null
+  and (s.foto_url is null or s.foto_url = '');
 
 -- 2.1) Storage: bucket de avatares de perfil (leitura pública para Ranking/Feed, escrita apenas pelo dono)
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

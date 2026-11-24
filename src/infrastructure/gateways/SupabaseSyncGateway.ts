@@ -169,6 +169,20 @@ export class SupabaseSyncGateway implements ISyncGateway {
             'sessoes_estudo'
           );
         } else {
+          let fotoUrlPublica: string | null = null;
+          if (dados.fotoRemota) {
+            if (/^https?:\/\//i.test(String(dados.fotoRemota))) {
+              fotoUrlPublica = String(dados.fotoRemota);
+            } else if (typeof this.client.storage?.from === 'function') {
+              const { data: pubData } = this.client.storage
+                .from('fotos_sessao')
+                .getPublicUrl(String(dados.fotoRemota));
+              fotoUrlPublica = pubData?.publicUrl || String(dados.fotoRemota);
+            } else {
+              fotoUrlPublica = String(dados.fotoRemota);
+            }
+          }
+
           this.verificar(
             await this.client.from('sessoes_estudo').upsert({
               id: dados.id,
@@ -180,6 +194,7 @@ export class SupabaseSyncGateway implements ISyncGateway {
               longitude: dados.longitude ?? null,
               accuracy: dados.accuracy ?? null,
               local_aproximado: dados.localAproximado ?? null,
+              ...(fotoUrlPublica ? { foto_url: fotoUrlPublica } : {}),
               created_at: dados.createdAt,
             }),
             'sessoes_estudo'

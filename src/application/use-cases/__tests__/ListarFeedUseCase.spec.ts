@@ -193,4 +193,59 @@ describe('ListarFeedUseCase', () => {
       expect(r.value.itens[0].distanciaMetros).toBeLessThanOrEqual(1000);
     }
   });
+
+  it('prioriza a foto do Supabase quando a sessão já existe no banco local', async () => {
+    const sLocal = SessaoEstudo.create({
+      id: 'sess-sync',
+      usuarioId: 'usr-1',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 40,
+    });
+    sLocal.anexarFoto(FotoSessao.create({ sessaoId: 'sess-sync', uriLocal: 'file://local/foto.jpg' }));
+    await sessaoRepo.salvar(sLocal);
+
+    const sRemota = SessaoEstudo.create({
+      id: 'sess-sync',
+      usuarioId: 'usr-1',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 40,
+    });
+    sRemota.anexarFoto(
+      FotoSessao.create({
+        sessaoId: 'sess-sync',
+        uriLocal: 'https://proj.supabase.co/storage/v1/object/public/fotos_sessao/usr-1/sess-sync.jpg',
+        urlRemota: 'https://proj.supabase.co/storage/v1/object/public/fotos_sessao/usr-1/sess-sync.jpg',
+        uploadStatus: 'completed',
+      })
+    );
+
+    const autor = (await usuarioRepo.buscarPorId('usr-1'))!;
+    const mockFeedGw = {
+      obterFeed: jest.fn().mockResolvedValue({
+        itens: [
+          {
+            sessao: sRemota,
+            autor,
+            disciplinaNome: 'Disciplina',
+            topicoNome: 'Estudo Livre',
+          },
+        ],
+      }),
+    };
+
+    const useCase = new ListarFeedUseCase(sessaoRepo, usuarioRepo, disciplinaRepo, mockFeedGw);
+    const r = await useCase.execute();
+
+    expect(r.isSuccess).toBe(true);
+    if (r.isSuccess) {
+      expect(r.value.itens).toHaveLength(1);
+      expect(r.value.itens[0].fotoUri).toBe(
+        'https://proj.supabase.co/storage/v1/object/public/fotos_sessao/usr-1/sess-sync.jpg'
+      );
+      expect(r.value.itens[0].disciplina).toBe('Cálculo');
+      expect(r.value.itens[0].topico).toBe('Derivadas');
+    }
+  });
 });

@@ -18,6 +18,7 @@ interface SessaoRemotaRow {
   longitude?: number | null;
   accuracy?: number | null;
   local_aproximado?: string | null;
+  foto_url?: string | null;
   created_at: string;
 }
 
@@ -30,7 +31,7 @@ export class SupabaseFeedGateway implements IFeedGateway {
 
     const { data, error } = await this.client
       .from('sessoes_estudo')
-      .select('id, usuario_id, disciplina_id, topico_id, duracao_minutos, latitude, longitude, accuracy, local_aproximado, created_at')
+      .select('id, usuario_id, disciplina_id, topico_id, duracao_minutos, latitude, longitude, accuracy, local_aproximado, foto_url, created_at')
       .order('created_at', { ascending: false })
       .range(inicio, fim);
 
@@ -91,18 +92,54 @@ export class SupabaseFeedGateway implements IFeedGateway {
 
     for (const f of (fotosRes?.data ?? []) as Array<{ id: string; sessao_id: string; storage_path?: string | null }>) {
       if (f.sessao_id && f.storage_path) {
-        let signedUrl: string | undefined;
+        let fotoUrl: string | undefined;
         if (typeof this.client.storage?.from === 'function') {
           try {
-            const { data: urlData } = await this.client.storage
-              .from('fotos_sessao')
-              .createSignedUrl(f.storage_path, 300);
-            signedUrl = urlData?.signedUrl ?? undefined;
+            const bucket = this.client.storage.from('fotos_sessao');
+            if (typeof bucket.getPublicUrl === 'function') {
+              const { data: pubData } = bucket.getPublicUrl(f.storage_path);
+              fotoUrl = pubData?.publicUrl ?? undefined;
+            }
+            if (!fotoUrl && typeof bucket.createSignedUrl === 'function') {
+              const { data: urlData } = await bucket.createSignedUrl(f.storage_path, 300);
+              fotoUrl = urlData?.signedUrl ?? undefined;
+            }
           } catch {
-            signedUrl = undefined;
+            fotoUrl = undefined;
           }
         }
-        mapaFotos.set(f.sessao_id, { id: f.id, storagePath: f.storage_path, signedUrl });
+        mapaFotos.set(f.sessao_id, { id: f.id, storagePath: f.storage_path, signedUrl: fotoUrl });
+      }
+    }
+
+    // Fallback: se alguma sessão não estiver indexada em public.fotos_sessao, busca o arquivo direto no bucket fotos_sessao
+    const sessoesSemFoto = linhas.filter((l) => !mapaFotos.has(l.id));
+    if (sessoesSemFoto.length > 0 && typeof this.client.storage?.from === 'function') {
+      const bucket = this.client.storage.from('fotos_sessao');
+      if (typeof bucket.list === 'function' && typeof bucket.getPublicUrl === 'function') {
+        const uidsSemFoto = Array.from(new Set(sessoesSemFoto.map((l) => l.usuario_id)));
+        await Promise.all(
+          uidsSemFoto.map(async (uid) => {
+            try {
+              const { data: arquivos } = await bucket.list(uid, { limit: 100 });
+              for (const arq of arquivos ?? []) {
+                const nomeSemExt = String(arq.name || '').replace(/\.[^.]+$/, '');
+                if (!nomeSemExt || mapaFotos.has(nomeSemExt)) continue;
+                const caminho = `${uid}/${arq.name}`;
+                const { data: pubData } = bucket.getPublicUrl(caminho);
+                if (pubData?.publicUrl) {
+                  mapaFotos.set(nomeSemExt, {
+                    id: `${nomeSemExt}-foto`,
+                    storagePath: caminho,
+                    signedUrl: pubData.publicUrl,
+                  });
+                }
+              }
+            } catch {
+              // Ignora falha de listagem no fallback
+            }
+          })
+        );
       }
     }
 
@@ -132,14 +169,26 @@ export class SupabaseFeedGateway implements IFeedGateway {
         coordenada,
       });
 
+      const fotoDireta = row.foto_url;
+      let fotoUrlFinal: string | undefined;
+      if (fotoDireta) {
+        if (/^https?:\/\//i.test(fotoDireta)) {
+          fotoUrlFinal = fotoDireta;
+        } else if (typeof this.client.storage?.from === 'function') {
+          const { data: pubData } = this.client.storage.from('fotos_sessao').getPublicUrl(fotoDireta);
+          fotoUrlFinal = pubData?.publicUrl ?? undefined;
+        }
+      }
+
       const fotoRemota = mapaFotos.get(row.id);
-      if (fotoRemota?.signedUrl) {
+      const urlFinal = fotoUrlFinal ?? fotoRemota?.signedUrl;
+      if (urlFinal) {
         sessao.anexarFoto(
           FotoSessao.create({
-            id: fotoRemota.id,
+            id: fotoRemota?.id ?? `${row.id}-foto`,
             sessaoId: row.id,
-            uriLocal: fotoRemota.signedUrl,
-            urlRemota: fotoRemota.signedUrl,
+            uriLocal: urlFinal,
+            urlRemota: urlFinal,
             uploadStatus: 'completed',
           })
         );
