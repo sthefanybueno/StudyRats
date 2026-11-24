@@ -28,6 +28,7 @@ export const formatarTempoRegressivo = (segundosDecorridos: number, duracaoAlvoM
 
 interface SessaoFocoContextData {
   sessaoAtiva: SessaoAtiva | null;
+  tempoEsgotado: boolean;
   concluindo: boolean;
   iniciarSessao: (dados: {
     disciplina: Disciplina;
@@ -60,6 +61,9 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
   const retomadoEmMsRef = useRef<number | null>(null);
 
   const emExecucao = (sessaoAtiva?.emExecucao ?? false) && !concluindo;
+  const tempoEsgotado = Boolean(
+    sessaoAtiva && sessaoAtiva.segundosDecorridos >= sessaoAtiva.duracaoAlvoMinutos * 60
+  );
 
   const sincronizarTempoDecorrido = useCallback(() => {
     setSessaoAtiva(prev => {
@@ -131,6 +135,20 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
       fotoUri: dados.fotoUri,
       dataInicio: new Date(),
     });
+
+    const notifications = container.gateways?.notifications;
+    const duracaoSegundos = Math.max(1, dados.duracaoAlvoMinutos * 60);
+    const terminaEm = new Date(Date.now() + duracaoSegundos * 1000);
+    void notifications?.exibirSessaoAtiva({
+      disciplina: dados.disciplina.nome,
+      topico: dados.topico?.nome ?? null,
+      duracaoAlvoMinutos: dados.duracaoAlvoMinutos,
+      terminaEm,
+    });
+    void notifications?.agendarConclusaoTimer({
+      disciplina: dados.disciplina.nome,
+      segundosRestantes: duracaoSegundos,
+    });
   };
 
   const pausarSessao = () => {
@@ -147,17 +165,40 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
       retomadoEmMsRef.current = null;
       return { ...prev, segundosDecorridos: atual, emExecucao: false };
     });
+    const notifications = container.gateways?.notifications;
+    void notifications?.encerrarSessaoAtiva();
+    void notifications?.cancelarConclusaoTimer();
   };
 
   const retomarSessao = () => {
     if (concluindoRef.current) return;
+    let sessaoParaNotificar: SessaoAtiva | null = null;
+    let segundosRestantesNotif = 0;
+
     setSessaoAtiva(prev => {
       if (!prev || prev.emExecucao) return prev;
       const segundosTotais = prev.duracaoAlvoMinutos * 60;
       if (acumuladoSegundosRef.current >= segundosTotais) return prev;
       retomadoEmMsRef.current = Date.now();
+      sessaoParaNotificar = prev;
+      segundosRestantesNotif = Math.max(1, segundosTotais - acumuladoSegundosRef.current);
       return { ...prev, emExecucao: true };
     });
+
+    if (sessaoParaNotificar) {
+      const s = sessaoParaNotificar as SessaoAtiva;
+      const notifications = container.gateways?.notifications;
+      void notifications?.exibirSessaoAtiva({
+        disciplina: s.disciplina.nome,
+        topico: s.topico?.nome ?? null,
+        duracaoAlvoMinutos: s.duracaoAlvoMinutos,
+        terminaEm: new Date(Date.now() + segundosRestantesNotif * 1000),
+      });
+      void notifications?.agendarConclusaoTimer({
+        disciplina: s.disciplina.nome,
+        segundosRestantes: segundosRestantesNotif,
+      });
+    }
   };
 
   const atualizarFoto = (fotoUri: string | null) => {
@@ -208,6 +249,9 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
         acumuladoSegundosRef.current = 0;
         retomadoEmMsRef.current = null;
         setSessaoAtiva(null);
+        const notifications = container.gateways?.notifications;
+        void notifications?.encerrarSessaoAtiva();
+        void notifications?.cancelarConclusaoTimer();
         return { isSuccess: true, xpGanho, avisoGps: res.avisoGps };
       } else {
         return { isSuccess: false, error: res.error };
@@ -223,12 +267,16 @@ export function SessaoFocoProvider({ children, container = DIContainer }: Sessao
     acumuladoSegundosRef.current = 0;
     retomadoEmMsRef.current = null;
     setSessaoAtiva(null);
+    const notifications = container.gateways?.notifications;
+    void notifications?.encerrarSessaoAtiva();
+    void notifications?.cancelarConclusaoTimer();
   };
 
   return (
     <SessaoFocoContext.Provider
       value={{
         sessaoAtiva,
+        tempoEsgotado,
         concluindo,
         iniciarSessao,
         pausarSessao,

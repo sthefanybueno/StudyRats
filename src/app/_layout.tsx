@@ -13,7 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useNetworkSync } from '@/hooks/useNetworkSync';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
-import { SessaoFocoProvider } from '@/providers/SessaoFocoProvider';
+import { SessaoFocoProvider, useSessaoFoco } from '@/providers/SessaoFocoProvider';
 import { AppThemeProvider, useAppTheme } from "@/providers/ThemeProvider";
 
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +22,7 @@ function RootNavigator() {
     const { colors: Colors } = useAppTheme();
 
   const { usuario, restaurando, precisaOnboarding } = useAuth();
+  const { tempoEsgotado } = useSessaoFoco();
   const { sincronizarManualmente } = useNetworkSync();
   const segments = useSegments();
   const router = useRouter();
@@ -62,8 +63,10 @@ function RootNavigator() {
       router.replace('/(onboarding)/disciplinas');
     } else if (usuario && !precisaOnboarding && (inAuthGroup || inOnboardingGroup)) {
       router.replace('/(app)');
+    } else if (usuario && !precisaOnboarding && tempoEsgotado && segments.join('/') !== 'sessao/nova') {
+      router.replace('/sessao/nova');
     }
-  }, [usuario, precisaOnboarding, pronto, segments, router]);
+  }, [usuario, precisaOnboarding, tempoEsgotado, pronto, segments, router]);
 
   if (!pronto) return null;
 

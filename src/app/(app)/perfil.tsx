@@ -44,16 +44,28 @@ export default function PerfilScreen() {
       AsyncStorage.getItem(PREF_OFFLINE_KEY),
     ])
       .then(([lembrete, offline]) => {
-        if (lembrete === 'false') setLembreteStreak(false);
+        const lembreteAtivo = lembrete !== 'false';
+        setLembreteStreak(lembreteAtivo);
         if (offline === 'false') setModoOfflinePrioritario(false);
+
+        if (lembreteAtivo) {
+          void DIContainer.agendarLembreteStreak(usuario?.streakAtual ?? 0);
+        } else {
+          void DIContainer.cancelarLembreteStreak();
+        }
       })
       .catch(() => {});
-  }, []);
+  }, [usuario?.streakAtual]);
 
   const alternarLembreteStreak = () => {
     const novo = !lembreteStreak;
     setLembreteStreak(novo);
     AsyncStorage.setItem(PREF_LEMBRETE_KEY, String(novo)).catch(() => {});
+    if (novo) {
+      void DIContainer.agendarLembreteStreak(usuario?.streakAtual ?? 0);
+    } else {
+      void DIContainer.cancelarLembreteStreak();
+    }
   };
 
   const alternarModoOffline = () => {

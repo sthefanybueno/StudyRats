@@ -1,6 +1,5 @@
 /** Description: This file (src/components/Brand.tsx) contains the implementation for its respective feature. */
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -8,8 +7,6 @@ import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import { AppText } from './ui/AppText';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAppTheme } from "@/providers/ThemeProvider";
-
-const logo = require('../../assets/images/logo-glow.png');
 
 /** Logo + nome do app, como no header das telas do Stitch. */
 export function BrandMark({ subtitle, size = 'md' }: { subtitle?: string; size?: 'md' | 'lg' }) {
@@ -20,7 +17,7 @@ export function BrandMark({ subtitle, size = 'md' }: { subtitle?: string; size?:
   return (
     <View style={[styles.brand, size === 'lg' && styles.brandLg]}>
       <View style={[styles.logoBox, { width: box, height: box, borderRadius: box * 0.28 }]}>
-        <Image source={logo} style={{ width: box * 0.8, height: box * 0.8 }} contentFit="contain" />
+        <MaterialCommunityIcons name="rodent" size={Math.round(box * 0.62)} color={Colors.primary} />
       </View>
       <View style={size === 'lg' && styles.center}>
         <AppText variant={size === 'lg' ? 'display' : 'heading'}>StudyRats</AppText>

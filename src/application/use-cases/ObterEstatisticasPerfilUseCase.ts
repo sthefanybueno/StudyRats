@@ -52,22 +52,33 @@ export class ObterEstatisticasPerfilUseCase {
       }, 0);
 
       const usuarioAtual = await this.usuarioRepository.buscarPorId(usuarioId);
+      const resetSemanalRemoto =
+        typeof remoto.xpSemanal === 'number' &&
+        usuarioAtual !== null &&
+        remoto.xpSemanal < usuarioAtual.xpSemanal;
       const remotoDivergente = typeof remoto.xpTotal === 'number' && remoto.xpTotal !== xpRealSessoes;
-      if (usuarioAtual && (usuarioAtual.xpTotal !== xpRealSessoes || remotoDivergente)) {
+      const deveEnviarNuvem = usuarioAtual !== null && (usuarioAtual.xpTotal !== xpRealSessoes || remotoDivergente);
+
+      if (usuarioAtual && (deveEnviarNuvem || resetSemanalRemoto)) {
         if (usuarioAtual.xpTotal > xpRealSessoes) {
           usuarioAtual.descontarXP(usuarioAtual.xpTotal - xpRealSessoes);
         } else if (xpRealSessoes > usuarioAtual.xpTotal) {
           usuarioAtual.adicionarXP(xpRealSessoes - usuarioAtual.xpTotal);
         }
+        if (resetSemanalRemoto && typeof remoto.xpSemanal === 'number') {
+          usuarioAtual.atualizarXpSemanal(remoto.xpSemanal);
+        }
         await this.usuarioRepository.salvar(usuarioAtual);
-        await this.syncGateway
-          ?.enviarParaNuvem('perfis', 'UPDATE', {
-            id: usuarioAtual.id,
-            xpTotal: usuarioAtual.xpTotal,
-            xpSemanal: usuarioAtual.xpSemanal,
-            streakAtual: usuarioAtual.streakAtual,
-          })
-          .catch(() => {});
+        if (deveEnviarNuvem) {
+          await this.syncGateway
+            ?.enviarParaNuvem('perfis', 'UPDATE', {
+              id: usuarioAtual.id,
+              xpTotal: usuarioAtual.xpTotal,
+              xpSemanal: usuarioAtual.xpSemanal,
+              streakAtual: usuarioAtual.streakAtual,
+            })
+            .catch(() => {});
+        }
         xpReconciliado = true;
       }
     }

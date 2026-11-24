@@ -44,5 +44,43 @@ describe('ObterEstatisticasPerfilUseCase', () => {
       expect.objectContaining({ id: 'u1', xpTotal: 24 })
     );
   });
+
+  it('deve sincronizar xpSemanal local quando houver reset semanal remoto sem sobrescrever a nuvem', async () => {
+    const sessaoRepo = new InMemorySessaoEstudoRepository();
+    const usuarioRepo = new InMemoryUsuarioRepository();
+    const syncQueueRepo: any = { buscarPendentes: jest.fn().mockResolvedValue([]) };
+    const syncGateway: any = {
+      obterEstatisticasUsuarioRemoto: jest.fn().mockResolvedValue({
+        sessoesCount: 1,
+        sessoesComGpsCount: 0,
+        minutosTotais: 20,
+        xpTotal: 20,
+        xpSemanal: 0,
+        sessoesResumo: [{ id: 's1', duracaoMinutos: 20, comGps: false, comFoto: false }],
+      }),
+      enviarParaNuvem: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const user = Usuario.create({
+      id: 'u1',
+      nomeExibicao: 'Sthefany',
+      email: 's@test.com',
+      xpTotal: 20,
+      xpSemanal: 20,
+    });
+    await usuarioRepo.salvar(user);
+    await sessaoRepo.salvar(
+      SessaoEstudo.create({ id: 's1', usuarioId: 'u1', disciplinaId: 'd1', topicoId: 't1', duracaoMinutos: 20 })
+    );
+
+    const uc = new ObterEstatisticasPerfilUseCase(sessaoRepo, usuarioRepo, syncQueueRepo, syncGateway);
+    const stats = await uc.execute('u1');
+
+    expect(stats.xpReconciliado).toBe(true);
+    const atualizado = await usuarioRepo.buscarPorId('u1');
+    expect(atualizado?.xpSemanal).toBe(0);
+    expect(atualizado?.xpTotal).toBe(20);
+    expect(syncGateway.enviarParaNuvem).not.toHaveBeenCalled();
+  });
 });
 

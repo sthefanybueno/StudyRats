@@ -72,11 +72,12 @@ export default function DashboardScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      void recarregarUsuario();
       carregarDadosLocais();
       return DIContainer.inscreverMudancasTabela(['disciplinas', 'topicos', 'sessoes_estudo', 'fotos_sessao'], () => {
         void carregarDadosLocais();
       });
-    }, [carregarDadosLocais])
+    }, [carregarDadosLocais, recarregarUsuario])
   );
 
   const handleAtualizar = useCallback(async () => {
@@ -127,9 +128,13 @@ export default function DashboardScreen() {
         <View style={styles.topHeaderRight}>
           <Pill tone={isOnline ? 'success' : 'warning'} dot label={isOnline ? 'Online' : 'Offline'} />
           <View style={styles.avatarBox}>
-            <AppText variant="label" color={Colors.primary}>
-              {primeiroNome[0]?.toUpperCase()}
-            </AppText>
+            {usuario?.fotoUrl ? (
+              <Image source={{ uri: usuario.fotoUrl }} style={styles.avatarImage} contentFit="cover" />
+            ) : (
+              <AppText variant="label" color={Colors.primary}>
+                {primeiroNome[0]?.toUpperCase()}
+              </AppText>
+            )}
             <View style={styles.levelBadge}>
               <AppText variant="caption" style={styles.levelBadgeText}>
                 Nv.{nivelCalculado}
@@ -466,6 +471,11 @@ const useStyles = (Colors: any) => StyleSheet.create({
     borderColor: Colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 19,
   },
   levelBadge: {
     position: 'absolute',

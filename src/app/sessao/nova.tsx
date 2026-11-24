@@ -1,13 +1,14 @@
 /** Description: This file (src/app/sessao/nova.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { BackHandler, Linking, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { DIContainer } from '@/application/di/container';
 import { CameraModal } from '@/components/camera/CameraModal';
+import { ImageCropModal } from '@/components/camera/ImageCropModal';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
@@ -27,7 +28,7 @@ export default function NovaSessaoScreen() {
       const styles = useStyles(Colors);
 
   const { usuario, recarregarUsuario } = useAuth();
-  const { sessaoAtiva, concluindo, iniciarSessao, pausarSessao, retomarSessao, atualizarFoto, concluirSessao, cancelarSessao } = useSessaoFoco();
+  const { sessaoAtiva, tempoEsgotado, concluindo, iniciarSessao, pausarSessao, retomarSessao, atualizarFoto, concluirSessao, cancelarSessao } = useSessaoFoco();
   const [salvandoLocal, setSalvandoLocal] = useState(false);
 
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
@@ -46,6 +47,7 @@ export default function NovaSessaoScreen() {
   const [monitorarSinalGps, setMonitorarSinalGps] = useState(false);
   const [enderecoManual, setEnderecoManual] = useState('');
   const [fotoUri, setFotoUri] = useState<string | null>(null);
+  const [fotoParaCortarUri, setFotoParaCortarUri] = useState<string | null>(null);
   const [carregandoFoto, setCarregandoFoto] = useState(false);
   const [cameraModalVisivel, setCameraModalVisivel] = useState(false);
 
@@ -65,6 +67,14 @@ export default function NovaSessaoScreen() {
   // Status de Envio e Evidências
   const salvando = salvandoLocal || concluindo;
   const [sucessoMsg, setSucessoMsg] = useState<string | null>(null);
+  const aguardandoConfirmacao = Boolean(tempoEsgotado && sessaoAtiva && !sucessoMsg);
+
+  // Impede que o usuário saia pelo botão físico "Voltar" sem confirmar o encerramento da sessão
+  useEffect(() => {
+    if (!aguardandoConfirmacao) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, [aguardandoConfirmacao]);
   const [avisoGpsMsg, setAvisoGpsMsg] = useState<string | null>(null);
   const [podeAbrirAjustesGps, setPodeAbrirAjustesGps] = useState(false);
   const [erroFotoMsg, setErroFotoMsg] = useState<string | null>(null);
@@ -212,7 +222,7 @@ export default function NovaSessaoScreen() {
           ? await DIContainer.capturarEvidenciaFoto.selecionarDaGaleria()
           : await DIContainer.capturarEvidenciaFoto.capturarComCameraSistema();
       if (uri) {
-        aplicarNovaFoto(uri);
+        setFotoParaCortarUri(uri);
       }
     } catch (e: any) {
       const msg = e?.message || 'Erro ao anexar foto';
@@ -226,11 +236,17 @@ export default function NovaSessaoScreen() {
   };
 
   const handleFotoCameraModal = async (uriTemp: string) => {
+    setErroFotoMsg(null);
+    setFotoParaCortarUri(uriTemp);
+  };
+
+  const handleConfirmarCorteFoto = async (uriCortada: string) => {
     setCarregandoFoto(true);
     setErroFotoMsg(null);
     try {
-      const uriFinal = await DIContainer.capturarEvidenciaFoto.processarFotoCapturada(uriTemp);
+      const uriFinal = await DIContainer.capturarEvidenciaFoto.processarFotoCapturada(uriCortada);
       aplicarNovaFoto(uriFinal);
+      setFotoParaCortarUri(null);
     } catch (e: any) {
       setErroFotoMsg(e?.message || 'Erro ao processar foto');
     } finally {
@@ -264,6 +280,15 @@ export default function NovaSessaoScreen() {
               style={styles.flex}
             />
           </View>
+        ) : aguardandoConfirmacao && sessaoAtiva ? (
+          <Button
+            testID="confirmar-sessao-finalizada-btn"
+            label="Confirmar Sessão"
+            icon="checkmark-circle"
+            variant="primary"
+            loading={salvando}
+            onPress={handleFinalizarSessaoAtiva}
+          />
         ) : sessaoAtiva ? (
           <View style={styles.runningFooterRow}>
             {sessaoAtiva.emExecucao ? (
@@ -303,27 +328,59 @@ export default function NovaSessaoScreen() {
           />
         )
       }>
+      <Stack.Screen options={{ gestureEnabled: !aguardandoConfirmacao }} />
       {/* Header Superior */}
       <View style={styles.headerRow}>
-        <Pressable
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar para o Dashboard"
-          onPress={voltarParaDashboard}
-          style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color={Colors.text} />
-        </Pressable>
+        {!aguardandoConfirmacao && (
+          <Pressable
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar para o Dashboard"
+            onPress={voltarParaDashboard}
+            style={styles.backButton}>
+            <Ionicons name="arrow-back" size={20} color={Colors.text} />
+          </Pressable>
+        )}
         <View style={styles.headerTitleCol}>
           <AppText variant="overline" color={Colors.textSecondary}>
             STUDYRATS
           </AppText>
           <AppText variant="heading" numberOfLines={1}>
-            Sessão de Foco
+            {aguardandoConfirmacao ? 'Confirmar Sessão' : 'Sessão de Foco'}
           </AppText>
         </View>
       </View>
 
-      {sucessoMsg ? (
+      {aguardandoConfirmacao && sessaoAtiva ? (
+        <Animated.View entering={FadeInDown.duration(350)}>
+          <Card style={styles.sucessoCard}>
+            <Ionicons name="alarm-outline" size={48} color={Colors.primary} />
+            <AppText variant="title" color={Colors.primary} style={styles.centerText}>
+              Tempo concluído!
+            </AppText>
+            <AppText variant="body" color={Colors.textSecondary} style={styles.centerText}>
+              Confirme o encerramento da sessão de{' '}
+              <AppText variant="body" style={{ fontWeight: '700' }}>
+                {sessaoAtiva.disciplina.nome}
+              </AppText>
+              {sessaoAtiva.topico ? ` · ${sessaoAtiva.topico.nome}` : ''} ({sessaoAtiva.duracaoAlvoMinutos} min) para registrar seus pontos e manter seu streak.
+            </AppText>
+            <Pill
+              tone="primary"
+              label={`+${CalculoXpService.calcular({
+                duracaoMinutos: sessaoAtiva.duracaoAlvoMinutos,
+                comFoto: !!sessaoAtiva.fotoUri,
+                comGps: sessaoAtiva.anexarGps || !!sessaoAtiva.enderecoManual,
+              })} XP garantidos ao confirmar`}
+            />
+            {erroMsg && (
+              <AppText variant="caption" color={Colors.danger} style={styles.centerText}>
+                {erroMsg}
+              </AppText>
+            )}
+          </Card>
+        </Animated.View>
+      ) : sucessoMsg ? (
         <Animated.View entering={FadeInDown.duration(400)}>
           <Card style={styles.sucessoCard}>
             <Ionicons name="checkmark-circle" size={48} color={Colors.success} />
@@ -774,6 +831,12 @@ export default function NovaSessaoScreen() {
         onCapture={handleFotoCameraModal}
         onFallbackSystemCamera={() => handleCapturarOuEscolherFoto('camera')}
       />
+      <ImageCropModal
+        visible={!!fotoParaCortarUri}
+        imageUri={fotoParaCortarUri}
+        onCancel={() => setFotoParaCortarUri(null)}
+        onConfirm={handleConfirmarCorteFoto}
+      />
     </Screen>
   );
 }
@@ -1017,7 +1080,7 @@ const useStyles = (Colors: any) => StyleSheet.create({
     borderColor: Colors.border,
   },
   erroCard: { backgroundColor: Colors.dangerSoft, padding: Spacing.three },
-  flex: { flex: 1 },
+  flex: { flex: 1, flexBasis: 0 },
   boldText: { fontFamily: 'PlusJakartaSans_700Bold' },
   centerText: { textAlign: 'center' },
 });
