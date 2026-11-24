@@ -11,6 +11,7 @@ import { DarkTheme, Stack, ThemeProvider as NavigationThemeProvider, useRouter, 
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { useNetworkSync } from '@/hooks/useNetworkSync';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { SessaoFocoProvider } from '@/providers/SessaoFocoProvider';
 import { AppThemeProvider, useAppTheme } from "@/providers/ThemeProvider";
@@ -21,8 +22,16 @@ function RootNavigator() {
     const { colors: Colors } = useAppTheme();
 
   const { usuario, restaurando, precisaOnboarding } = useAuth();
+  const { sincronizarManualmente } = useNetworkSync();
   const segments = useSegments();
   const router = useRouter();
+
+  // Assim que o usuário autenticar ou restaurar a sessão, sincroniza imediatamente a fila Outbox com o Supabase
+  useEffect(() => {
+    if (usuario?.id) {
+      void sincronizarManualmente();
+    }
+  }, [usuario?.id, sincronizarManualmente]);
 
   const [fontsLoaded] = useFonts({
     PlusJakartaSans_400Regular,

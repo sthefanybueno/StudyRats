@@ -1,19 +1,31 @@
 -- StudyRats: schema completo + segurança do backend Supabase (executar no SQL Editor). 100% Idempotente.
 -- Funciona tanto em projeto Supabase novo (cria as tabelas) quanto em projeto já existente (atualiza colunas, RLS e PostGIS).
 
--- 0) Extensão PostGIS e Tabelas Base (se ainda não existirem)
-create extension if not exists postgis;
+-- 0) Extensão PostGIS (no schema extensions para não expor spatial_ref_sys no PostgREST) e Tabelas Base
+create extension if not exists postgis with schema extensions;
 
 create table if not exists public.perfis (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   nome_exibicao text not null default 'Estudante',
+  nome_usuario text,
+  foto_url text,
+  meta_diaria_minutos integer not null default 60,
   xp_total integer not null default 0,
   xp_semanal integer not null default 0,
   streak_atual integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.perfis
+  add column if not exists nome_usuario text,
+  add column if not exists foto_url text,
+  add column if not exists meta_diaria_minutos integer not null default 60;
+
+create unique index if not exists idx_perfis_nome_usuario_unique
+  on public.perfis (lower(nome_usuario))
+  where nome_usuario is not null;
 
 create table if not exists public.disciplinas (
   id text primary key,
@@ -83,7 +95,23 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- 1) Row Level Security
+-- 1) Permissões de Tabela (GRANT) e Row Level Security (RLS)
+-- O Postgres exige GRANT na tabela para o papel 'authenticated' antes de avaliar as policies RLS.
+grant usage on schema public to anon, authenticated;
+grant usage on schema extensions to anon, authenticated;
+
+grant select, insert, update, delete on table public.perfis to authenticated;
+grant select, insert, update, delete on table public.disciplinas to authenticated;
+grant select, insert, update, delete on table public.topicos to authenticated;
+grant select, insert, update, delete on table public.sessoes_estudo to authenticated;
+grant select, insert, update, delete on table public.fotos_sessao to authenticated;
+
+revoke all on table public.perfis from anon;
+revoke all on table public.disciplinas from anon;
+revoke all on table public.topicos from anon;
+revoke all on table public.sessoes_estudo from anon;
+revoke all on table public.fotos_sessao from anon;
+
 alter table public.perfis          enable row level security;
 alter table public.sessoes_estudo  enable row level security;
 alter table public.disciplinas     enable row level security;
@@ -127,10 +155,17 @@ create policy topicos_owner on public.topicos for all to authenticated
   using (exists (select 1 from public.disciplinas d where d.id = disciplina_id and d.usuario_id = (select auth.uid())))
   with check (exists (select 1 from public.disciplinas d where d.id = disciplina_id and d.usuario_id = (select auth.uid())));
 
+-- fotos_sessao: somente o dono da sessão gerencia e lê os metadados da própria foto privada
+drop policy if exists fotos_sessao_owner on public.fotos_sessao;
+create policy fotos_sessao_owner on public.fotos_sessao for all to authenticated
+  using (exists (select 1 from public.sessoes_estudo s where s.id = sessao_id and s.usuario_id = (select auth.uid())))
+  with check (exists (select 1 from public.sessoes_estudo s where s.id = sessao_id and s.usuario_id = (select auth.uid())));
+
 -- Índices nas chaves de filtro das policies RLS para desempenho (PDF 03, slide 21)
 create index if not exists idx_sessoes_estudo_usuario_id on public.sessoes_estudo (usuario_id, created_at desc);
 create index if not exists idx_disciplinas_usuario_id on public.disciplinas (usuario_id);
 create index if not exists idx_topicos_disciplina_id on public.topicos (disciplina_id);
+create index if not exists idx_fotos_sessao_sessao_id on public.fotos_sessao (sessao_id);
 
 -- 2) Storage: bucket privado com limite de 5 MB e MIME types restritos (PDF 03, slides 24-26)
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -153,6 +188,27 @@ drop policy if exists fotos_delete on storage.objects;
 create policy fotos_delete on storage.objects for delete to authenticated
   using (bucket_id = 'fotos_sessao' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
+-- 2.1) Storage: bucket de avatares de perfil (leitura pública para Ranking/Feed, escrita apenas pelo dono)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('avatares', 'avatares', true, 5242880, array['image/jpeg', 'image/png'])
+on conflict (id) do update set
+  public = true,
+  file_size_limit = 5242880,
+  allowed_mime_types = array['image/jpeg', 'image/png'];
+
+drop policy if exists avatares_select on storage.objects;
+create policy avatares_select on storage.objects for select to public
+  using (bucket_id = 'avatares');
+drop policy if exists avatares_insert on storage.objects;
+create policy avatares_insert on storage.objects for insert to authenticated
+  with check (bucket_id = 'avatares' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists avatares_update on storage.objects;
+create policy avatares_update on storage.objects for update to authenticated
+  using (bucket_id = 'avatares' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists avatares_delete on storage.objects;
+create policy avatares_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'avatares' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
 -- 3) Limpeza de policies antigas criadas manualmente no painel (aplicado em 23/11/2026).
 -- Leituras públicas (sem login) e duplicatas já cobertas pelas policies acima.
 drop policy if exists "Leitura de sessões para o Feed" on public.sessoes_estudo;
@@ -169,8 +225,8 @@ drop policy if exists "Usuários autenticados podem enviar fotos" on storage.obj
 -- perfis_insert/select/update, sessoes_owner, topicos_owner). fotos_sessao fica sem policy (bloqueada).
 
 -- 4) Geolocalização, PostGIS e Privacidade LGPD (Aulas 01 e 02 - Prof. Lázaro)
--- 4.1) Extensão PostGIS e colunas geoespaciais na tabela sessoes_estudo
-create extension if not exists postgis;
+-- 4.1) Extensão PostGIS (no schema extensions) e colunas geoespaciais na tabela sessoes_estudo
+create extension if not exists postgis with schema extensions;
 
 alter table public.sessoes_estudo
   add column if not exists accuracy real,
@@ -276,3 +332,7 @@ begin
   return v_expurgadas;
 end;
 $$;
+
+grant execute on function public.buscar_sessoes_proximas(double precision, double precision, double precision) to authenticated;
+grant execute on function public.limpar_minhas_coordenadas() to authenticated;
+grant execute on function public.expurgar_coordenadas_antigas(integer) to authenticated;

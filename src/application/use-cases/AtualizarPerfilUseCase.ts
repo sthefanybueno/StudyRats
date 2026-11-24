@@ -8,6 +8,7 @@ export interface AtualizarPerfilRequest {
   nomeExibicao?: string;
   nomeUsuario?: string;
   fotoUrl?: string;
+  metaDiariaMinutos?: number;
 }
 
 export type AtualizarPerfilResponse =
@@ -44,6 +45,9 @@ export class AtualizarPerfilUseCase {
       if (request.fotoUrl !== undefined) {
         usuario.atualizarFotoUrl(request.fotoUrl);
       }
+      if (request.metaDiariaMinutos !== undefined) {
+        usuario.atualizarMetaDiariaMinutos(request.metaDiariaMinutos);
+      }
 
       await this.usuarioRepository.salvar(usuario);
 
@@ -56,6 +60,9 @@ export class AtualizarPerfilUseCase {
               id: usuario.id,
               email: usuario.email.getValue,
               nomeExibicao: usuario.nomeExibicao,
+              nomeUsuario: usuario.nomeUsuario ?? null,
+              fotoUrl: usuario.fotoUrl ?? null,
+              metaDiariaMinutos: usuario.metaDiariaMinutos,
               xpTotal: usuario.xpTotal,
               xpSemanal: usuario.xpSemanal,
               streakAtual: usuario.streakAtual,

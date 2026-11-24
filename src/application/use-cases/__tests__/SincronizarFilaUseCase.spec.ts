@@ -19,10 +19,15 @@ class MockSyncQueueRepo implements ISyncQueueRepository {
 class MockSyncGateway implements ISyncGateway {
   shouldFail = false;
   expurgoChamado = false;
-  async enviarParaNuvem(): Promise<void> {
+  ultimoPayloadEnviado: any = null;
+  async enviarParaNuvem(_t: string, _op: string, payload: any): Promise<void> {
     if (this.shouldFail) throw new Error('Network error');
+    this.ultimoPayloadEnviado = payload;
   }
   async fazerUploadFoto(): Promise<string> { return ''; }
+  async fazerUploadAvatar(_uri: string, caminho: string): Promise<string> {
+    return `https://cdn.supabase.co/storage/v1/object/public/avatares/${caminho}`;
+  }
   async obterRanking(): Promise<Usuario[]> { return []; }
   async expurgarCoordenadasAntigas(): Promise<number> {
     this.expurgoChamado = true;
@@ -64,5 +69,30 @@ describe('SincronizarFilaUseCase', () => {
     expect(repo.itens).toHaveLength(1);
     expect(repo.itens[0].status).toBe('error');
     expect(repo.itens[0].tentativas).toBe(1);
+  });
+
+  it('deve subir avatar local ao bucket público antes de enviar perfil para nuvem', async () => {
+    const repo = new MockSyncQueueRepo();
+    const gateway = new MockSyncGateway();
+    const useCase = new SincronizarFilaUseCase(repo, gateway);
+
+    const item = SyncQueueItem.create({
+      entidade: 'perfis',
+      operacao: 'UPDATE',
+      payloadJson: JSON.stringify({
+        id: 'u-1',
+        nomeExibicao: 'Clara',
+        nomeUsuario: '@clara',
+        fotoUrl: 'file:///cache/avatar.png',
+        metaDiariaMinutos: 120,
+      }),
+    });
+    await repo.enfileirar(item);
+
+    const response = await useCase.execute();
+    expect(response.processados).toBe(1);
+    expect(gateway.ultimoPayloadEnviado.fotoUrl).toBe(
+      'https://cdn.supabase.co/storage/v1/object/public/avatares/u-1/avatar.png'
+    );
   });
 });

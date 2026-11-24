@@ -16,6 +16,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
 import type { SessaoEstudo } from '@/domain/entities/SessaoEstudo';
 import { CalculoXpService } from '@/domain/services/CalculoXpService';
+import { useNetworkSync } from '@/hooks/useNetworkSync';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatarTempoRegressivo, useSessaoFoco } from '@/providers/SessaoFocoProvider';
 import { useAppTheme } from "@/providers/ThemeProvider";
@@ -26,11 +27,14 @@ export default function DashboardScreen() {
       const styles = useStyles(Colors);
 
   const { usuario, recarregarUsuario } = useAuth();
-  const { sessaoAtiva, pausarSessao, retomarSessao, concluirSessao } = useSessaoFoco();
+  const { isOnline, sincronizarManualmente } = useNetworkSync();
+  const { sessaoAtiva, concluindo, pausarSessao, retomarSessao, concluirSessao } = useSessaoFoco();
   const [, setCarregando] = useState(true);
+  const [atualizando, setAtualizando] = useState(false);
   const [sessoes, setSessoes] = useState<SessaoEstudo[]>([]);
   const [disciplinasMap, setDisciplinasMap] = useState<Map<string, Disciplina>>(new Map());
   const [salvandoSessao, setSalvandoSessao] = useState(false);
+  const bloqueadoSessao = salvandoSessao || concluindo;
 
   // Concluir Sessão diretamente do Dashboard
   const handleConcluirSessaoDashboard = async () => {
@@ -70,6 +74,17 @@ export default function DashboardScreen() {
     }, [carregarDadosLocais])
   );
 
+  const handleAtualizar = useCallback(async () => {
+    setAtualizando(true);
+    try {
+      await sincronizarManualmente();
+      await recarregarUsuario();
+      await carregarDadosLocais();
+    } finally {
+      setAtualizando(false);
+    }
+  }, [sincronizarManualmente, recarregarUsuario, carregarDadosLocais]);
+
   // Cálculos dinâmicos com base nas entidades locais
   const xpTotal = usuario?.xpTotal ?? 0;
   const xpSemanal = usuario?.xpSemanal ?? 0;
@@ -83,18 +98,29 @@ export default function DashboardScreen() {
     s => s.createdAt && s.createdAt.toISOString().split('T')[0] === hojeStr
   );
   const minutosHoje = sessoesHoje.reduce((acc, s) => acc + s.duracaoMinutos, 0);
-  const metaMinutos = 60;
+  const metaMinutos = usuario?.metaDiariaMinutos ?? 60;
   const metaPorcentagem = Math.min(100, Math.round((minutosHoje / metaMinutos) * 100));
+
+  const statusMetaHoje =
+    metaPorcentagem >= 100
+      ? { texto: 'Meta de hoje batida! 🎉', cor: Colors.success }
+      : metaPorcentagem >= 75
+        ? { texto: `Faltam ${Math.max(1, metaMinutos - minutosHoje)}m para a meta!`, cor: Colors.success }
+        : metaPorcentagem >= 40
+          ? { texto: 'Bom ritmo na meta de hoje', cor: Colors.primary }
+          : metaPorcentagem > 0
+            ? { texto: 'Bom começo na meta de hoje', cor: Colors.primary }
+            : { texto: 'Comece sua meta de hoje', cor: Colors.textMuted };
 
   const primeiroNome = usuario?.nomeExibicao.split(' ')[0] ?? 'Estudante';
 
   return (
-    <Screen contentStyle={styles.content} edges={['top']}>
+    <Screen contentStyle={styles.content} edges={['top']} refreshing={atualizando} onRefresh={handleAtualizar}>
       {/* Top Header */}
       <Animated.View entering={FadeInDown.duration(400)} style={styles.topHeader}>
         <BrandMark subtitle="Dashboard" />
         <View style={styles.topHeaderRight}>
-          <Pill tone="success" dot label="Sync" />
+          <Pill tone={isOnline ? 'success' : 'warning'} dot label={isOnline ? 'Online' : 'Offline'} />
           <View style={styles.avatarBox}>
             <AppText variant="label" color={Colors.primary}>
               {primeiroNome[0]?.toUpperCase()}
@@ -110,52 +136,61 @@ export default function DashboardScreen() {
 
       {/* Greeting / Tactical Header */}
       <Animated.View entering={FadeInDown.delay(60).duration(450)} style={styles.greetingHeader}>
-        <View style={styles.flex}>
+        <View style={styles.greetingTopRow}>
           <AppText variant="overline" color={Colors.textSecondary}>
             PAINEL TÁTICO
           </AppText>
-          <AppText variant="display">Fala, {primeiroNome}! ⚡</AppText>
+          <View style={styles.nivelPill}>
+            <Ionicons name="trophy" size={14} color={Colors.aiText} />
+            <AppText variant="caption" color={Colors.aiText} style={styles.boldText}>
+              Nível {nivelCalculado}
+            </AppText>
+          </View>
         </View>
-        <View style={styles.nivelPill}>
-          <Ionicons name="trophy" size={14} color={Colors.aiText} />
-          <AppText variant="caption" color={Colors.aiText} style={styles.boldText}>
-            Nível {nivelCalculado}
-          </AppText>
-        </View>
+        <AppText variant="display" numberOfLines={2}>
+          Fala, {primeiroNome}! ⚡
+        </AppText>
       </Animated.View>
 
       {/* HERO CTA PRINCIPAL: Sessão de Foco (Super Destaque #1) */}
       <Animated.View entering={FadeInDown.delay(100).duration(450)}>
         {sessaoAtiva ? (
           <Card accent={sessaoAtiva.disciplina.cor} style={styles.activeSessionDashboardCard}>
-            <View style={styles.activeSessionHeader}>
-              <View style={styles.rowInlineGap}>
-                <Ionicons name="timer-outline" size={20} color={Colors.primary} />
-                <AppText variant="title">Sessão de Foco</AppText>
-              </View>
-              <Pill
-                tone={sessaoAtiva.emExecucao ? 'success' : 'warning'}
-                dot
-                label={sessaoAtiva.emExecucao ? 'EM EXECUÇÃO' : 'PAUSADO'}
-              />
-            </View>
-
-            <View style={styles.activeSessionBody}>
-              <View style={styles.flex}>
-                <AppText variant="heading" color={sessaoAtiva.disciplina.cor}>
-                  {sessaoAtiva.disciplina.nome}
-                </AppText>
-                <AppText variant="caption" color={Colors.textSecondary}>
-                  {sessaoAtiva.topico ? sessaoAtiva.topico.nome : 'Sem tópico específico'}
-                </AppText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Abrir tela da Sessão de Foco"
+              disabled={bloqueadoSessao}
+              onPress={() => router.push('/sessao/nova')}
+              style={({ pressed }) => [styles.activeSessionTapArea, pressed && { opacity: 0.85 }]}>
+              <View style={styles.activeSessionHeader}>
+                <View style={styles.activeSessionTitleRow}>
+                  <Ionicons name="timer-outline" size={20} color={Colors.primary} />
+                  <AppText variant="title" numberOfLines={1}>
+                    Sessão de Foco
+                  </AppText>
+                </View>
+                <View style={styles.activeSessionHeaderRight}>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+                </View>
               </View>
 
-              <View style={styles.timerBoxDashboard}>
-                <AppText variant="display" color={Colors.primary} style={styles.timerTextDashboard}>
-                  {formatarTempoRegressivo(sessaoAtiva.segundosDecorridos, sessaoAtiva.duracaoAlvoMinutos)}
-                </AppText>
+              <View style={styles.activeSessionBody}>
+                <View style={styles.activeSessionInfo}>
+                  <AppText variant="heading" color={sessaoAtiva.disciplina.cor} numberOfLines={1}>
+                    {sessaoAtiva.disciplina.nome}
+                  </AppText>
+                  <AppText variant="caption" color={Colors.textSecondary} numberOfLines={1}>
+                    {sessaoAtiva.topico ? sessaoAtiva.topico.nome : 'Sem tópico específico'}
+                  </AppText>
+                </View>
+
+                <View style={styles.timerBoxDashboard}>
+                  <AppText variant="display" color={Colors.primary} style={styles.timerTextDashboard}>
+                    {formatarTempoRegressivo(sessaoAtiva.segundosDecorridos, sessaoAtiva.duracaoAlvoMinutos)}
+                  </AppText>
+                </View>
               </View>
-            </View>
+            </Pressable>
 
             {/* Botões de Ação da Sessão de Foco */}
             <View style={styles.activeSessionActions}>
@@ -164,6 +199,7 @@ export default function DashboardScreen() {
                   label="Pausar"
                   icon="pause"
                   variant="secondary"
+                  disabled={bloqueadoSessao}
                   onPress={pausarSessao}
                   style={styles.flex}
                 />
@@ -172,16 +208,17 @@ export default function DashboardScreen() {
                   label="Retomar"
                   icon="play"
                   variant="primary"
+                  disabled={bloqueadoSessao}
                   onPress={retomarSessao}
                   style={styles.flex}
                 />
               )}
 
               <Button
-                label="Concluir Sessão"
+                label="Concluir"
                 icon="checkmark-circle"
                 variant="primary"
-                loading={salvandoSessao}
+                loading={bloqueadoSessao}
                 onPress={handleConcluirSessaoDashboard}
                 style={styles.flex}
               />
@@ -218,22 +255,22 @@ export default function DashboardScreen() {
         <Card style={styles.streakCard}>
           <View style={styles.streakLeft}>
             <View style={styles.flameCircle}>
-              <Ionicons name="flame" size={24} color={Colors.primary} />
+              <Ionicons name="flame" size={22} color={Colors.primary} />
             </View>
-            <View>
+            <View style={styles.streakTextCol}>
               <View style={styles.rowInline}>
                 <AppText variant="title">{streakAtual}</AppText>
                 <AppText variant="heading"> {streakAtual === 1 ? 'Dia Seguido' : 'Dias Seguidos'}</AppText>
               </View>
-              <AppText variant="caption" color={Colors.textSecondary}>
+              <AppText variant="caption" color={Colors.textSecondary} numberOfLines={1}>
                 {streakAtual > 0 ? 'Ritmo Imparável' : 'Inicie seu streak hoje'}
               </AppText>
             </View>
           </View>
           <View style={styles.streakRight}>
-            <Pill tone="primary" icon="flash" label="1.5x XP Ativo" />
+            <Pill tone="primary" icon="flash" label="1.5x XP" />
             <AppText variant="caption" color={Colors.textMuted} style={styles.rightAlign}>
-              Multiplicador do dia
+              Bônus ativo
             </AppText>
           </View>
         </Card>
@@ -256,8 +293,8 @@ export default function DashboardScreen() {
             <AppText variant="caption" color={Colors.textSecondary}>
               Total acumulado: {xpTotal} XP
             </AppText>
-            <AppText variant="caption" color={Colors.success} style={styles.boldText}>
-              {metaPorcentagem >= 100 ? 'Meta de hoje batida! 🎉' : 'Meta de hoje quase lá!'}
+            <AppText variant="caption" color={statusMetaHoje.cor} style={styles.boldText}>
+              {statusMetaHoje.texto}
             </AppText>
           </View>
         </Card>
@@ -325,7 +362,7 @@ export default function DashboardScreen() {
             />
           </Card>
         ) : (
-          sessoes.slice(0, 5).map(sessao => {
+          sessoes.slice(0, 2).map(sessao => {
             const disc = disciplinasMap.get(sessao.disciplinaId);
             const nomeDisciplina = disc ? disc.nome : 'Disciplina';
             const corDisciplina = disc ? disc.cor : Colors.primary;
@@ -401,7 +438,6 @@ export default function DashboardScreen() {
                 Dica do Rato
               </AppText>
             </View>
-            <Pill tone="success" label="100% BLINDADO" />
           </View>
           <AppText variant="caption" color={Colors.textSecondary} style={styles.dicaRatoText}>
             Você está protegido offline. Seus registros ficam gravados no armazenamento do aparelho e sobem sozinhos quando houver internet!
@@ -436,39 +472,59 @@ const useStyles = (Colors: any) => StyleSheet.create({
     borderRadius: Radius.pill,
   },
   levelBadgeText: { fontSize: 9, fontFamily: 'PlusJakartaSans_700Bold', color: '#FFF' },
-  greetingHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  greetingHeader: {
+    gap: Spacing.one,
+  },
+  greetingTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
   nivelPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: Radius.pill,
     backgroundColor: Colors.aiSoft,
     borderWidth: 1,
     borderColor: 'rgba(139,92,246,0.3)',
+    flexShrink: 0,
   },
   streakCard: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.four - 4,
+    gap: Spacing.two,
+    padding: Spacing.three + 2,
   },
-  streakLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three - 2 },
+  streakLeft: {
+    flex: 1,
+    minWidth: 165,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 2,
+  },
+  streakTextCol: {
+    flex: 1,
+  },
   flameCircle: {
-    width: 46,
-    height: 46,
+    width: 42,
+    height: 42,
     borderRadius: Radius.md,
     backgroundColor: Colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  streakRight: { alignItems: 'flex-end', gap: 4 },
-  rowInline: { flexDirection: 'row', alignItems: 'baseline' },
+  streakRight: { alignItems: 'flex-end', gap: 2, flexShrink: 0 },
+  rowInline: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap' },
   rightAlign: { textAlign: 'right' },
   xpCard: { gap: Spacing.two + 2, padding: Spacing.four - 4 },
-  xpHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  xpFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  xpHeader: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 6 },
+  xpFooter: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 6 },
   heroActionBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -506,18 +562,43 @@ const useStyles = (Colors: any) => StyleSheet.create({
     padding: Spacing.four - 4,
     borderColor: Colors.primary,
   },
+  activeSessionTapArea: {
+    gap: Spacing.three,
+  },
   activeSessionHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  activeSessionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  activeSessionHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
   },
   activeSessionBody: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.two,
     backgroundColor: Colors.surfaceInput,
     padding: Spacing.three,
     borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  activeSessionInfo: {
+    flex: 1,
+    flexShrink: 1,
+    gap: 2,
   },
   timerBoxDashboard: {
     paddingHorizontal: 12,
@@ -526,10 +607,11 @@ const useStyles = (Colors: any) => StyleSheet.create({
     borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: Colors.borderStrong,
+    flexShrink: 0,
   },
   timerTextDashboard: {
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 22,
+    lineHeight: 26,
     fontFamily: 'PlusJakartaSans_800ExtraBold',
   },
   activeSessionActions: {

@@ -55,12 +55,30 @@ describe('Infrastructure Gateways', () => {
     });
 
     it('deve lançar erro quando a permissão for negada', async () => {
-      jest.spyOn(ImagePicker, 'requestCameraPermissionsAsync').mockResolvedValue({ status: 'denied' } as any);
+      jest.spyOn(ImagePicker, 'requestCameraPermissionsAsync').mockResolvedValue({ status: 'denied', canAskAgain: true } as any);
       const persistir = jest.fn();
 
       const gateway = new ExpoCameraGateway(persistir);
       await expect(gateway.capturarFoto()).rejects.toThrow('Permissão de câmera negada');
       expect(persistir).not.toHaveBeenCalled();
+    });
+
+    it('deve indicar bloqueio permanente quando canAskAgain for false e permitir selecionar foto da galeria', async () => {
+      jest.spyOn(ImagePicker, 'requestCameraPermissionsAsync').mockResolvedValue({ status: 'denied', canAskAgain: false } as any);
+      const gateway = new ExpoCameraGateway();
+      await expect(gateway.capturarFoto()).rejects.toThrow('Permissão de câmera negada permanentemente');
+
+      jest.spyOn(ImagePicker, 'requestMediaLibraryPermissionsAsync').mockResolvedValue({ status: 'granted', canAskAgain: true } as any);
+      jest.spyOn(ImagePicker, 'launchImageLibraryAsync').mockResolvedValue({
+        canceled: false,
+        assets: [{ uri: 'file://cache/galeria.png' }],
+      } as any);
+      const persistir = jest.fn().mockResolvedValue('file://documents/fotos_sessao/galeria.png');
+      const gatewayGaleria = new ExpoCameraGateway(persistir);
+
+      const uri = await gatewayGaleria.selecionarDaGaleria();
+      expect(persistir).toHaveBeenCalledWith('file://cache/galeria.png');
+      expect(uri).toBe('file://documents/fotos_sessao/galeria.png');
     });
   });
 

@@ -1,9 +1,10 @@
 /** Description: This file (src/app/(app)/perfil.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Image, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,8 +16,14 @@ import { Screen } from '@/components/ui/Screen';
 import { Card, Pill, ProgressBar } from '@/components/ui/Surface';
 import { TextField } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/theme';
+import { CalculoXpService } from '@/domain/services/CalculoXpService';
+import { useNetworkSync } from '@/hooks/useNetworkSync';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from "@/providers/ThemeProvider";
+
+const PREF_LEMBRETE_KEY = 'studyrats.pref.lembreteStreak';
+const PREF_OFFLINE_KEY = 'studyrats.pref.modoOfflinePrioritario';
+const METAS_OPCOES = [30, 60, 120, 180] as const;
 
 export default function PerfilScreen() {
     const { colors: Colors } = useAppTheme();
@@ -24,17 +31,45 @@ export default function PerfilScreen() {
   // O Modal transparente cobre a tela inteira: o card não pode invadir notch / home indicator.
   const insets = useSafeAreaInsets();
 
-  const { usuario, logout, atualizarPerfil } = useAuth();
+  const { usuario, logout, atualizarPerfil, recarregarUsuario } = useAuth();
+  const { isOnline, sincronizarManualmente } = useNetworkSync();
+  const [atualizando, setAtualizando] = useState(false);
 
   const { modoEscuro, setModoEscuro } = useAppTheme();
   const [lembreteStreak, setLembreteStreak] = useState(true);
   const [modoOfflinePrioritario, setModoOfflinePrioritario] = useState(true);
+
+  // Carrega preferências locais persistidas do aparelho
+  useEffect(() => {
+    Promise.all([
+      AsyncStorage.getItem(PREF_LEMBRETE_KEY),
+      AsyncStorage.getItem(PREF_OFFLINE_KEY),
+    ])
+      .then(([lembrete, offline]) => {
+        if (lembrete === 'false') setLembreteStreak(false);
+        if (offline === 'false') setModoOfflinePrioritario(false);
+      })
+      .catch(() => {});
+  }, []);
+
+  const alternarLembreteStreak = () => {
+    const novo = !lembreteStreak;
+    setLembreteStreak(novo);
+    AsyncStorage.setItem(PREF_LEMBRETE_KEY, String(novo)).catch(() => {});
+  };
+
+  const alternarModoOffline = () => {
+    const novo = !modoOfflinePrioritario;
+    setModoOfflinePrioritario(novo);
+    AsyncStorage.setItem(PREF_OFFLINE_KEY, String(novo)).catch(() => {});
+  };
 
   // Edição de Perfil State
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
   const [novoNomeInput, setNovoNomeInput] = useState('');
   const [novoUsernameInput, setNovoUsernameInput] = useState('');
   const [fotoUrlInput, setFotoUrlInput] = useState<string | undefined>(undefined);
+  const [metaInput, setMetaInput] = useState<number>(60);
   const [erroEdicao, setErroEdicao] = useState<string | null>(null);
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
 
@@ -43,32 +78,83 @@ export default function PerfilScreen() {
   const [sessoesComGpsCount, setSessoesComGpsCount] = useState(0);
   const [minutosTotais, setMinutosTotais] = useState(0);
   const [limpandoGps, setLimpandoGps] = useState(false);
+  const [confirmarLimparGps, setConfirmarLimparGps] = useState(false);
   const [msgPrivacidade, setMsgPrivacidade] = useState<string | null>(null);
 
   const carregarEstatísticasReais = useCallback(async () => {
     if (!usuario) return;
     try {
-      const listSessoes = await DIContainer.repositories.sessao.listarPorUsuario(usuario.id);
-      setSessoesCount(listSessoes.length);
-      setSessoesComGpsCount(listSessoes.filter(s => !!s.coordenada).length);
-      const totalMins = listSessoes.reduce((acc, s) => acc + s.duracaoMinutos, 0);
-      setMinutosTotais(totalMins);
+      const [listSessoes, remoto, pendentes] = await Promise.all([
+        DIContainer.repositories.sessao.listarPorUsuario(usuario.id),
+        DIContainer.gateways.sync?.obterEstatisticasUsuarioRemoto?.().catch(() => null) ?? Promise.resolve(null),
+        DIContainer.repositories.syncQueue.buscarPendentes(1),
+      ]);
+      const localCount = listSessoes.length;
+      const localGpsCount = listSessoes.filter(s => !!s.coordenada).length;
+      const localMins = listSessoes.reduce((acc, s) => acc + s.duracaoMinutos, 0);
+
+      setSessoesCount(remoto ? Math.max(localCount, remoto.sessoesCount) : localCount);
+      setSessoesComGpsCount(remoto ? Math.max(localGpsCount, remoto.sessoesComGpsCount) : localGpsCount);
+      setMinutosTotais(remoto ? Math.max(localMins, remoto.minutosTotais) : localMins);
+
+      // Reconcilia o XP do perfil se não houver sessões pendentes na fila e a soma real das sessões divergir (ex.: remoção anterior de GPS)
+      if (pendentes.length === 0 && remoto?.sessoesResumo && localCount <= remoto.sessoesResumo.length) {
+        const mapaLocal = new Map(listSessoes.map(s => [s.id, s]));
+        const xpRealSessoes = remoto.sessoesResumo.reduce((acc, s) => {
+          const local = mapaLocal.get(s.id);
+          return (
+            acc +
+            CalculoXpService.calcular({
+              duracaoMinutos: s.duracaoMinutos,
+              comFoto: s.comFoto || !!local?.foto,
+              comGps: s.comGps,
+            })
+          );
+        }, 0);
+
+        const usuarioAtual = await DIContainer.repositories.usuario.buscarPorId(usuario.id);
+        const remotoDivergente = typeof remoto.xpTotal === 'number' && remoto.xpTotal !== xpRealSessoes;
+        if (usuarioAtual && (usuarioAtual.xpTotal !== xpRealSessoes || remotoDivergente)) {
+          if (usuarioAtual.xpTotal > xpRealSessoes) {
+            usuarioAtual.descontarXP(usuarioAtual.xpTotal - xpRealSessoes);
+          } else if (xpRealSessoes > usuarioAtual.xpTotal) {
+            usuarioAtual.adicionarXP(xpRealSessoes - usuarioAtual.xpTotal);
+          }
+          await DIContainer.repositories.usuario.salvar(usuarioAtual);
+          await DIContainer.gateways.sync?.enviarParaNuvem('perfis', 'UPDATE', {
+            id: usuarioAtual.id,
+            xpTotal: usuarioAtual.xpTotal,
+            xpSemanal: usuarioAtual.xpSemanal,
+            streakAtual: usuarioAtual.streakAtual,
+          }).catch(() => {});
+          await recarregarUsuario();
+        }
+      }
     } catch (e) {
       console.error('Erro ao carregar estatísticas reais:', e);
     }
-  }, [usuario]);
+  }, [usuario, recarregarUsuario]);
 
-  const handleLimparHistoricoLocalizacao = async () => {
+  const handleLimparHistoricoLocalizacao = () => {
     if (!usuario) return;
+    setConfirmarLimparGps(true);
+  };
+
+  const confirmarLimparHistoricoLocalizacao = async () => {
+    if (!usuario) return;
+    setConfirmarLimparGps(false);
     setLimpandoGps(true);
     setMsgPrivacidade(null);
     const res = await DIContainer.limparHistoricoLocalizacao.execute({ usuarioId: usuario.id });
     setLimpandoGps(false);
     if (res.isSuccess) {
       setSessoesComGpsCount(0);
+      await recarregarUsuario();
       setMsgPrivacidade(
         res.value.sessoesAfetadas > 0
-          ? `Localização removida de ${res.value.sessoesAfetadas} ${res.value.sessoesAfetadas === 1 ? 'sessão' : 'sessões'} (local e fila de nuvem).`
+          ? `Localização removida de ${res.value.sessoesAfetadas} ${res.value.sessoesAfetadas === 1 ? 'sessão' : 'sessões'}${
+              res.value.xpDescontado > 0 ? ` e XP recalculado (-${res.value.xpDescontado} XP).` : '.'
+            }`
           : 'Nenhuma coordenada pendente encontrada. Histórico limpo.'
       );
     } else {
@@ -82,11 +168,23 @@ export default function PerfilScreen() {
     }, [carregarEstatísticasReais])
   );
 
+  const handleAtualizar = useCallback(async () => {
+    setAtualizando(true);
+    try {
+      await sincronizarManualmente();
+      await recarregarUsuario();
+      await carregarEstatísticasReais();
+    } finally {
+      setAtualizando(false);
+    }
+  }, [sincronizarManualmente, recarregarUsuario, carregarEstatísticasReais]);
+
   // Abrir Modal de Edição de Perfil
   const handleAbrirEdicao = () => {
     setNovoNomeInput(usuario?.nomeExibicao || '');
     setNovoUsernameInput(usuario?.nomeUsuario || '');
     setFotoUrlInput(usuario?.fotoUrl);
+    setMetaInput(usuario?.metaDiariaMinutos ?? 60);
     setErroEdicao(null);
     setMostrarModalEditar(true);
   };
@@ -109,7 +207,7 @@ export default function PerfilScreen() {
     }
   };
 
-  // Salvar Novo Nome, Username e Foto de Perfil
+  // Salvar Novo Nome, Username, Foto e Meta Diária
   const handleSalvarPerfil = async () => {
     if (!novoNomeInput.trim()) {
       setErroEdicao('Informe o nome de exibição');
@@ -118,8 +216,9 @@ export default function PerfilScreen() {
     setSalvandoPerfil(true);
     const err = await atualizarPerfil({
       nomeExibicao: novoNomeInput.trim(),
-      nomeUsuario: novoUsernameInput.trim() || undefined,
-      fotoUrl: fotoUrlInput,
+      nomeUsuario: novoUsernameInput.trim(),
+      fotoUrl: fotoUrlInput ?? '',
+      metaDiariaMinutos: metaInput,
     });
     setSalvandoPerfil(false);
     if (err) {
@@ -146,12 +245,12 @@ export default function PerfilScreen() {
   };
 
   return (
-    <Screen contentStyle={styles.content} edges={['top']}>
+    <Screen contentStyle={styles.content} edges={['top']} refreshing={atualizando} onRefresh={handleAtualizar}>
       {/* Header Superior */}
       <View style={styles.topHeader}>
         <BrandMark subtitle="Meu Perfil" />
         <View style={styles.topHeaderRight}>
-          <Pill tone="success" dot label="Sync Local" />
+          <Pill tone={isOnline ? 'success' : 'warning'} dot label={isOnline ? 'Online' : 'Offline'} />
           <View style={styles.avatarBox}>
             {usuario?.fotoUrl ? (
               <Image source={{ uri: usuario.fotoUrl }} style={styles.avatarImageSmall} />
@@ -221,7 +320,6 @@ export default function PerfilScreen() {
       <View style={styles.statsSection}>
         <View style={styles.sectionHeader}>
           <AppText variant="heading">Seu Desempenho Real</AppText>
-          <Pill tone="success" dot label="Dados do Aparelho" />
         </View>
 
         <View style={styles.statsGrid}>
@@ -304,7 +402,7 @@ export default function PerfilScreen() {
               </AppText>
             </View>
             <Pressable
-              onPress={() => setLembreteStreak(l => !l)}
+              onPress={alternarLembreteStreak}
               style={[styles.toggleSwitch, lembreteStreak && styles.toggleSwitchActive]}>
               <View style={[styles.toggleKnob, lembreteStreak && styles.toggleKnobActive]} />
             </Pressable>
@@ -344,7 +442,7 @@ export default function PerfilScreen() {
               </AppText>
             </View>
             <Pressable
-              onPress={() => setModoOfflinePrioritario(m => !m)}
+              onPress={alternarModoOffline}
               style={[styles.toggleSwitch, modoOfflinePrioritario && styles.toggleSwitchActive]}>
               <View style={[styles.toggleKnob, modoOfflinePrioritario && styles.toggleKnobActive]} />
             </Pressable>
@@ -356,7 +454,6 @@ export default function PerfilScreen() {
       <View style={styles.configSection}>
         <View style={styles.sectionHeader}>
           <AppText variant="heading">Privacidade & Localização (LGPD)</AppText>
-          <Pill tone="neutral" icon="shield-checkmark-outline" label={`${sessoesComGpsCount} com GPS`} />
         </View>
 
         <Card style={styles.lgpdCard}>
@@ -364,7 +461,7 @@ export default function PerfilScreen() {
             • Finalidade e Minimização: o GPS é coletado apenas em primeiro plano (foreground) quando você conclui uma sessão com a opção ativa. No Feed, exibimos apenas Bairro/Cidade ou posição aproximada (~1 km).
           </AppText>
           <AppText variant="caption" color={Colors.textSecondary}>
-            • Direito de Eliminação (Art. 18 LGPD): você pode apagar todas as coordenadas salvas mantendo suas horas de estudo e XP.
+            • Direito de Eliminação (Art. 18 LGPD): você pode apagar todas as coordenadas salvas mantendo suas horas de estudo (o bônus de +5 XP por GPS é recalculado).
           </AppText>
           <AppText variant="caption" color={Colors.textSecondary}>
             • Retenção Automática: coordenadas com mais de 90 dias são expurgadas automaticamente durante a sincronização.
@@ -394,15 +491,17 @@ export default function PerfilScreen() {
           icon="log-out-outline"
           onPress={logout}
         />
-        <Button
-          label="Limpar Dados Locais (Reset)"
-          variant="danger"
-          icon="trash-outline"
-          onPress={async () => {
-            await DIContainer.resetarDadosLocais();
-            logout();
-          }}
-        />
+        {/*         
+          <Button
+            label="Limpar Dados Locais (Reset)"
+            variant="danger"
+            icon="trash-outline"
+            onPress={async () => {
+              await DIContainer.resetarDadosLocais();
+              logout();
+            }}
+          />
+        */}
       </View>
 
       {/* Modal de Edição de Perfil */}
@@ -424,7 +523,7 @@ export default function PerfilScreen() {
               </Pressable>
             </View>
 
-            <View style={styles.modalBody}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalBody}>
               {/* Seleção e Visualização de Foto de Perfil */}
               <View style={styles.avatarPickRow}>
                 <View style={styles.largeAvatarCircle}>
@@ -468,7 +567,28 @@ export default function PerfilScreen() {
                 placeholder="@seu_username (ex: @clara_estudante)"
                 hint="Identificador exibido no ranking"
               />
-            </View>
+
+              <View style={styles.metaGroup}>
+                <AppText variant="caption" color={Colors.textSecondary}>
+                  Meta Diária de Estudo
+                </AppText>
+                <View style={styles.metaChipsRow}>
+                  {METAS_OPCOES.map((m) => {
+                    const ativa = metaInput === m;
+                    return (
+                      <Pressable
+                        key={m}
+                        onPress={() => setMetaInput(m)}
+                        style={[styles.metaChip, ativa && styles.metaChipActive]}>
+                        <AppText variant="label" color={ativa ? Colors.primaryText : Colors.text}>
+                          {m}m
+                        </AppText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </ScrollView>
 
             <View style={styles.modalFooter}>
               <Button
@@ -482,6 +602,47 @@ export default function PerfilScreen() {
                 variant="primary"
                 onPress={handleSalvarPerfil}
                 loading={salvandoPerfil}
+                style={styles.modalBtn}
+              />
+            </View>
+          </Card>
+        </View>
+      </Modal>
+
+      {/* Modal de Confirmação LGPD para Excluir Histórico de Localização */}
+      <Modal
+        visible={confirmarLimparGps}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmarLimparGps(false)}>
+        <View style={styles.modalOverlay}>
+          <Card style={styles.confirmCard}>
+            <View style={styles.confirmIconCircle}>
+              <Ionicons name="location-outline" size={26} color={Colors.danger} />
+            </View>
+            <AppText variant="title" style={styles.centerText}>
+              Excluir histórico de localização?
+            </AppText>
+            <AppText variant="body" color={Colors.textSecondary} style={styles.centerText}>
+              Tem certeza que deseja apagar permanentemente as coordenadas de localização{' '}
+              {sessoesComGpsCount > 0
+                ? `de ${sessoesComGpsCount} ${sessoesComGpsCount === 1 ? 'sessão salva' : 'sessões salvas'}`
+                : 'salvas'}{' '}
+              ? Suas horas de estudo serão mantidas e o bônus de GPS (+5 XP por sessão) será recalculado.
+            </AppText>
+            <View style={styles.confirmActionsRow}>
+              <Button
+                label="Cancelar"
+                variant="secondary"
+                onPress={() => setConfirmarLimparGps(false)}
+                style={styles.modalBtn}
+              />
+              <Button
+                testID="confirmar-limpar-localizacao-btn"
+                label="Excluir"
+                variant="danger"
+                icon="trash-outline"
+                onPress={confirmarLimparHistoricoLocalizacao}
                 style={styles.modalBtn}
               />
             </View>
@@ -578,8 +739,24 @@ const useStyles = (Colors: any) => StyleSheet.create({
   modalContainer: {
     width: '100%',
     maxWidth: 400,
+    maxHeight: '85%',
     gap: Spacing.three,
     padding: Spacing.four,
+  },
+  metaGroup: { gap: Spacing.two },
+  metaChipsRow: { flexDirection: 'row', gap: Spacing.two },
+  metaChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceInput,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+  },
+  metaChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -605,6 +782,27 @@ const useStyles = (Colors: any) => StyleSheet.create({
   },
   modalBtn: {
     flex: 1,
+  },
+  confirmCard: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    gap: Spacing.three,
+    padding: Spacing.four,
+  },
+  confirmIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.dangerSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmActionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    width: '100%',
+    marginTop: Spacing.one,
   },
   flex: { flex: 1 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

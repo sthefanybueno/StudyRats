@@ -109,7 +109,17 @@ describe('SupabaseSyncGateway', () => {
       order: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue({
         data: [
-          { id: 'u1', email: 'a@a.com', nome_exibicao: 'Aluno 1', xp_total: 500, xp_semanal: 200, streak_atual: 5 },
+          {
+            id: 'u1',
+            email: 'a@a.com',
+            nome_exibicao: 'Aluno 1',
+            nome_usuario: '@aluno1',
+            foto_url: 'https://cdn.supabase.co/avatar.jpg',
+            meta_diaria_minutos: 120,
+            xp_total: 500,
+            xp_semanal: 200,
+            streak_atual: 5,
+          },
         ],
         error: null,
       }),
@@ -193,6 +203,9 @@ describe('SupabaseSyncGateway', () => {
     expect(mockFrom.limit).toHaveBeenCalledWith(50);
     expect(ranking).toHaveLength(1);
     expect(ranking[0].nomeExibicao).toBe('Aluno 1');
+    expect(ranking[0].nomeUsuario).toBe('@aluno1');
+    expect(ranking[0].fotoUrl).toBe('https://cdn.supabase.co/avatar.jpg');
+    expect(ranking[0].metaDiariaMinutos).toBe(120);
     expect(ranking[0].xpSemanal).toBe(200);
   });
 

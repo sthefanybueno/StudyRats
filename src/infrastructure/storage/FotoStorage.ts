@@ -2,9 +2,13 @@
 import * as FileSystem from 'expo-file-system';
 
 export async function persistirFotoLocal(uriTemp: string): Promise<string> {
+  if (!uriTemp || uriTemp.trim() === '') {
+    throw new Error('URI da foto inválida');
+  }
+
   const dir = new (FileSystem as any).Directory((FileSystem as any).Paths.document, 'fotos_sessao');
   if (!dir.exists) {
-    await dir.create();
+    await dir.create({ idempotent: true });
   }
 
   const arquivoOrigem = new (FileSystem as any).File(uriTemp);

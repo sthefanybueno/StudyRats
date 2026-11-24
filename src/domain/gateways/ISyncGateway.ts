@@ -8,6 +8,11 @@ export interface ISyncGateway {
   fazerUploadFoto(uriLocal: string, caminhoRemoto: string): Promise<string>;
 
   /**
+   * Faz o upload da foto de avatar do perfil e retorna a URL pública para exibição no Ranking/Feed.
+   */
+  fazerUploadAvatar?(uriLocal: string, caminhoRemoto: string): Promise<string>;
+
+  /**
    * Gera URL temporária assinada (createSignedUrl) para acesso seguro a arquivo em bucket privado (PDF 03, slide 28).
    */
   criarUrlAssinadaFoto?(caminhoRemoto: string, expiraEmSegundos?: number): Promise<string | null>;
@@ -26,4 +31,27 @@ export interface ISyncGateway {
    * Executa a política de retenção no servidor (PostGIS/Supabase - expurgar_coordenadas_antigas).
    */
   expurgarCoordenadasAntigas?(diasRetencao: number): Promise<number>;
+
+  /**
+   * Limpa diretamente no servidor as coordenadas do usuário autenticado e retorna quantas sessões foram afetadas.
+   */
+  limparCoordenadasRemotas?(): Promise<number>;
+
+  /**
+   * Consulta diretamente no servidor as estatísticas reais de sessões (e GPS) e XP do usuário autenticado.
+   */
+  obterEstatisticasUsuarioRemoto?(): Promise<{
+    sessoesCount: number;
+    sessoesComGpsCount: number;
+    minutosTotais: number;
+    sessoesResumo?: Array<{
+      id: string;
+      duracaoMinutos: number;
+      comGps: boolean;
+      comFoto: boolean;
+    }>;
+    xpTotal?: number;
+    xpSemanal?: number;
+    streakAtual?: number;
+  } | null>;
 }

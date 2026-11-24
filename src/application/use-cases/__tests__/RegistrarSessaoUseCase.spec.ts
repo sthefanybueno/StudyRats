@@ -263,4 +263,42 @@ describe('RegistrarSessaoUseCase', () => {
     expect(sessaoRepo.sessoes[0].coordenada?.latitude).toBe(-21.5561);
     expect(sessaoRepo.sessoes[0].coordenada?.localAproximado).toBe('Biblioteca Central, Varginha');
   });
+
+  it('deve atualizar o streak do usuário considerando dias seguidos de estudo', async () => {
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+    await sessaoRepo.salvar(
+      SessaoEstudo.create({
+        id: 'sess-ontem',
+        usuarioId: 'user-123',
+        disciplinaId: 'disc-1',
+        topicoId: 'top-1',
+        duracaoMinutos: 20,
+        createdAt: ontem,
+      })
+    );
+
+    const res = await useCase.execute({
+      usuarioId: 'user-123',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 30,
+      comFoto: false,
+    });
+
+    expect(res.isSuccess).toBe(true);
+    const usuario = await usuarioRepo.buscarPorId('user-123');
+    expect(usuario?.streakAtual).toBe(2);
+
+    // Segunda sessão no mesmo dia mantém streak em 2
+    await useCase.execute({
+      usuarioId: 'user-123',
+      disciplinaId: 'disc-1',
+      topicoId: 'top-1',
+      duracaoMinutos: 15,
+      comFoto: false,
+    });
+    const usuarioMesmoDia = await usuarioRepo.buscarPorId('user-123');
+    expect(usuarioMesmoDia?.streakAtual).toBe(2);
+  });
 });

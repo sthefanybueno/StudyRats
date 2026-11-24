@@ -36,8 +36,17 @@ describe('SupabaseFeedGateway', () => {
         if (tabela === 'perfis') return lookupChain([{ id: 'u-1', email: 'ana@test.com', nome_exibicao: 'Ana', xp_total: 250 }]);
         if (tabela === 'disciplinas') return lookupChain([{ id: 'd-1', nome: 'Mobile' }]);
         if (tabela === 'topicos') return lookupChain([{ id: 't-1', nome: 'PostGIS' }]);
+        if (tabela === 'fotos_sessao') return lookupChain([{ id: 'f-1', sessao_id: 's-remota-1', storage_path: 'u-1/s-remota-1.jpg' }]);
         return lookupChain([]);
       }),
+      storage: {
+        from: jest.fn().mockReturnValue({
+          createSignedUrl: jest.fn().mockResolvedValue({
+            data: { signedUrl: 'https://cdn.supabase.co/signed/u-1/s-remota-1.jpg' },
+            error: null,
+          }),
+        }),
+      },
     };
 
     const gateway = new SupabaseFeedGateway(mockClient);
@@ -50,6 +59,7 @@ describe('SupabaseFeedGateway', () => {
     expect(pagina.itens[0].disciplinaNome).toBe('Mobile');
     expect(pagina.itens[0].topicoNome).toBe('PostGIS');
     expect(pagina.itens[0].sessao.coordenada?.localAproximado).toBe('Centro, Varginha');
+    expect(pagina.itens[0].sessao.foto?.urlRemota).toBe('https://cdn.supabase.co/signed/u-1/s-remota-1.jpg');
     expect(pagina.itens[0].sessao.syncStatus.value).toBe('synced');
   });
 

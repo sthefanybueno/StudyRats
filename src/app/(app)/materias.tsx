@@ -2,7 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,8 +13,9 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Card, Pill } from '@/components/ui/Surface';
 import { TextField } from '@/components/ui/TextField';
-import { DisciplinaCores, Radius, Spacing } from '@/constants/theme';
+import { DisciplinaCores, Fonts, Radius, Spacing } from '@/constants/theme';
 import type { Disciplina } from '@/domain/entities/Disciplina';
+import { useNetworkSync } from '@/hooks/useNetworkSync';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from "@/providers/ThemeProvider";
 
@@ -25,9 +26,11 @@ export default function MateriasScreen() {
   const insets = useSafeAreaInsets();
 
   const { usuario } = useAuth();
+  const { isOnline, sincronizarManualmente } = useNetworkSync();
   const { novo } = useLocalSearchParams<{ novo?: string }>();
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [, setCarregando] = useState(true);
+  const [atualizando, setAtualizando] = useState(false);
 
   // Form para Cadastrar Nova Matéria
   const [mostrarFormMateria, setMostrarFormMateria] = useState(false);
@@ -44,6 +47,9 @@ export default function MateriasScreen() {
   const [topicoEditandoId, setTopicoEditandoId] = useState<string | null>(null);
   const [nomeTopicoEditando, setNomeTopicoEditando] = useState('');
   const [erroTopicoEditando, setErroTopicoEditando] = useState<string | null>(null);
+
+  // Confirmação de Exclusão de Matéria
+  const [disciplinaParaDeletar, setDisciplinaParaDeletar] = useState<Disciplina | null>(null);
 
   // Carregar Disciplinas Locais
   const carregarDisciplinas = useCallback(async () => {
@@ -70,6 +76,16 @@ export default function MateriasScreen() {
       carregarDisciplinas();
     }, [carregarDisciplinas])
   );
+
+  const handleAtualizar = useCallback(async () => {
+    setAtualizando(true);
+    try {
+      await sincronizarManualmente();
+      await carregarDisciplinas();
+    } finally {
+      setAtualizando(false);
+    }
+  }, [sincronizarManualmente, carregarDisciplinas]);
 
   // Vindo da Sessão de Foco sem disciplinas: abre direto o formulário de nova matéria
   useFocusEffect(
@@ -164,10 +180,17 @@ export default function MateriasScreen() {
     }
   };
 
-  // Excluir Matéria (Soft Delete)
-  const handleDeletarMateria = async (d: Disciplina) => {
-    d.marcarComoDeletada();
-    await DIContainer.repositories.disciplina.salvar(d);
+  // Solicitar confirmação antes de excluir Matéria
+  const handleDeletarMateria = (d: Disciplina) => {
+    setDisciplinaParaDeletar(d);
+  };
+
+  // Confirmar exclusão de Matéria (Soft Delete + Outbox Sync)
+  const confirmarDeletarMateria = async () => {
+    if (!disciplinaParaDeletar) return;
+    const d = disciplinaParaDeletar;
+    setDisciplinaParaDeletar(null);
+    await DIContainer.deletarDisciplina.execute({ disciplinaId: d.id });
     if (disciplinaSelecionada?.id === d.id) {
       setDisciplinaSelecionada(null);
     }
@@ -175,12 +198,12 @@ export default function MateriasScreen() {
   };
 
   return (
-    <Screen contentStyle={styles.content} edges={['top']}>
+    <Screen contentStyle={styles.content} edges={['top']} refreshing={atualizando} onRefresh={handleAtualizar}>
       {/* Top Header */}
       <View style={styles.topHeader}>
         <BrandMark subtitle="Gerenciamento de Matérias" />
         <View style={styles.topHeaderRight}>
-          <Pill tone="success" dot label="Sync Local" />
+          <Pill tone={isOnline ? 'success' : 'warning'} dot label={isOnline ? 'Online' : 'Offline'} />
           <View style={styles.avatarBox}>
             <AppText variant="label" color={Colors.primary}>
               {usuario?.nomeExibicao[0]?.toUpperCase()}
@@ -197,14 +220,13 @@ export default function MateriasScreen() {
             {disciplinas.length} {disciplinas.length === 1 ? 'matéria cadastrada' : 'matérias cadastradas'}
           </AppText>
         </View>
-        <Pill tone="primary" icon="book-outline" label={`${disciplinas.reduce((acc, d) => acc + d.topicos.length, 0)} tópicos`} />
       </View>
 
       {/* Botão de Cadastrar Nova Matéria */}
       <Animated.View entering={FadeInDown.duration(450)}>
         <Button
           testID="btn-cadastrar-materia"
-          label={mostrarFormMateria ? 'Cancelar Cadastro' : '+ Cadastrar Nova Matéria'}
+          label={mostrarFormMateria ? 'Cancelar Cadastro' : 'Cadastrar Nova Matéria'}
           variant={mostrarFormMateria ? 'secondary' : 'primary'}
           icon={mostrarFormMateria ? 'close-circle-outline' : 'add-circle-outline'}
           onPress={() => setMostrarFormMateria(f => !f)}
@@ -252,7 +274,6 @@ export default function MateriasScreen() {
         <AppText variant="overline" color={Colors.textSecondary}>
           SUAS DISCIPLINAS
         </AppText>
-        <Pill tone="success" icon="cloud-done-outline" label="Banco Local Atualizado" />
       </View>
 
       {disciplinas.length === 0 ? (
@@ -262,7 +283,7 @@ export default function MateriasScreen() {
             Nenhuma matéria cadastrada
           </AppText>
           <AppText variant="caption" color={Colors.textSecondary} style={styles.centerText}>
-            Clique no botão &quot;+ Cadastrar Nova Matéria&quot; para adicionar suas disciplinas do semestre!
+            Clique no botão &quot;Cadastrar Nova Matéria&quot; para adicionar suas disciplinas do semestre!
           </AppText>
         </Card>
       ) : (
@@ -300,7 +321,6 @@ export default function MateriasScreen() {
                     </AppText>
                     <Ionicons name="chevron-forward" size={16} color={disc.cor} />
                   </View>
-                  <Pill tone="success" dot label="Salvo localmente" />
                 </View>
               </Card>
             </Pressable>
@@ -320,7 +340,7 @@ export default function MateriasScreen() {
               <>
                 {/* Header do Modal */}
                 <View style={styles.modalHeader}>
-                  <View style={styles.rowGap}>
+                  <View style={styles.modalHeaderLeft}>
                     <View
                       style={[
                         styles.materiaIconBox,
@@ -328,9 +348,11 @@ export default function MateriasScreen() {
                       ]}>
                       <Ionicons name="journal" size={22} color={disciplinaSelecionada.cor} />
                     </View>
-                    <View style={styles.flex}>
-                      <AppText variant="heading">{disciplinaSelecionada.nome}</AppText>
-                      <AppText variant="caption" color={Colors.textSecondary}>
+                    <View style={styles.modalHeaderTitleBox}>
+                      <AppText variant="heading" numberOfLines={1}>
+                        {disciplinaSelecionada.nome}
+                      </AppText>
+                      <AppText variant="caption" color={Colors.textSecondary} numberOfLines={1}>
                         Gerenciar tópicos de estudo
                       </AppText>
                     </View>
@@ -363,39 +385,56 @@ export default function MateriasScreen() {
                       {disciplinaSelecionada.topicos.map((topico, idx) => (
                         <View key={topico.id} style={styles.topicoCard}>
                           {topicoEditandoId === topico.id ? (
-                            <View style={styles.editTopicoRow}>
-                              <TextField
-                                label=""
-                                icon="pencil-outline"
-                                placeholder="Nome do tópico"
-                                value={nomeTopicoEditando}
-                                onChangeText={setNomeTopicoEditando}
-                                error={erroTopicoEditando}
-                                style={styles.flex}
-                              />
-                              <Pressable
-                                style={styles.iconBtnAction}
-                                onPress={() => handleSalvarEdicaoTopico(topico.id)}>
-                                <Ionicons name="checkmark-circle" size={22} color={Colors.success} />
-                              </Pressable>
-                              <Pressable
-                                style={styles.iconBtnAction}
-                                onPress={() => {
-                                  setTopicoEditandoId(null);
-                                  setErroTopicoEditando(null);
-                                }}>
-                                <Ionicons name="close-circle-outline" size={22} color={Colors.textMuted} />
-                              </Pressable>
+                            <View style={styles.editTopicoContainer}>
+                              <View style={styles.editTopicoRow}>
+                                <View style={styles.editTopicoInputBox}>
+                                  <Ionicons name="pencil-outline" size={16} color={Colors.primary} />
+                                  <TextInput
+                                    value={nomeTopicoEditando}
+                                    onChangeText={t => {
+                                      setNomeTopicoEditando(t);
+                                      if (erroTopicoEditando) setErroTopicoEditando(null);
+                                    }}
+                                    placeholder="Nome do tópico"
+                                    placeholderTextColor={Colors.textMuted}
+                                    selectionColor={Colors.primary}
+                                    autoFocus
+                                    returnKeyType="done"
+                                    onSubmitEditing={() => handleSalvarEdicaoTopico(topico.id)}
+                                    style={styles.editTopicoInput}
+                                  />
+                                </View>
+                                <Pressable
+                                  hitSlop={8}
+                                  style={[styles.iconBtnAction, { backgroundColor: Colors.successSoft }]}
+                                  onPress={() => handleSalvarEdicaoTopico(topico.id)}>
+                                  <Ionicons name="checkmark" size={20} color={Colors.success} />
+                                </Pressable>
+                                <Pressable
+                                  hitSlop={8}
+                                  style={styles.iconBtnAction}
+                                  onPress={() => {
+                                    setTopicoEditandoId(null);
+                                    setErroTopicoEditando(null);
+                                  }}>
+                                  <Ionicons name="close" size={20} color={Colors.textSecondary} />
+                                </Pressable>
+                              </View>
+                              {erroTopicoEditando ? (
+                                <AppText variant="caption" color={Colors.danger}>
+                                  {erroTopicoEditando}
+                                </AppText>
+                              ) : null}
                             </View>
                           ) : (
                             <>
-                              <View style={styles.rowGap}>
+                              <View style={styles.topicoInfoRow}>
                                 <View style={[styles.topicoNumberBadge, { backgroundColor: disciplinaSelecionada.cor + '22' }]}>
                                   <AppText variant="caption" color={disciplinaSelecionada.cor} style={styles.boldText}>
                                     #{idx + 1}
                                   </AppText>
                                 </View>
-                                <AppText variant="body" style={styles.flex}>
+                                <AppText variant="body" style={styles.topicoNomeText}>
                                   {topico.nome}
                                 </AppText>
                               </View>
@@ -448,6 +487,52 @@ export default function MateriasScreen() {
               </>
             )}
           </View>
+        </View>
+      </Modal>
+
+      {/* Modal de Confirmação para Apagar Disciplina */}
+      <Modal
+        visible={!!disciplinaParaDeletar}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setDisciplinaParaDeletar(null)}>
+        <View style={styles.confirmOverlay}>
+          <Card style={styles.confirmCard}>
+            <View style={styles.confirmIconCircle}>
+              <Ionicons name="trash-outline" size={26} color={Colors.danger} />
+            </View>
+            <AppText variant="title" style={styles.centerText}>
+              Apagar disciplina?
+            </AppText>
+            <AppText variant="body" color={Colors.textSecondary} style={styles.centerText}>
+              Tem certeza que deseja apagar{' '}
+              <AppText variant="label" color={Colors.text}>
+                {disciplinaParaDeletar?.nome}
+              </AppText>
+              {disciplinaParaDeletar && disciplinaParaDeletar.topicos.length > 0
+                ? ` e seus ${disciplinaParaDeletar.topicos.length} ${
+                    disciplinaParaDeletar.topicos.length === 1 ? 'tópico' : 'tópicos'
+                  }`
+                : ''}
+              ?
+            </AppText>
+            <View style={styles.confirmActionsRow}>
+              <Button
+                label="Cancelar"
+                variant="secondary"
+                onPress={() => setDisciplinaParaDeletar(null)}
+                style={styles.flex}
+              />
+              <Button
+                testID="confirmar-apagar-disciplina-btn"
+                label="Apagar"
+                variant="danger"
+                icon="trash-outline"
+                onPress={confirmarDeletarMateria}
+                style={styles.flex}
+              />
+            </View>
+          </Card>
         </View>
       </Modal>
     </Screen>
@@ -505,10 +590,22 @@ const useStyles = (Colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.two,
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+  },
+  modalHeaderLeft: {
+    flex: 1,
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 2,
+  },
+  modalHeaderTitleBox: {
+    flex: 1,
+    flexShrink: 1,
   },
   closeBtn: {
     width: 36,
@@ -517,6 +614,7 @@ const useStyles = (Colors: any) => StyleSheet.create({
     backgroundColor: Colors.surfaceInput,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   modalBody: {
     padding: Spacing.four,
@@ -534,6 +632,7 @@ const useStyles = (Colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.two,
     backgroundColor: Colors.surfaceInput,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.three - 2,
@@ -541,16 +640,52 @@ const useStyles = (Colors: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
+  topicoInfoRow: {
+    flex: 1,
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 2,
+  },
+  topicoNomeText: {
+    flex: 1,
+    flexShrink: 1,
+  },
+  editTopicoContainer: {
+    flex: 1,
+    width: '100%',
+    gap: Spacing.one + 2,
+  },
   editTopicoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    width: '100%',
+  },
+  editTopicoInputBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+    backgroundColor: Colors.surfaceRaised,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.three - 2,
+    minHeight: 44,
+  },
+  editTopicoInput: {
+    flex: 1,
+    color: Colors.text,
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    paddingVertical: 8,
   },
   topicoActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+    flexShrink: 0,
   },
   iconBtnAction: {
     padding: 6,
@@ -571,6 +706,34 @@ const useStyles = (Colors: any) => StyleSheet.create({
     padding: Spacing.four - 4,
     marginTop: Spacing.two,
     borderColor: Colors.primary,
+  },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.four,
+  },
+  confirmCard: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    gap: Spacing.three,
+    padding: Spacing.four,
+  },
+  confirmIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.dangerSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmActionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    width: '100%',
+    marginTop: Spacing.one,
   },
 
   flex: { flex: 1 },

@@ -55,7 +55,6 @@ export default function CadastroScreen() {
         <View style={styles.perks}>
           <Pill tone="primary" icon="flash" label="+10 XP por sessão" />
           <Pill tone="warning" icon="flame" label="Bônus de streak" />
-          <Pill tone="success" icon="cloud-offline" label="100% Offline-first" />
         </View>
       </Animated.View>
 

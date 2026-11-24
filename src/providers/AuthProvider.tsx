@@ -8,6 +8,7 @@ export interface AtualizarPerfilPayload {
   nomeExibicao?: string;
   nomeUsuario?: string;
   fotoUrl?: string;
+  metaDiariaMinutos?: number;
 }
 
 interface AuthContextValue {

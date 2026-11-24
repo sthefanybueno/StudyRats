@@ -19,7 +19,13 @@ interface SyncQueueRow {
 export const MAX_TENTATIVAS = 5;
 
 export class SQLiteSyncQueueRepository implements ISyncQueueRepository {
+  private aoEnfileirarCallback?: () => void;
+
   constructor(private readonly getDb: () => Promise<SQLiteExecutor> = getDatabase) {}
+
+  definirCallbackAoEnfileirar(callback: () => void): void {
+    this.aoEnfileirarCallback = callback;
+  }
 
   async enfileirar(item: SyncQueueItem): Promise<void> {
     const db = await this.getDb();
@@ -45,6 +51,7 @@ export class SQLiteSyncQueueRepository implements ISyncQueueRepository {
         item.createdAt.toISOString(),
       ]
     );
+    this.aoEnfileirarCallback?.();
   }
 
   async buscarPendentes(limite: number = 10): Promise<SyncQueueItem[]> {
@@ -83,6 +90,15 @@ export class SQLiteSyncQueueRepository implements ISyncQueueRepository {
        SET tentativas = ?, erro_msg = ?, status = ?
        WHERE id = ?;`,
       [item.tentativas, item.erroMsg ?? null, item.status, item.id]
+    );
+  }
+
+  async resetarFalhas(): Promise<void> {
+    const db = await this.getDb();
+    await db.runAsync(
+      `UPDATE sync_queue
+       SET tentativas = 0, status = 'pending'
+       WHERE status = 'error';`
     );
   }
 }

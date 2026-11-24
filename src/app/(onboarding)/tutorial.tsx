@@ -66,8 +66,13 @@ export default function OnboardingTutorial() {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
 
-  const { usuario, concluirOnboarding } = useAuth();
+  const { usuario, atualizarPerfil, concluirOnboarding } = useAuth();
   const { metaMinutos } = useOnboarding();
+
+  const handleConcluirOnboarding = async () => {
+    await atualizarPerfil({ metaDiariaMinutos: metaMinutos }).catch(() => {});
+    concluirOnboarding();
+  };
 
   return (
     <Screen
@@ -76,7 +81,7 @@ export default function OnboardingTutorial() {
           testID="onboarding-concluir"
           label="Começar a estudar"
           icon="rocket-outline"
-          onPress={concluirOnboarding}
+          onPress={handleConcluirOnboarding}
         />
       }>
       <OnboardingHeader step={3} />

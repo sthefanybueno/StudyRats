@@ -21,4 +21,9 @@ export interface ISyncQueueRepository {
    * Atualiza o status e contagem de tentativas após uma falha de sincronização.
    */
   registrarFalha(item: SyncQueueItem): Promise<void>;
+
+  /**
+   * Reabilita itens com falha na fila local para nova tentativa de sincronização.
+   */
+  resetarFalhas?(): Promise<void>;
 }

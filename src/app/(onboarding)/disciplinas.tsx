@@ -2,7 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { DIContainer } from '@/application/di/container';
@@ -29,6 +29,7 @@ export default function OnboardingDisciplinas() {
   const [cor, setCor] = useState<string>(DisciplinaCores[0]);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  const [disciplinaParaRemover, setDisciplinaParaRemover] = useState<Disciplina | null>(null);
 
   const jaAdicionada = (n: string) => disciplinas.some(d => d.nome.toLowerCase() === n.trim().toLowerCase());
 
@@ -55,9 +56,15 @@ export default function OnboardingDisciplinas() {
     setCor(DisciplinaCores[(idx + 1) % DisciplinaCores.length]);
   };
 
-  const remover = async (disciplina: Disciplina) => {
-    disciplina.marcarComoDeletada(); // soft delete (RF05)
-    await DIContainer.repositories.disciplina.salvar(disciplina);
+  const remover = (disciplina: Disciplina) => {
+    setDisciplinaParaRemover(disciplina);
+  };
+
+  const confirmarRemocao = async () => {
+    if (!disciplinaParaRemover) return;
+    const disciplina = disciplinaParaRemover;
+    setDisciplinaParaRemover(null);
+    await DIContainer.deletarDisciplina.execute({ disciplinaId: disciplina.id });
     setDisciplinas(prev => prev.filter(d => d.id !== disciplina.id));
   };
 
@@ -152,7 +159,6 @@ export default function OnboardingDisciplinas() {
             <AppText variant="overline" color={Colors.textSecondary}>
               Suas disciplinas
             </AppText>
-            <Pill tone="success" icon="cloud-done-outline" label="Salvo no aparelho" />
           </View>
           {disciplinas.map(d => (
             <Animated.View key={d.id} entering={FadeInDown.springify()} exiting={FadeOut} layout={LinearTransition}>
@@ -177,6 +183,38 @@ export default function OnboardingDisciplinas() {
           ))}
         </View>
       )}
+
+      <Modal
+        visible={!!disciplinaParaRemover}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setDisciplinaParaRemover(null)}>
+        <View style={styles.confirmOverlay}>
+          <Card style={styles.confirmCard}>
+            <AppText variant="title" style={styles.centerText}>
+              Apagar disciplina?
+            </AppText>
+            <AppText variant="body" color={Colors.textSecondary} style={styles.centerText}>
+              Deseja realmente remover &quot;{disciplinaParaRemover?.nome}&quot;?
+            </AppText>
+            <View style={styles.confirmActionsRow}>
+              <Button
+                label="Cancelar"
+                variant="secondary"
+                onPress={() => setDisciplinaParaRemover(null)}
+                style={styles.flex}
+              />
+              <Button
+                label="Apagar"
+                variant="danger"
+                icon="trash-outline"
+                onPress={confirmarRemocao}
+                style={styles.flex}
+              />
+            </View>
+          </Card>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -213,4 +251,24 @@ const useStyles = (Colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.four,
+  },
+  confirmCard: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    gap: Spacing.three,
+    padding: Spacing.four,
+  },
+  confirmActionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    width: '100%',
+  },
+  centerText: { textAlign: 'center' },
 });

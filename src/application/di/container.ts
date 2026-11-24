@@ -21,6 +21,7 @@ import { AutenticarUsuarioUseCase } from '../use-cases/AutenticarUsuarioUseCase'
 import { CadastrarUsuarioUseCase } from '../use-cases/CadastrarUsuarioUseCase';
 import { AtualizarPerfilUseCase } from '../use-cases/AtualizarPerfilUseCase';
 import { CadastrarDisciplinaUseCase } from '../use-cases/CadastrarDisciplinaUseCase';
+import { DeletarDisciplinaUseCase } from '../use-cases/DeletarDisciplinaUseCase';
 import { CadastrarTopicoUseCase } from '../use-cases/CadastrarTopicoUseCase';
 import { AtualizarTopicoUseCase } from '../use-cases/AtualizarTopicoUseCase';
 import { DeletarTopicoUseCase } from '../use-cases/DeletarTopicoUseCase';
@@ -64,8 +65,9 @@ export const DIContainer = {
     await sessionStorage.removerSessionToken();
     await authGateway.logout();
   },
-  limparHistoricoLocalizacao: new LimparHistoricoLocalizacaoUseCase(sessaoEstudoRepository, syncQueueRepository),
+  limparHistoricoLocalizacao: new LimparHistoricoLocalizacaoUseCase(sessaoEstudoRepository, syncQueueRepository, usuarioRepository, syncGateway),
   cadastrarDisciplina: new CadastrarDisciplinaUseCase(disciplinaRepository, syncQueueRepository),
+  deletarDisciplina: new DeletarDisciplinaUseCase(disciplinaRepository, syncQueueRepository),
   cadastrarTopico: new CadastrarTopicoUseCase(disciplinaRepository, syncQueueRepository),
   atualizarTopico: new AtualizarTopicoUseCase(disciplinaRepository, syncQueueRepository),
   deletarTopico: new DeletarTopicoUseCase(disciplinaRepository, syncQueueRepository),
@@ -73,13 +75,14 @@ export const DIContainer = {
   registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway, locationGateway, syncQueueRepository),
   consultarRanking: new ConsultarRankingUseCase(syncGateway),
   listarFeed: new ListarFeedUseCase(sessaoEstudoRepository, usuarioRepository, disciplinaRepository, feedGateway, locationGateway),
-  sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway, sessaoEstudoRepository),
+  sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway, sessaoEstudoRepository, usuarioRepository),
 
   // Gateways expostos para consumo direto pela camada de apresentação (ex.: captura de GPS na sessão e eventos de Auth)
   gateways: {
     auth: authGateway,
     camera: cameraGateway,
     location: locationGateway,
+    sync: syncGateway,
   },
 
   // Repositórios
@@ -90,3 +93,9 @@ export const DIContainer = {
     syncQueue: syncQueueRepository,
   }
 };
+
+// Dispara sincronização em background imediatamente ao enfileirar qualquer item na Outbox (online-first + fallback periódico)
+syncQueueRepository.definirCallbackAoEnfileirar(() => {
+  if (process.env.NODE_ENV === 'test') return;
+  void DIContainer.sincronizarFila.execute().catch(() => {});
+});

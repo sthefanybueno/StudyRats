@@ -7,6 +7,7 @@ export interface UsuarioProps {
   nomeExibicao: string;
   nomeUsuario?: string;
   fotoUrl?: string;
+  metaDiariaMinutos?: number;
   xpTotal?: number;
   xpSemanal?: number;
   streakAtual?: number;
@@ -35,6 +36,10 @@ export class Usuario {
     return this.props.fotoUrl;
   }
 
+  public get metaDiariaMinutos(): number {
+    return this.props.metaDiariaMinutos || 60;
+  }
+
   public get xpTotal(): number {
     return this.props.xpTotal || 0;
   }
@@ -55,12 +60,27 @@ export class Usuario {
     this.props.xpSemanal = this.xpSemanal + xp;
   }
 
+  public descontarXP(xp: number): void {
+    if (xp < 0) {
+      throw new Error('Não é possível descontar XP negativo');
+    }
+    this.props.xpTotal = Math.max(0, this.xpTotal - xp);
+    this.props.xpSemanal = Math.max(0, this.xpSemanal - xp);
+  }
+
   public incrementarStreak(): void {
     this.props.streakAtual = this.streakAtual + 1;
   }
 
   public resetarStreak(): void {
     this.props.streakAtual = 0;
+  }
+
+  public atualizarStreak(novoStreak: number): void {
+    if (!Number.isFinite(novoStreak) || novoStreak < 0) {
+      throw new Error('O streak não pode ser negativo');
+    }
+    this.props.streakAtual = Math.floor(novoStreak);
   }
 
   public atualizarNomeExibicao(novoNome: string): void {
@@ -90,6 +110,13 @@ export class Usuario {
     this.props.fotoUrl = novaFotoUrl && novaFotoUrl.trim() !== '' ? novaFotoUrl.trim() : undefined;
   }
 
+  public atualizarMetaDiariaMinutos(minutos: number): void {
+    if (!Number.isFinite(minutos) || minutos < 5 || minutos > 720) {
+      throw new Error('A meta diária deve estar entre 5 e 720 minutos');
+    }
+    this.props.metaDiariaMinutos = Math.round(minutos);
+  }
+
   public static create(props: Omit<UsuarioProps, 'email'> & { email: string | Email }): Usuario {
     if (!props.id || props.id.trim() === '') {
       throw new Error('O ID do usuário (Auth) é obrigatório');
@@ -110,11 +137,17 @@ export class Usuario {
       nomeUsuarioFormatado = limpo;
     }
 
+    const metaValida =
+      typeof props.metaDiariaMinutos === 'number' && Number.isFinite(props.metaDiariaMinutos) && props.metaDiariaMinutos >= 5
+        ? Math.round(props.metaDiariaMinutos)
+        : 60;
+
     return new Usuario({
       ...props,
       email,
       nomeUsuario: nomeUsuarioFormatado,
       fotoUrl: props.fotoUrl,
+      metaDiariaMinutos: metaValida,
       xpTotal: props.xpTotal ?? 0,
       xpSemanal: props.xpSemanal ?? 0,
       streakAtual: props.streakAtual ?? 0,

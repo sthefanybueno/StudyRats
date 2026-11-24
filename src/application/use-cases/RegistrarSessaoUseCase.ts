@@ -8,6 +8,7 @@ import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueReposi
 import { ICameraGateway } from '../../domain/gateways/ICameraGateway';
 import { ILocationGateway } from '../../domain/gateways/ILocationGateway';
 import { CalculoXpService } from '../../domain/services/CalculoXpService';
+import { CalculoStreakService } from '../../domain/services/CalculoStreakService';
 import { Coordenada } from '../../domain/value-objects/Coordenada';
 
 export interface RegistrarSessaoRequest {
@@ -85,13 +86,18 @@ export class RegistrarSessaoUseCase {
         }
       }
 
-      // 5. Adicionar recompensa (XP) ao usuário com bônus de foto (+10), GPS (+5) e foco >= 45m (+15)
+      // 5. Adicionar recompensa (XP) e recalcular dias seguidos (Streak real)
       const xpGanho = CalculoXpService.calcular({
         duracaoMinutos: request.duracaoMinutos,
         comFoto: !!sessao.foto,
         comGps: !!sessao.coordenada,
       });
       usuario.adicionarXP(xpGanho);
+
+      const sessoesAnteriores = await this.sessaoRepository.listarPorUsuario(request.usuarioId);
+      const datasComAtual = [...sessoesAnteriores.map((s) => s.createdAt), sessao.createdAt];
+      const streakCalculado = CalculoStreakService.calcular(datasComAtual, sessao.createdAt);
+      usuario.atualizarStreak(Math.max(1, streakCalculado));
 
       // 6. Salvar agregados
       await this.sessaoRepository.salvar(sessao);

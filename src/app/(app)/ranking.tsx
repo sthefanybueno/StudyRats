@@ -22,6 +22,7 @@ export default function RankingScreen() {
   const { usuario } = useAuth();
   const [usuariosRanking, setUsuariosRanking] = useState<Usuario[]>([]);
   const [, setCarregando] = useState(true);
+  const [atualizando, setAtualizando] = useState(false);
   const [origem, setOrigem] = useState<'nuvem' | 'local'>('local');
 
   // Carregar ranking do Supabase (com fallback local se offline)
@@ -61,6 +62,16 @@ export default function RankingScreen() {
     }, [carregarRanking])
   );
 
+  const handleAtualizar = useCallback(async () => {
+    setAtualizando(true);
+    try {
+      await DIContainer.sincronizarFila.execute().catch(() => {});
+      await carregarRanking();
+    } finally {
+      setAtualizando(false);
+    }
+  }, [carregarRanking]);
+
   const userRankIndex = usuariosRanking.findIndex(u => u.id === usuario?.id);
   const userRank = userRankIndex >= 0 ? userRankIndex + 1 : 1;
   const userXp = usuario?.xpTotal ?? 0;
@@ -72,7 +83,7 @@ export default function RankingScreen() {
   const usuarioTop3 = usuariosRanking[2];
 
   return (
-    <Screen contentStyle={styles.content} edges={['top']}>
+    <Screen contentStyle={styles.content} edges={['top']} refreshing={atualizando} onRefresh={handleAtualizar}>
       {/* Header Superior */}
       <View style={styles.topHeader}>
         <BrandMark subtitle={origem === 'nuvem' ? 'Ranking Global' : 'Ranking Local'} />
@@ -95,7 +106,7 @@ export default function RankingScreen() {
         <View style={styles.rowGap}>
           <View style={styles.greenDot} />
           <AppText variant="caption" color={Colors.textSecondary}>
-            {origem === 'nuvem' ? 'Ranking Global Atualizado' : 'Ranking Local (sem conexão)'} • <AppText variant="caption" color={Colors.text} style={styles.boldText}>{usuariosRanking.length} {usuariosRanking.length === 1 ? 'Usuário Cadastrado' : 'Usuários Cadastrados'}</AppText>
+            {origem === 'nuvem' ? 'Ranking Global Atualizado' : 'Ranking Local (sem conexão)'}
           </AppText>
         </View>
         <Ionicons name="people-outline" size={16} color={Colors.textMuted} />
@@ -139,114 +150,109 @@ export default function RankingScreen() {
       <View style={styles.podioSection}>
         <View style={styles.sectionHeader}>
           <AppText variant="heading">🏆 Pódio dos Estudantes</AppText>
-          <Pill tone="primary" label={`${usuariosRanking.length} Cadastrado(s)`} />
+          <Pill tone="primary" label={`${usuariosRanking.length} ${usuariosRanking.length === 1 ? 'Estudante' : 'Estudantes'}`} />
         </View>
 
         <View style={styles.podioRow}>
-          {/* #2 Lugar */}
-          {usuarioTop2 ? (
-            <View style={[styles.podioCard, styles.podioCard2]}>
-              <View style={[styles.avatarCircle, { borderColor: '#A0AEC0' }]}>
-                {usuarioTop2.fotoUrl ? (
-                  <Image source={{ uri: usuarioTop2.fotoUrl }} style={styles.podioAvatarImage} />
-                ) : (
-                  <AppText variant="label" color="#A0AEC0">
-                    {usuarioTop2.nomeExibicao[0]?.toUpperCase()}
-                  </AppText>
-                )}
-              </View>
-              <Pill tone="neutral" label="#2" />
-              <AppText variant="label" numberOfLines={1} style={styles.centerText}>
-                {usuarioTop2.nomeExibicao}
-              </AppText>
-              {usuarioTop2.nomeUsuario ? (
-                <AppText variant="caption" color={Colors.textSecondary} style={styles.centerText}>
-                  {usuarioTop2.nomeUsuario}
-                </AppText>
-              ) : null}
-              <AppText variant="heading" color={Colors.primary}>
-                {usuarioTop2.xpTotal}
-              </AppText>
-              <AppText variant="caption" color={Colors.textSecondary}>
-                XP
-              </AppText>
-            </View>
-          ) : (
-            <View style={[styles.podioCard, styles.podioCard2, styles.podioEmpty]}>
-              <Ionicons name="person-outline" size={24} color={Colors.textMuted} />
-              <AppText variant="caption" color={Colors.textMuted}>
-                Vago
-              </AppText>
-            </View>
-          )}
+          {[
+            { pos: 2 as const, membro: usuarioTop2, corBorda: '#A0AEC0', corTexto: '#A0AEC0', corFundo: Colors.surface, cardStyle: styles.podioCard2 },
+            { pos: 1 as const, membro: usuarioTop1, corBorda: Colors.primary, corTexto: Colors.primary, corFundo: Colors.primarySoft, cardStyle: styles.podioCard1 },
+            { pos: 3 as const, membro: usuarioTop3, corBorda: '#CD7F32', corTexto: '#CD7F32', corFundo: Colors.surface, cardStyle: styles.podioCard3 },
+          ].map(({ pos, membro, corBorda, corTexto, corFundo, cardStyle }) => {
+            const isPrimeiro = pos === 1;
 
-          {/* #1 Lugar (Destaque Central) */}
-          {usuarioTop1 && (
-            <View style={[styles.podioCard, styles.podioCard1]}>
-              <View style={styles.crownBox}>
-                <Ionicons name="star" size={16} color={Colors.primary} />
-              </View>
-              <View style={[styles.avatarCircle, styles.avatarCircle1]}>
-                {usuarioTop1.fotoUrl ? (
-                  <Image source={{ uri: usuarioTop1.fotoUrl }} style={styles.podioAvatarImage1} />
-                ) : (
-                  <AppText variant="title" color={Colors.primary}>
-                    {usuarioTop1.nomeExibicao[0]?.toUpperCase()}
+            if (!membro) {
+              return (
+                <View key={pos} style={[styles.podioCard, cardStyle, styles.podioEmpty]}>
+                  <View style={[styles.podioRankTag, { backgroundColor: Colors.surfaceRaised, borderColor: Colors.border }]}>
+                    <AppText variant="caption" color={Colors.textMuted} style={styles.boldText}>
+                      #{pos}
+                    </AppText>
+                  </View>
+                  <View style={styles.podioEmptyAvatar}>
+                    <Ionicons name="person-outline" size={20} color={Colors.textMuted} />
+                  </View>
+                  <AppText variant="caption" color={Colors.textMuted} style={styles.centerText}>
+                    Vago
                   </AppText>
-                )}
-              </View>
-              <Pill tone="primary" label="#1" />
-              <AppText variant="heading" numberOfLines={1} style={styles.centerText}>
-                {usuarioTop1.nomeExibicao}
-              </AppText>
-              <AppText variant="caption" color={Colors.primary} style={styles.centerText}>
-                {usuarioTop1.nomeUsuario || (usuarioTop1.id === usuario?.id ? 'Você' : 'Líder')}
-              </AppText>
-              <AppText variant="display" color={Colors.primary}>
-                {usuarioTop1.xpTotal}
-              </AppText>
-              <AppText variant="caption" color={Colors.textSecondary}>
-                XP TOTAL
-              </AppText>
-            </View>
-          )}
+                </View>
+              );
+            }
 
-          {/* #3 Lugar */}
-          {usuarioTop3 ? (
-            <View style={[styles.podioCard, styles.podioCard3]}>
-              <View style={[styles.avatarCircle, { borderColor: '#CD7F32' }]}>
-                {usuarioTop3.fotoUrl ? (
-                  <Image source={{ uri: usuarioTop3.fotoUrl }} style={styles.podioAvatarImage} />
-                ) : (
-                  <AppText variant="label" color="#CD7F32">
-                    {usuarioTop3.nomeExibicao[0]?.toUpperCase()}
-                  </AppText>
+            const isEu = membro.id === usuario?.id;
+            const subtitulo = membro.nomeUsuario || (isEu ? 'Você' : undefined);
+
+            return (
+              <View
+                key={pos}
+                style={[
+                  styles.podioCard,
+                  cardStyle,
+                  { borderColor: corBorda, backgroundColor: isPrimeiro ? corFundo : Colors.surface },
+                ]}>
+                {isPrimeiro && (
+                  <View style={styles.crownBox}>
+                    <Ionicons name="trophy" size={16} color={Colors.primary} />
+                  </View>
                 )}
+
+                <View style={styles.podioAvatarWrap}>
+                  <View
+                    style={[
+                      styles.avatarCircle,
+                      isPrimeiro && styles.avatarCircle1,
+                      { borderColor: corBorda },
+                    ]}>
+                    {membro.fotoUrl ? (
+                      <Image
+                        source={{ uri: membro.fotoUrl }}
+                        style={isPrimeiro ? styles.podioAvatarImage1 : styles.podioAvatarImage}
+                      />
+                    ) : (
+                      <AppText variant={isPrimeiro ? 'title' : 'heading'} color={corTexto}>
+                        {membro.nomeExibicao[0]?.toUpperCase()}
+                      </AppText>
+                    )}
+                  </View>
+                  <View style={[styles.podioMedalBadge, { backgroundColor: isPrimeiro ? Colors.primary : corBorda }]}>
+                    <AppText variant="caption" color={isPrimeiro ? Colors.primaryText : '#111827'} style={styles.podioMedalText}>
+                      #{pos}
+                    </AppText>
+                  </View>
+                </View>
+
+                <View style={styles.podioNameBlock}>
+                  <AppText
+                    variant={isPrimeiro ? 'heading' : 'label'}
+                    numberOfLines={1}
+                    style={styles.centerText}>
+                    {membro.nomeExibicao}
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    color={isPrimeiro ? Colors.primary : Colors.textSecondary}
+                    numberOfLines={1}
+                    style={styles.centerText}>
+                    {subtitulo ?? ' '}
+                  </AppText>
+                </View>
+
+                <View style={styles.podioXpBlock}>
+                  <AppText
+                    variant={isPrimeiro ? 'title' : 'heading'}
+                    color={Colors.primary}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}>
+                    {membro.xpTotal.toLocaleString()}
+                  </AppText>
+                  <AppText variant="caption" color={Colors.textSecondary} style={styles.podioXpLabel}>
+                    {isPrimeiro ? 'XP TOTAL' : 'XP'}
+                  </AppText>
+                </View>
               </View>
-              <Pill tone="neutral" label="#3" />
-              <AppText variant="label" numberOfLines={1} style={styles.centerText}>
-                {usuarioTop3.nomeExibicao}
-              </AppText>
-              {usuarioTop3.nomeUsuario ? (
-                <AppText variant="caption" color={Colors.textSecondary} style={styles.centerText}>
-                  {usuarioTop3.nomeUsuario}
-                </AppText>
-              ) : null}
-              <AppText variant="heading" color={Colors.primary}>
-                {usuarioTop3.xpTotal}
-              </AppText>
-              <AppText variant="caption" color={Colors.textSecondary}>
-                XP
-              </AppText>
-            </View>
-          ) : (
-            <View style={[styles.podioCard, styles.podioCard3, styles.podioEmpty]}>
-              <Ionicons name="person-outline" size={24} color={Colors.textMuted} />
-              <AppText variant="caption" color={Colors.textMuted}>
-                Vago
-              </AppText>
-            </View>
-          )}
+            );
+          })}
         </View>
       </View>
 
@@ -323,7 +329,7 @@ export default function RankingScreen() {
         <Ionicons name="cube-outline" size={20} color={Colors.success} />
         <AppText variant="caption" color={Colors.textSecondary} style={styles.flex}>
           {origem === 'nuvem'
-            ? 'Exibindo o ranking global dos 50 estudantes com mais XP na semana, direto do Supabase.'
+            ? 'Exibindo o ranking global dos top 50 estudantes com mais XP na semana.'
             : 'Sem conexão com a nuvem: exibindo apenas os usuários cadastrados neste aparelho.'}
         </AppText>
       </Card>
@@ -366,20 +372,70 @@ const useStyles = (Colors: any) => StyleSheet.create({
   userRankCard: { gap: Spacing.three, padding: Spacing.four - 4, borderColor: Colors.primary, backgroundColor: 'rgba(253,186,92,0.06)' },
   userRankTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three - 2 },
   rankBadgeBox: { width: 44, height: 44, borderRadius: Radius.md, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
-  userRankFooter: { flexDirection: 'row', gap: Spacing.two },
+  userRankFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   podioSection: { gap: Spacing.three },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sectionHeader: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
   podioRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.two },
-  podioCard: { flex: 1, alignItems: 'center', gap: 4, padding: Spacing.two + 2, backgroundColor: Colors.surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border },
-  podioCard1: { height: 190, borderColor: Colors.primary, backgroundColor: 'rgba(253,186,92,0.08)' },
-  podioCard2: { height: 160 },
-  podioCard3: { height: 160 },
-  podioEmpty: { justifyContent: 'center', opacity: 0.5, borderStyle: 'dashed' },
+  podioCard: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.three,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  podioCard1: { minHeight: 206, borderWidth: 1.5, borderColor: Colors.primary },
+  podioCard2: { minHeight: 178 },
+  podioCard3: { minHeight: 164 },
+  podioEmpty: { justifyContent: 'center', gap: Spacing.two, opacity: 0.6, borderStyle: 'dashed' },
+  podioEmptyAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  podioRankTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+  },
   crownBox: { marginBottom: -4 },
-  avatarCircle: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surfaceRaised, overflow: 'hidden' },
-  avatarCircle1: { width: 52, height: 52, borderRadius: 26, borderColor: Colors.primary },
-  podioAvatarImage: { width: 40, height: 40, borderRadius: 20 },
-  podioAvatarImage1: { width: 48, height: 48, borderRadius: 24 },
+  podioAvatarWrap: { position: 'relative', alignItems: 'center', marginBottom: 4 },
+  avatarCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surfaceRaised,
+    overflow: 'hidden',
+  },
+  avatarCircle1: { width: 56, height: 56, borderRadius: 28, borderWidth: 2.5, borderColor: Colors.primary },
+  podioAvatarImage: { width: 42, height: 42, borderRadius: 21 },
+  podioAvatarImage1: { width: 52, height: 52, borderRadius: 26 },
+  podioMedalBadge: {
+    position: 'absolute',
+    bottom: -8,
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    borderRadius: Radius.pill,
+    borderWidth: 1.5,
+    borderColor: Colors.surface,
+  },
+  podioMedalText: { fontSize: 10, fontFamily: 'PlusJakartaSans_700Bold' },
+  podioNameBlock: { width: '100%', alignItems: 'center', gap: 1 },
+  podioXpBlock: { width: '100%', alignItems: 'center' },
+  podioXpLabel: { fontSize: 10, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 0.4 },
   listSection: { gap: Spacing.two },
   rankRowCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three - 2, padding: Spacing.three },
   userHighlightedRowCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three - 2, padding: Spacing.three, backgroundColor: Colors.primary, borderColor: Colors.primaryStrong },

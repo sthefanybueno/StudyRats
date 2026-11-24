@@ -1,4 +1,6 @@
 /** Description: This file (src/domain/services/CalculoXpService.ts) contains the implementation for its respective feature. */
+export const BONUS_GPS_XP = 5;
+
 export interface CalculoXpParams {
   duracaoMinutos: number;
   comFoto: boolean;
@@ -23,7 +25,7 @@ export class CalculoXpService {
     }
 
     if (params.comGps) {
-      xp += 5;
+      xp += BONUS_GPS_XP;
     }
 
     if (minutos >= 45) {

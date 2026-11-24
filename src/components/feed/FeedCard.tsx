@@ -40,11 +40,6 @@ export function FeedCard({ item, agora }: { item: ItemFeedDTO; agora?: Date }) {
           </AppText>
         </View>
         <View style={styles.headerRight}>
-          {item.syncStatus === 'synced' ? (
-            <Pill tone="success" dot label="Sincronizado" />
-          ) : (
-            <Pill tone="warning" dot label="Local" />
-          )}
           <Pill tone="primary" label={`+${item.xp} XP`} />
         </View>
       </View>

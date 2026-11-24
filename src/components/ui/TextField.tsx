@@ -24,19 +24,21 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(true);
 
-  const borderColor = error ? GlobalColors.danger : focused ? GlobalColors.primary : GlobalColors.border;
+  const borderColor = error ? Colors.danger : focused ? Colors.primary : Colors.border;
 
   return (
     <View style={styles.wrapper}>
-      <AppText variant="caption" color={GlobalColors.textSecondary}>
-        {label}
-      </AppText>
+      {label ? (
+        <AppText variant="caption" color={Colors.textSecondary}>
+          {label}
+        </AppText>
+      ) : null}
       <View style={[styles.field, { borderColor }]}>
-        <Ionicons name={icon} size={18} color={focused ? GlobalColors.primary : GlobalColors.textMuted} />
+        <Ionicons name={icon} size={18} color={focused ? Colors.primary : Colors.textMuted} />
         <TextInput
           ref={ref}
-          placeholderTextColor={GlobalColors.textMuted}
-          selectionColor={GlobalColors.primary}
+          placeholderTextColor={Colors.textMuted}
+          selectionColor={Colors.primary}
           secureTextEntry={secure && hidden}
           onFocus={e => {
             setFocused(true);

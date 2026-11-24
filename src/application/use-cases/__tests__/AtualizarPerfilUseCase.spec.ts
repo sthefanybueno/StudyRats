@@ -18,22 +18,35 @@ describe('AtualizarPerfilUseCase', () => {
     useCase = new AtualizarPerfilUseCase(repository);
   });
 
-  it('should update display name, username and fotoUrl successfully', async () => {
+  it('should update display name, username, fotoUrl and metaDiariaMinutos successfully', async () => {
     const usuario = Usuario.create({ id: 'u1', email: 'clara@test.com', nomeExibicao: 'Clara' });
     repository.buscarPorId.mockResolvedValue(usuario);
+    const enfileirar = jest.fn();
+    useCase = new AtualizarPerfilUseCase(repository, { enfileirar } as any);
 
     const result = await useCase.execute({
       usuarioId: 'u1',
       nomeExibicao: 'Clara Nogueira',
       nomeUsuario: 'clara_n',
       fotoUrl: 'file:///path/avatar.png',
+      metaDiariaMinutos: 120,
     });
 
     expect(result.isSuccess).toBe(true);
     expect(usuario.nomeExibicao).toBe('Clara Nogueira');
     expect(usuario.nomeUsuario).toBe('@clara_n');
     expect(usuario.fotoUrl).toBe('file:///path/avatar.png');
+    expect(usuario.metaDiariaMinutos).toBe(120);
     expect(repository.salvar).toHaveBeenCalledWith(usuario);
+    expect(enfileirar).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(enfileirar.mock.calls[0][0].payloadJson);
+    expect(payload).toMatchObject({
+      id: 'u1',
+      nomeExibicao: 'Clara Nogueira',
+      nomeUsuario: '@clara_n',
+      fotoUrl: 'file:///path/avatar.png',
+      metaDiariaMinutos: 120,
+    });
   });
 
   it('should return error if user is not found', async () => {

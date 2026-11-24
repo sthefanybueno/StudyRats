@@ -70,7 +70,13 @@ export function Button({
         ) : (
           <View style={styles.row}>
             {icon && <Ionicons name={icon} size={20} color={p.fg} />}
-            <AppText variant="heading" color={p.fg} style={styles.label}>
+            <AppText
+              variant="heading"
+              color={p.fg}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.82}
+              style={styles.label}>
               {label}
             </AppText>
             {iconRight && <Ionicons name={iconRight} size={20} color={p.fg} />}
@@ -86,7 +92,7 @@ const useStyles = (Colors: any) => StyleSheet.create({
     minHeight: 54,
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: Spacing.three + 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -97,6 +103,6 @@ const useStyles = (Colors: any) => StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  label: { fontSize: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.two, maxWidth: '100%' },
+  label: { fontSize: 16, flexShrink: 1 },
 });

@@ -1,6 +1,9 @@
 /** Description: This file (src/providers/ThemeProvider.tsx) contains the implementation for its respective feature. */
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors as DarkColors } from '../constants/theme';
+
+const THEME_PREF_KEY = 'studyrats.pref.modoEscuro';
 
 export const LightColors = {
   background: '#F6F7F9',
@@ -50,7 +53,22 @@ const defaultThemeState: ThemeState = {
 const ThemeContext = createContext<ThemeState>(defaultThemeState);
 
 export function AppThemeProvider({ children }: { children: React.ReactNode }) {
-  const [modoEscuro, setModoEscuro] = useState(true);
+  const [modoEscuro, setModoEscuroState] = useState(true);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'test') return;
+    AsyncStorage.getItem(THEME_PREF_KEY)
+      .then((valor) => {
+        if (valor === 'false') setModoEscuroState(false);
+        else if (valor === 'true') setModoEscuroState(true);
+      })
+      .catch(() => {});
+  }, []);
+
+  const setModoEscuro = React.useCallback((ativo: boolean) => {
+    setModoEscuroState(ativo);
+    AsyncStorage.setItem(THEME_PREF_KEY, String(ativo)).catch(() => {});
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -58,7 +76,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
       setModoEscuro,
       colors: modoEscuro ? DarkColors : LightColors,
     }),
-    [modoEscuro]
+    [modoEscuro, setModoEscuro]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

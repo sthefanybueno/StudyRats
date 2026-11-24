@@ -1,7 +1,7 @@
 /** Description: This file (src/components/ui/Screen.tsx) contains the implementation for its respective feature. */
 import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -17,10 +17,12 @@ interface ScreenProps {
    * Telas dentro das Tabs devem usar ['top'], pois a tab bar já respeita o inset inferior.
    */
   edges?: Edge[];
+  refreshing?: boolean;
+  onRefresh?: () => void | Promise<void>;
 }
 
 /** Fundo navy com brilhos suaves âmbar/roxo, scroll e teclado tratados. */
-export function Screen({ children, footer, contentStyle, edges = ['top', 'bottom'] }: ScreenProps) {
+export function Screen({ children, footer, contentStyle, edges = ['top', 'bottom'], refreshing = false, onRefresh }: ScreenProps) {
     const { colors: Colors } = useAppTheme();
       const styles = useStyles(Colors);
 
@@ -42,7 +44,17 @@ export function Screen({ children, footer, contentStyle, edges = ['top', 'bottom
             style={styles.flex}
             contentContainerStyle={[styles.content, contentStyle]}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}>
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={Colors.primary}
+                  colors={[Colors.primary]}
+                />
+              ) : undefined
+            }>
             {children}
           </ScrollView>
           {footer && <View style={styles.footer}>{footer}</View>}

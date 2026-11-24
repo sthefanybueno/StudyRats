@@ -62,6 +62,7 @@ export class CadastrarUsuarioUseCase {
               id: usuario.id,
               email: usuario.email.getValue,
               nomeExibicao: usuario.nomeExibicao,
+              metaDiariaMinutos: usuario.metaDiariaMinutos,
               xpTotal: usuario.xpTotal,
               xpSemanal: usuario.xpSemanal,
               streakAtual: usuario.streakAtual,

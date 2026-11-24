@@ -26,7 +26,8 @@ export default function NovaSessaoScreen() {
       const styles = useStyles(Colors);
 
   const { usuario, recarregarUsuario } = useAuth();
-  const { sessaoAtiva, iniciarSessao, pausarSessao, retomarSessao, concluirSessao, cancelarSessao } = useSessaoFoco();
+  const { sessaoAtiva, concluindo, iniciarSessao, pausarSessao, retomarSessao, atualizarFoto, concluirSessao, cancelarSessao } = useSessaoFoco();
+  const [salvandoLocal, setSalvandoLocal] = useState(false);
 
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [disciplinaSelecionada, setDisciplinaSelecionada] = useState<Disciplina | null>(null);
@@ -59,11 +60,13 @@ export default function NovaSessaoScreen() {
   });
   const bonusPrevisto = xpPrevisto - Math.max(1, Math.floor(duracaoMinutos));
 
-  // Status de Envio
-  const [salvando, setSalvando] = useState(false);
+  // Status de Envio e Evidências
+  const salvando = salvandoLocal || concluindo;
   const [sucessoMsg, setSucessoMsg] = useState<string | null>(null);
   const [avisoGpsMsg, setAvisoGpsMsg] = useState<string | null>(null);
   const [podeAbrirAjustesGps, setPodeAbrirAjustesGps] = useState(false);
+  const [erroFotoMsg, setErroFotoMsg] = useState<string | null>(null);
+  const [podeAbrirAjustesFoto, setPodeAbrirAjustesFoto] = useState(false);
   const [erroMsg, setErroMsg] = useState<string | null>(null);
 
   // Carregar disciplinas do usuário
@@ -95,7 +98,6 @@ export default function NovaSessaoScreen() {
       enderecoManual: enderecoManual.trim() || null,
       fotoUri,
     });
-    router.replace('/(app)');
   };
 
   // Diagnosticar status de GPS e permissão quando o usuário ativa o toggle (PDF 02, slides 9, 10 e 18)
@@ -132,21 +134,28 @@ export default function NovaSessaoScreen() {
   };
 
   // Finalizar Sessão Ativa em Execução
+  const voltarParaDashboard = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(app)');
+    }
+  };
+
   const handleFinalizarSessaoAtiva = async () => {
-    if (!usuario) return;
-    setSalvando(true);
+    if (!usuario || salvando) return;
+    setSalvandoLocal(true);
+    setErroMsg(null);
     const res = await concluirSessao(usuario.id);
-    setSalvando(false);
     if (res.isSuccess) {
-      await recarregarUsuario();
       if (res.avisoGps) {
         setAvisoGpsMsg(res.avisoGps);
       }
-      setSucessoMsg(`+${res.xpGanho} XP Registrados com sucesso!`);
-      setTimeout(() => {
-        router.replace('/(app)');
-      }, 1500);
+      setSucessoMsg(`+${res.xpGanho} XP registrados com sucesso!`);
+      setSalvandoLocal(false);
+      await recarregarUsuario();
     } else {
+      setSalvandoLocal(false);
       setErroMsg(res.error || 'Erro ao concluir sessão');
     }
   };
@@ -181,14 +190,34 @@ export default function NovaSessaoScreen() {
     }
   };
 
-  // Capturar Foto
-  const handleTirarFoto = async () => {
+  const aplicarNovaFoto = (uri: string | null) => {
+    if (sessaoAtiva) {
+      atualizarFoto(uri);
+    } else {
+      setFotoUri(uri);
+    }
+  };
+
+  // Capturar Foto via Câmera ou Galeria
+  const handleCapturarOuEscolherFoto = async (origem: 'camera' | 'galeria') => {
     setCarregandoFoto(true);
+    setErroFotoMsg(null);
+    setPodeAbrirAjustesFoto(false);
+    setErroMsg(null);
     try {
-      const uri = await DIContainer.gateways.camera.capturarFoto();
-      if (uri) setFotoUri(uri);
+      const uri =
+        origem === 'galeria' && DIContainer.gateways.camera.selecionarDaGaleria
+          ? await DIContainer.gateways.camera.selecionarDaGaleria()
+          : await DIContainer.gateways.camera.capturarFoto();
+      if (uri) {
+        aplicarNovaFoto(uri);
+      }
     } catch (e: any) {
-      setErroMsg(e.message || 'Erro ao capturar foto');
+      const msg = e?.message || 'Erro ao anexar foto';
+      setErroFotoMsg(msg);
+      if (/permanentemente/i.test(msg)) {
+        setPodeAbrirAjustesFoto(true);
+      }
     } finally {
       setCarregandoFoto(false);
     }
@@ -197,13 +226,37 @@ export default function NovaSessaoScreen() {
   return (
     <Screen
       footer={
-        sucessoMsg ? null : sessaoAtiva ? (
+        sucessoMsg ? (
+          <View style={styles.runningFooterRow}>
+            <Button
+              label="Nova Sessão"
+              icon="add-circle-outline"
+              variant="secondary"
+              onPress={() => {
+                setSucessoMsg(null);
+                setAvisoGpsMsg(null);
+                setErroFotoMsg(null);
+                setErroMsg(null);
+                setFotoUri(null);
+              }}
+              style={styles.flex}
+            />
+            <Button
+              label="Voltar ao Início"
+              icon="home-outline"
+              variant="primary"
+              onPress={voltarParaDashboard}
+              style={styles.flex}
+            />
+          </View>
+        ) : sessaoAtiva ? (
           <View style={styles.runningFooterRow}>
             {sessaoAtiva.emExecucao ? (
               <Button
                 label="Pausar"
                 icon="pause"
                 variant="secondary"
+                disabled={salvando}
                 onPress={pausarSessao}
                 style={styles.flex}
               />
@@ -212,12 +265,13 @@ export default function NovaSessaoScreen() {
                 label="Retomar"
                 icon="play"
                 variant="primary"
+                disabled={salvando}
                 onPress={retomarSessao}
                 style={styles.flex}
               />
             )}
             <Button
-              label="Concluir Sessão"
+              label="Concluir"
               icon="checkmark-circle"
               variant="primary"
               loading={salvando}
@@ -236,27 +290,33 @@ export default function NovaSessaoScreen() {
       }>
       {/* Header Superior */}
       <View style={styles.headerRow}>
-        <Pressable hitSlop={10} onPress={() => router.back()} style={styles.backButton}>
+        <Pressable
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar para o Dashboard"
+          onPress={voltarParaDashboard}
+          style={styles.backButton}>
           <Ionicons name="arrow-back" size={20} color={Colors.text} />
         </Pressable>
-        <View style={styles.flex}>
+        <View style={styles.headerTitleCol}>
           <AppText variant="overline" color={Colors.textSecondary}>
             STUDYRATS
           </AppText>
-          <AppText variant="heading">Sessão De Foco</AppText>
+          <AppText variant="heading" numberOfLines={1}>
+            Sessão de Foco
+          </AppText>
         </View>
-        <Pill tone="success" dot label="Gravação Local Ativa" />
       </View>
 
       {sucessoMsg ? (
         <Animated.View entering={FadeInDown.duration(400)}>
           <Card style={styles.sucessoCard}>
             <Ionicons name="checkmark-circle" size={48} color={Colors.success} />
-            <AppText variant="title" color={Colors.success}>
+            <AppText variant="title" color={Colors.success} style={styles.centerText}>
               {sucessoMsg}
             </AppText>
             <AppText variant="body" color={Colors.textSecondary} style={styles.centerText}>
-              Sua sessão foi blindada localmente no dispositivo. Retornando ao Dashboard...
+              Sua sessão foi salva localmente no dispositivo e será sincronizada com sua conta.
             </AppText>
             {avisoGpsMsg && (
               <AppText variant="caption" color={Colors.warning} style={styles.centerText}>
@@ -289,16 +349,70 @@ export default function NovaSessaoScreen() {
             </View>
 
             <View style={styles.runningMetaInfo}>
-              <View style={styles.rowGap}>
+              <View style={styles.runningMetaRow}>
                 <Ionicons name="journal" size={18} color={sessaoAtiva.disciplina.cor} />
-                <AppText variant="heading">{sessaoAtiva.disciplina.nome}</AppText>
+                <AppText variant="heading" numberOfLines={1} style={styles.runningMetaText}>
+                  {sessaoAtiva.disciplina.nome}
+                </AppText>
               </View>
               {sessaoAtiva.topico && (
-                <View style={styles.rowGap}>
+                <View style={styles.runningMetaRow}>
                   <Ionicons name="bookmark-outline" size={14} color={Colors.textSecondary} />
-                  <AppText variant="caption" color={Colors.textSecondary}>
+                  <AppText variant="caption" color={Colors.textSecondary} numberOfLines={1} style={styles.runningMetaText}>
                     {sessaoAtiva.topico.nome}
                   </AppText>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.runningPhotoSection}>
+              <View style={styles.rowBetween}>
+                <AppText variant="label">Foto do Caderno (+10 XP)</AppText>
+              </View>
+
+              {sessaoAtiva.fotoUri ? (
+                <View style={styles.photoPreviewContainer}>
+                  <Image source={{ uri: sessaoAtiva.fotoUri }} style={styles.photoPreview} contentFit="cover" />
+                  <Pressable disabled={salvando} onPress={() => aplicarNovaFoto(null)} style={styles.removePhotoBtn}>
+                    <Ionicons name="trash-outline" size={16} color={Colors.danger} />
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.photoButtonsRow}>
+                  <Button
+                    label="Câmera"
+                    variant="secondary"
+                    icon="camera-outline"
+                    loading={carregandoFoto}
+                    disabled={salvando}
+                    onPress={() => handleCapturarOuEscolherFoto('camera')}
+                    style={styles.flex}
+                  />
+                  <Button
+                    label="Galeria"
+                    variant="secondary"
+                    icon="image-outline"
+                    loading={carregandoFoto}
+                    disabled={salvando}
+                    onPress={() => handleCapturarOuEscolherFoto('galeria')}
+                    style={styles.flex}
+                  />
+                </View>
+              )}
+
+              {erroFotoMsg && (
+                <View style={styles.gpsWarningBox}>
+                  <AppText variant="caption" color={Colors.danger}>
+                    {erroFotoMsg}
+                  </AppText>
+                  {podeAbrirAjustesFoto && (
+                    <Button
+                      label="Abrir Configurações"
+                      variant="secondary"
+                      icon="settings-outline"
+                      onPress={handleAbrirConfiguracoesSistema}
+                    />
+                  )}
                 </View>
               )}
             </View>
@@ -307,6 +421,7 @@ export default function NovaSessaoScreen() {
               label="Cancelar Sessão"
               variant="secondary"
               icon="close-circle-outline"
+              disabled={salvando}
               onPress={cancelarSessao}
             />
           </Card>
@@ -383,14 +498,15 @@ export default function NovaSessaoScreen() {
 
                   {criandoTopico ? (
                     <View style={styles.criarTopicoRow}>
-                      <TextField
-                        label=""
-                        icon="bookmark-outline"
-                        placeholder="Nome do novo tópico"
-                        value={novoTopicoNome}
-                        onChangeText={setNovoTopicoNome}
-                        style={styles.flex}
-                      />
+                      <View style={styles.flex}>
+                        <TextField
+                          label=""
+                          icon="bookmark-outline"
+                          placeholder="Nome do novo tópico"
+                          value={novoTopicoNome}
+                          onChangeText={setNovoTopicoNome}
+                        />
+                      </View>
                       <Button label="Salvar" variant="primary" onPress={handleCriarTopicoRapido} />
                     </View>
                   ) : disciplinaSelecionada.topicos.length > 0 ? (
@@ -476,19 +592,22 @@ export default function NovaSessaoScreen() {
 
               {/* Preview XP Card */}
               <View style={styles.xpPreviewCard}>
-                <Ionicons name="star" size={18} color={Colors.primary} />
-                <AppText variant="caption" color={Colors.textSecondary}>
-                  Ganho Previsto:
-                </AppText>
-                <AppText variant="label" color={Colors.primary}>
-                  {duracaoMinutos} XP Base
-                </AppText>
-                <AppText variant="caption" color={Colors.textSecondary}>
-                  + {bonusPrevisto} Bônus =
-                </AppText>
-                <AppText variant="heading" color={Colors.primary}>
-                  {xpPrevisto} XP
-                </AppText>
+                <View style={styles.xpPreviewLeft}>
+                  <View style={styles.xpStarCircle}>
+                    <Ionicons name="star" size={16} color={Colors.primary} />
+                  </View>
+                  <View style={styles.xpPreviewTexts}>
+                    <AppText variant="label">Ganho Previsto</AppText>
+                    <AppText variant="caption" color={Colors.textSecondary}>
+                      {duracaoMinutos} XP Base {bonusPrevisto > 0 ? `+ ${bonusPrevisto} XP Bônus` : '(sem bônus)'}
+                    </AppText>
+                  </View>
+                </View>
+                <View style={styles.xpPreviewTotalBadge}>
+                  <AppText variant="heading" color={Colors.primary}>
+                    +{xpPrevisto} XP
+                  </AppText>
+                </View>
               </View>
             </Card>
           </Animated.View>
@@ -511,28 +630,30 @@ export default function NovaSessaoScreen() {
               </View>
 
               {/* GPS Toggle */}
-              <View style={styles.evidenceItem}>
+              <Pressable onPress={handleAlternarGps} style={styles.evidenceItem}>
                 <View style={styles.evidenceLeft}>
                   <View style={styles.evidenceIconBox}>
-                    <Ionicons name="location-outline" size={20} color={Colors.success} />
+                    <Ionicons
+                      name="location-outline"
+                      size={20}
+                      color={anexarGps ? Colors.success : Colors.textMuted}
+                    />
                   </View>
-                  <View style={styles.flex}>
+                  <View style={styles.evidenceTextCol}>
                     <AppText variant="label">Anexar Localização (GPS)</AppText>
-                    <AppText variant="caption" color={Colors.success}>
+                    <AppText variant="caption" color={anexarGps ? Colors.success : Colors.textMuted}>
                       {anexarGps
                         ? coordsMonitoradas
                           ? `● Sinal GPS ativo (±${Math.round(coordsMonitoradas.accuracy ?? 10)} m) · +5 XP`
-                          : '● Será capturada ao concluir a sessão · +5 XP'
+                          : '● Captura ao concluir · +5 XP'
                         : 'Desativado'}
                     </AppText>
                   </View>
                 </View>
-                <Pressable
-                  onPress={handleAlternarGps}
-                  style={[styles.toggleSwitch, anexarGps && styles.toggleSwitchActive]}>
+                <View style={[styles.toggleSwitch, anexarGps && styles.toggleSwitchActive]}>
                   <View style={[styles.toggleKnob, anexarGps && styles.toggleKnobActive]} />
-                </Pressable>
-              </View>
+                </View>
+              </Pressable>
 
               {avisoGpsMsg && (
                 <View style={styles.gpsWarningBox}>
@@ -584,25 +705,52 @@ export default function NovaSessaoScreen() {
                   </Pressable>
                 </View>
               ) : (
-                <Button
-                  label="Tirar Foto do Caderno"
-                  variant="secondary"
-                  icon="camera"
-                  loading={carregandoFoto}
-                  onPress={handleTirarFoto}
-                />
+                <View style={styles.photoButtonsRow}>
+                  <Button
+                    label="Câmera"
+                    variant="secondary"
+                    icon="camera"
+                    loading={carregandoFoto}
+                    onPress={() => handleCapturarOuEscolherFoto('camera')}
+                    style={styles.flex}
+                  />
+                  <Button
+                    label="Galeria"
+                    variant="secondary"
+                    icon="image-outline"
+                    loading={carregandoFoto}
+                    onPress={() => handleCapturarOuEscolherFoto('galeria')}
+                    style={styles.flex}
+                  />
+                </View>
+              )}
+
+              {erroFotoMsg && (
+                <View style={styles.gpsWarningBox}>
+                  <AppText variant="caption" color={Colors.danger}>
+                    {erroFotoMsg}
+                  </AppText>
+                  {podeAbrirAjustesFoto && (
+                    <Button
+                      label="Abrir Configurações"
+                      variant="secondary"
+                      icon="settings-outline"
+                      onPress={handleAbrirConfiguracoesSistema}
+                    />
+                  )}
+                </View>
               )}
             </Card>
           </Animated.View>
-
-          {erroMsg && (
-            <Card style={styles.erroCard}>
-              <AppText variant="caption" color={Colors.danger}>
-                {erroMsg}
-              </AppText>
-            </Card>
-          )}
         </>
+      )}
+
+      {erroMsg && !sucessoMsg && (
+        <Card style={styles.erroCard}>
+          <AppText variant="caption" color={Colors.danger}>
+            {erroMsg}
+          </AppText>
+        </Card>
       )}
     </Screen>
   );
@@ -621,16 +769,18 @@ const useStyles = (Colors: any) => StyleSheet.create({
   runningTimerHeader: {
     width: '100%',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.two,
   },
   timerDisplayContainer: {
     alignItems: 'center',
-    paddingVertical: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   timerDisplayText: {
-    fontSize: 56,
-    lineHeight: 64,
+    fontSize: 54,
+    lineHeight: 62,
     color: Colors.primary,
     fontFamily: 'PlusJakartaSans_800ExtraBold',
   },
@@ -638,12 +788,26 @@ const useStyles = (Colors: any) => StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     gap: Spacing.one,
-    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two + 2,
     backgroundColor: Colors.surfaceInput,
     borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  runningMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    maxWidth: '100%',
+  },
+  runningMetaText: {
+    flexShrink: 1,
   },
   rowGap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 2 },
+  headerTitleCol: { flex: 1, flexShrink: 1 },
   backButton: {
     width: 40,
     height: 40,
@@ -651,6 +815,7 @@ const useStyles = (Colors: any) => StyleSheet.create({
     backgroundColor: Colors.surfaceRaised,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   stepCard: { gap: Spacing.three, padding: Spacing.four - 4 },
   stepHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },
@@ -718,14 +883,61 @@ const useStyles = (Colors: any) => StyleSheet.create({
   xpPreviewCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    padding: Spacing.two + 4,
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two + 4,
     borderRadius: Radius.md,
     backgroundColor: Colors.surfaceInput,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  evidenceItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  evidenceLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },
+  xpPreviewLeft: {
+    flex: 1,
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 2,
+  },
+  xpStarCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  xpPreviewTexts: {
+    flex: 1,
+    flexShrink: 1,
+    gap: 2,
+  },
+  xpPreviewTotalBadge: {
+    paddingHorizontal: Spacing.two + 4,
+    paddingVertical: 6,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.primarySoft,
+    flexShrink: 0,
+  },
+  evidenceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  evidenceLeft: {
+    flex: 1,
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 4,
+  },
+  evidenceTextCol: {
+    flex: 1,
+    flexShrink: 1,
+    gap: 2,
+  },
   evidenceIconBox: {
     width: 36,
     height: 36,
@@ -733,20 +945,37 @@ const useStyles = (Colors: any) => StyleSheet.create({
     backgroundColor: Colors.surfaceRaised,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   toggleSwitch: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
+    width: 46,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: Colors.surfaceInput,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: 2,
+    paddingHorizontal: 3,
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  toggleSwitchActive: { backgroundColor: Colors.success },
-  toggleKnob: { width: 18, height: 18, borderRadius: 9, backgroundColor: Colors.textMuted },
-  toggleKnobActive: { backgroundColor: '#FFF', alignSelf: 'flex-end' },
-  photoPreviewContainer: { position: 'relative', height: 160, borderRadius: Radius.md, overflow: 'hidden' },
+  toggleSwitchActive: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+  },
+  toggleKnob: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.textMuted,
+    alignSelf: 'flex-start',
+  },
+  toggleKnobActive: {
+    backgroundColor: '#FFF',
+    alignSelf: 'flex-end',
+  },
+  photoButtonsRow: { flexDirection: 'row', gap: Spacing.two, width: '100%' },
+  runningPhotoSection: { width: '100%', gap: Spacing.two },
+  photoPreviewContainer: { position: 'relative', width: '100%', height: 160, borderRadius: Radius.md, overflow: 'hidden' },
   photoPreview: { width: '100%', height: '100%' },
   removePhotoBtn: {
     position: 'absolute',

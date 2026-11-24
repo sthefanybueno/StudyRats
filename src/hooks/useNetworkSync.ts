@@ -14,6 +14,7 @@ export function useNetworkSync() {
     try {
       isSyncingRef.current = true;
       setIsSyncing(true);
+      await DIContainer.repositories?.syncQueue?.resetarFalhas?.();
       await DIContainer.sincronizarFila.execute();
       setUltimoSync(new Date());
     } catch (e) {
@@ -45,9 +46,23 @@ export function useNetworkSync() {
     checarRedeESincronizar();
     const intervalo = setInterval(checarRedeESincronizar, 15000);
 
+    const sub =
+      typeof Network.addNetworkStateListener === 'function'
+        ? Network.addNetworkStateListener((state) => {
+            const online = Boolean(state.isConnected && (state.isInternetReachable ?? true));
+            if (montado) {
+              setIsOnline(online);
+              if (online) {
+                void sincronizar();
+              }
+            }
+          })
+        : null;
+
     return () => {
       montado = false;
       clearInterval(intervalo);
+      sub?.remove?.();
     };
   }, [sincronizar]);
 

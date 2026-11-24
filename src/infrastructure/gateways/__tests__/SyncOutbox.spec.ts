@@ -1,4 +1,4 @@
-﻿/** Description: Tests da outbox: erros do Supabase propagam e foto é enviada ao Storage antes da sessão. */
+/** Description: Tests da outbox: erros do Supabase propagam e foto é enviada ao Storage antes da sessão. */
 import { SupabaseSyncGateway } from '../SupabaseSyncGateway';
 import { SecureStoreAuthStorage } from '../../storage/SecureStoreAuthStorage';
 
@@ -28,11 +28,14 @@ describe('SupabaseSyncGateway - outbox robusta', () => {
       .rejects.toThrow(/row-level security/);
   });
 
-  it('fazerUploadFoto envia ao bucket privado e devolve o caminho', async () => {
+  it('fazerUploadFoto envia ArrayBuffer ao bucket privado usando auth.uid() e devolve o caminho', async () => {
+    const buffer = new ArrayBuffer(8);
+    (global as any).fetch = jest.fn().mockResolvedValue({ arrayBuffer: async () => buffer });
     const { client, upload } = criarCliente({ error: null });
-    const caminho = await new SupabaseSyncGateway(client).fazerUploadFoto('file:///foto.jpg', 'u1/s1.jpg');
-    expect(upload).toHaveBeenCalledWith('u1/s1.jpg', expect.anything(), expect.objectContaining({ contentType: 'image/jpeg' }));
-    expect(caminho).toBe('u1/s1.jpg');
+    client.auth = { getSession: jest.fn().mockResolvedValue({ data: { session: { user: { id: 'auth-u1' } } } }) };
+    const caminho = await new SupabaseSyncGateway(client).fazerUploadFoto('file:///foto.png', 'u1/s1.png');
+    expect(upload).toHaveBeenCalledWith('auth-u1/s1.png', buffer, expect.objectContaining({ contentType: 'image/png' }));
+    expect(caminho).toBe('auth-u1/s1.png');
   });
 });
 

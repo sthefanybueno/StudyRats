@@ -114,7 +114,6 @@ export default function LoginScreen() {
             </AppText>
           </Link>
         </View>
-        <Pill tone="success" dot label="Seus dados ficam salvos no aparelho" />
       </Animated.View>
     </Screen>
   );
