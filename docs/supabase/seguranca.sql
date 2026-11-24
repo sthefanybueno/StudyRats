@@ -75,6 +75,18 @@ alter table public.fotos_sessao
   add column if not exists storage_path text,
   add column if not exists created_at timestamptz not null default now();
 
+-- Compatibilidade com schema legado: se url_remota existir com NOT NULL, remove a restrição
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'fotos_sessao' and column_name = 'url_remota'
+  ) then
+    alter table public.fotos_sessao alter column url_remota drop not null;
+  end if;
+end;
+$$;
+
 alter table public.fotos_sessao enable row level security;
 
 -- Trigger para criar automaticamente o perfil em public.perfis quando um usuário se cadastra no Supabase Auth
@@ -223,6 +235,14 @@ on conflict (id) do update set
   storage_path = excluded.storage_path;
 
 -- Backfill de foto_url direto em sessoes_estudo (mesmo padrão de perfis.foto_url)
+update public.sessoes_estudo s
+set foto_url = o.name
+from storage.objects o
+where o.bucket_id = 'fotos_sessao'
+  and split_part(o.name, '/', 1) = s.usuario_id::text
+  and split_part(split_part(o.name, '/', 2), '.', 1) = s.id
+  and (s.foto_url is null or s.foto_url = '');
+
 update public.sessoes_estudo s
 set foto_url = f.storage_path
 from public.fotos_sessao f

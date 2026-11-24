@@ -55,7 +55,7 @@ export function formatarLocalizacaoFeed(
   if (localAproximado && localAproximado.trim().length > 0) {
     base = localAproximado.trim();
   } else if (latitude !== undefined && longitude !== undefined) {
-    base = formatarCoordenadasAproximadas(latitude, longitude);
+    base = '';
   }
 
   if (!base) return null;
