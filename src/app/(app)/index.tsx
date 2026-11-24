@@ -53,8 +53,10 @@ export default function DashboardScreen() {
     if (!usuario) return;
     setCarregando(true);
     try {
-      const listDisciplinas = await DIContainer.repositories.disciplina.listarPorUsuario(usuario.id);
-      const listSessoes = await DIContainer.repositories.sessao.listarPorUsuario(usuario.id);
+      const [listDisciplinas, listSessoes] = await Promise.all([
+        DIContainer.listarDisciplinas.execute(usuario.id),
+        DIContainer.listarSessoesUsuario.execute(usuario.id),
+      ]);
 
       const mapD = new Map<string, Disciplina>();
       listDisciplinas.forEach(d => mapD.set(d.id, d));
@@ -71,6 +73,9 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       carregarDadosLocais();
+      return DIContainer.inscreverMudancasTabela(['disciplinas', 'topicos', 'sessoes_estudo', 'fotos_sessao'], () => {
+        void carregarDadosLocais();
+      });
     }, [carregarDadosLocais])
   );
 

@@ -99,46 +99,52 @@ export class RegistrarSessaoUseCase {
       const streakCalculado = CalculoStreakService.calcular(datasComAtual, sessao.createdAt);
       usuario.atualizarStreak(Math.max(1, streakCalculado));
 
-      // 6. Salvar agregados
-      await this.sessaoRepository.salvar(sessao);
+      // 6 e 7. Salvar agregados e enfileirar na mesma transação SQLite atômica (Outbox Pattern)
+      const executarEmTransacao = this.syncQueueRepository?.executarEmTransacao
+        ? <T>(fn: () => Promise<T>) => this.syncQueueRepository!.executarEmTransacao!(fn)
+        : async <T>(fn: () => Promise<T>) => fn();
+
+      await executarEmTransacao(async () => {
+        await this.sessaoRepository.salvar(sessao);
+
+        if (this.syncQueueRepository) {
+          await this.syncQueueRepository.enfileirar(
+            SyncQueueItem.create({
+              entidade: 'sessoes_estudo',
+              operacao: 'INSERT',
+              payloadJson: JSON.stringify({
+                id: sessao.id,
+                usuarioId: sessao.usuarioId,
+                disciplinaId: sessao.disciplinaId,
+                topicoId: sessao.topicoId,
+                duracaoMinutos: sessao.duracaoMinutos,
+                createdAt: sessao.createdAt.toISOString(),
+                latitude: sessao.coordenada?.latitude ?? null,
+                longitude: sessao.coordenada?.longitude ?? null,
+                accuracy: sessao.coordenada?.accuracy ?? null,
+                localAproximado: sessao.coordenada?.localAproximado ?? null,
+                fotoLocal: sessao.foto?.uriLocal ?? null,
+              }),
+            })
+          );
+
+          // 8. Espelhar XP/streak no perfil remoto (alimenta o ranking global)
+          await this.syncQueueRepository.enfileirar(
+            SyncQueueItem.create({
+              entidade: 'perfis',
+              operacao: 'UPDATE',
+              payloadJson: JSON.stringify({
+                id: usuario.id,
+                xpTotal: usuario.xpTotal,
+                xpSemanal: usuario.xpSemanal,
+                streakAtual: usuario.streakAtual,
+              }),
+            })
+          );
+        }
+      });
+
       await this.usuarioRepository.salvar(usuario);
-
-      // 7. Enfileirar para sincronização remota (Outbox Pattern)
-      if (this.syncQueueRepository) {
-        await this.syncQueueRepository.enfileirar(
-          SyncQueueItem.create({
-            entidade: 'sessoes_estudo',
-            operacao: 'INSERT',
-            payloadJson: JSON.stringify({
-              id: sessao.id,
-              usuarioId: sessao.usuarioId,
-              disciplinaId: sessao.disciplinaId,
-              topicoId: sessao.topicoId,
-              duracaoMinutos: sessao.duracaoMinutos,
-              createdAt: sessao.createdAt.toISOString(),
-              latitude: sessao.coordenada?.latitude ?? null,
-              longitude: sessao.coordenada?.longitude ?? null,
-              accuracy: sessao.coordenada?.accuracy ?? null,
-              localAproximado: sessao.coordenada?.localAproximado ?? null,
-              fotoLocal: sessao.foto?.uriLocal ?? null,
-            }),
-          })
-        );
-
-      // 8. Espelhar XP/streak no perfil remoto (alimenta o ranking global)
-        await this.syncQueueRepository.enfileirar(
-          SyncQueueItem.create({
-            entidade: 'perfis',
-            operacao: 'UPDATE',
-            payloadJson: JSON.stringify({
-              id: usuario.id,
-              xpTotal: usuario.xpTotal,
-              xpSemanal: usuario.xpSemanal,
-              streakAtual: usuario.streakAtual,
-            }),
-          })
-        );
-      }
 
       return {
         isSuccess: true,

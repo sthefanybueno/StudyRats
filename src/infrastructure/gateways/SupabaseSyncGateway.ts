@@ -1,6 +1,6 @@
 /** Description: Supabase implementation of ISyncGateway for outbox synchronization, storage upload and ranking queries. */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { ISyncGateway } from '../../domain/gateways/ISyncGateway';
+import { DeltaRemotoResultado, ISyncGateway, SessaoDeltaRemoto, TopicoDeltaRemoto } from '../../domain/gateways/ISyncGateway';
 import { Usuario } from '../../domain/entities/Usuario';
 import { supabase } from '../../lib/supabase';
 
@@ -436,6 +436,146 @@ export class SupabaseSyncGateway implements ISyncGateway {
         xpTotal: perfilRes.data?.xp_total ?? undefined,
         xpSemanal: perfilRes.data?.xp_semanal ?? undefined,
         streakAtual: perfilRes.data?.streak_atual ?? undefined,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async baixarDeltaRemoto(sinceIso?: string): Promise<DeltaRemotoResultado | null> {
+    try {
+      if (typeof this.client.auth?.getSession !== 'function') return null;
+      const { data: sessaoData } = await this.client.auth.getSession();
+      const uid = sessaoData?.session?.user?.id;
+      if (!uid) return null;
+
+      const serverTimeIso = new Date().toISOString();
+
+      let discQuery = this.client
+        .from('disciplinas')
+        .select('id, usuario_id, nome, cor, created_at, updated_at, deleted_at')
+        .eq('usuario_id', uid);
+      if (sinceIso) {
+        discQuery = discQuery.gt('updated_at', sinceIso);
+      }
+
+      let sessoesQuery = this.client
+        .from('sessoes_estudo')
+        .select('id, usuario_id, disciplina_id, topico_id, duracao_minutos, created_at, latitude, longitude, accuracy, local_aproximado')
+        .eq('usuario_id', uid)
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (sinceIso) {
+        sessoesQuery = sessoesQuery.gt('created_at', sinceIso);
+      }
+
+      // Busca ids das disciplinas do usuário para filtrar os tópicos com segurança
+      const todasDiscRes = await this.client
+        .from('disciplinas')
+        .select('id')
+        .eq('usuario_id', uid);
+      const discIdsUsuario = ((todasDiscRes?.data ?? []) as Array<{ id: string }>).map((d) => d.id);
+
+      const topicosPromise =
+        discIdsUsuario.length > 0
+          ? (() => {
+              let tq = this.client
+                .from('topicos')
+                .select('id, disciplina_id, nome, created_at, updated_at, deleted_at')
+                .in('disciplina_id', discIdsUsuario);
+              if (sinceIso) {
+                tq = tq.gt('updated_at', sinceIso);
+              }
+              return tq;
+            })()
+          : Promise.resolve({ data: [], error: null });
+
+      const [discRes, topicosRes, sessoesRes] = await Promise.all([discQuery, topicosPromise, sessoesQuery]);
+
+      if (discRes.error || topicosRes.error || sessoesRes.error) {
+        return null;
+      }
+
+      const topicosPorDisc = new Map<string, TopicoDeltaRemoto[]>();
+      const todosTopicos: TopicoDeltaRemoto[] = [];
+      for (const t of (topicosRes.data ?? []) as any[]) {
+        const mapped: TopicoDeltaRemoto = {
+          id: t.id,
+          disciplinaId: t.disciplina_id,
+          nome: t.nome,
+          createdAt: t.created_at ?? serverTimeIso,
+          updatedAt: t.updated_at ?? t.created_at ?? serverTimeIso,
+          deletedAt: t.deleted_at ?? null,
+        };
+        todosTopicos.push(mapped);
+        const lista = topicosPorDisc.get(mapped.disciplinaId) ?? [];
+        lista.push(mapped);
+        topicosPorDisc.set(mapped.disciplinaId, lista);
+      }
+
+      const discDeltaIds = new Set<string>();
+      const disciplinas = ((discRes.data ?? []) as any[]).map((d) => {
+        discDeltaIds.add(d.id);
+        return {
+          id: d.id,
+          usuarioId: d.usuario_id,
+          nome: d.nome,
+          cor: d.cor,
+          createdAt: d.created_at ?? serverTimeIso,
+          updatedAt: d.updated_at ?? d.created_at ?? serverTimeIso,
+          deletedAt: d.deleted_at ?? null,
+          topicos: topicosPorDisc.get(d.id) ?? [],
+        };
+      });
+
+      const topicosSoltos = todosTopicos.filter((t) => !discDeltaIds.has(t.disciplinaId));
+
+      const sessoesRows = (sessoesRes.data ?? []) as any[];
+      const mapaFotos = new Map<string, { path: string; signedUrl: string | null }>();
+      if (sessoesRows.length > 0) {
+        try {
+          const fotosRes = await this.client
+            .from('fotos_sessao')
+            .select('sessao_id, storage_path')
+            .in(
+              'sessao_id',
+              sessoesRows.map((s) => s.id)
+            );
+          for (const f of (fotosRes?.data ?? []) as Array<{ sessao_id?: string; storage_path?: string | null }>) {
+            if (f.sessao_id && f.storage_path) {
+              const signedUrl = await this.criarUrlAssinadaFoto(f.storage_path, 3600).catch(() => null);
+              mapaFotos.set(f.sessao_id, { path: f.storage_path, signedUrl });
+            }
+          }
+        } catch {
+          // Melhor-esforço caso fotos_sessao esteja protegida
+        }
+      }
+
+      const sessoes: SessaoDeltaRemoto[] = sessoesRows.map((s) => {
+        const foto = mapaFotos.get(s.id);
+        return {
+          id: s.id,
+          usuarioId: s.usuario_id,
+          disciplinaId: s.disciplina_id,
+          topicoId: s.topico_id,
+          duracaoMinutos: s.duracao_minutos ?? 1,
+          createdAt: s.created_at,
+          latitude: s.latitude ?? null,
+          longitude: s.longitude ?? null,
+          accuracy: s.accuracy ?? null,
+          localAproximado: s.local_aproximado ?? null,
+          fotoPathRemoto: foto?.path ?? null,
+          fotoUrlAssinada: foto?.signedUrl ?? null,
+        };
+      });
+
+      return {
+        usuarioId: uid,
+        serverTimeIso,
+        disciplinas,
+        topicosSoltos,
+        sessoes,
       };
     } catch {
       return null;

@@ -28,23 +28,29 @@ export class CadastrarDisciplinaUseCase {
         cor: request.cor,
       });
 
-      await this.disciplinaRepository.salvar(disciplina);
+      const executarEmTransacao = this.syncQueueRepository?.executarEmTransacao
+        ? <T>(fn: () => Promise<T>) => this.syncQueueRepository!.executarEmTransacao!(fn)
+        : async <T>(fn: () => Promise<T>) => fn();
 
-      if (this.syncQueueRepository) {
-        await this.syncQueueRepository.enfileirar(
-          SyncQueueItem.create({
-            entidade: 'disciplinas',
-            operacao: 'INSERT',
-            payloadJson: JSON.stringify({
-              id: disciplina.id,
-              usuarioId: disciplina.usuarioId,
-              nome: disciplina.nome,
-              cor: disciplina.cor,
-              createdAt: disciplina.createdAt.toISOString(),
-            }),
-          })
-        );
-      }
+      await executarEmTransacao(async () => {
+        await this.disciplinaRepository.salvar(disciplina);
+
+        if (this.syncQueueRepository) {
+          await this.syncQueueRepository.enfileirar(
+            SyncQueueItem.create({
+              entidade: 'disciplinas',
+              operacao: 'INSERT',
+              payloadJson: JSON.stringify({
+                id: disciplina.id,
+                usuarioId: disciplina.usuarioId,
+                nome: disciplina.nome,
+                cor: disciplina.cor,
+                createdAt: disciplina.createdAt.toISOString(),
+              }),
+            })
+          );
+        }
+      });
 
       return {
         isSuccess: true,

@@ -5,6 +5,7 @@ import { Topico } from '../../domain/entities/Topico';
 import { StatusSincronizacao, StatusSincronizacaoType } from '../../domain/value-objects/StatusSincronizacao';
 import type { SQLiteExecutor } from '../database/SQLiteExecutor';
 import { getDatabase } from '../database/database';
+import { notifyTableChanged } from '../database/schema';
 
 interface DisciplinaRow {
   id: string;
@@ -107,6 +108,7 @@ export class SQLiteDisciplinaRepository implements IDisciplinaRepository {
         );
       }
     });
+    notifyTableChanged('disciplinas', 'topicos');
   }
 
   async buscarPorId(id: string): Promise<Disciplina | null> {
@@ -161,6 +163,7 @@ export class SQLiteDisciplinaRepository implements IDisciplinaRepository {
       await db.runAsync(`UPDATE disciplinas SET deleted_at = ? WHERE id = ?;`, [nowIso, id]);
       await db.runAsync(`UPDATE topicos SET deleted_at = ? WHERE disciplina_id = ?;`, [nowIso, id]);
     });
+    notifyTableChanged('disciplinas', 'topicos');
   }
 
   private mapToEntity(dRow: DisciplinaRow, topicosRows: TopicoRow[]): Disciplina {

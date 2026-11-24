@@ -25,26 +25,16 @@ export default function RankingScreen() {
   const [atualizando, setAtualizando] = useState(false);
   const [origem, setOrigem] = useState<'nuvem' | 'local'>('local');
 
-  // Carregar ranking do Supabase (com fallback local se offline)
+  // Carregar ranking do Supabase (com fallback local via ConsultarRankingUseCase se offline)
   const carregarRanking = useCallback(async () => {
     setCarregando(true);
     try {
-      const res = await DIContainer.consultarRanking.execute();
-      if (res.isSuccess && res.value.length > 0) {
-        let lista = [...res.value];
-        if (usuario && !lista.some(u => u.id === usuario.id)) {
-          lista.push(usuario);
-        }
-        lista.sort((a, b) => b.xpSemanal - a.xpSemanal);
-        setUsuariosRanking(lista);
-        setOrigem('nuvem');
+      const res = await DIContainer.consultarRanking.execute(usuario);
+      if (res.isSuccess) {
+        setUsuariosRanking(res.value);
+        setOrigem(res.origem);
       } else {
-        const lista = await DIContainer.repositories.usuario.listarTodos();
-        if (usuario && !lista.some(u => u.id === usuario.id)) {
-          lista.push(usuario);
-        }
-        lista.sort((a, b) => b.xpSemanal - a.xpSemanal);
-        setUsuariosRanking(lista);
+        if (usuario) setUsuariosRanking([usuario]);
         setOrigem('local');
       }
     } catch (e) {

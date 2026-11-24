@@ -6,6 +6,7 @@ import { Coordenada } from '../../domain/value-objects/Coordenada';
 import { StatusSincronizacao, StatusSincronizacaoType } from '../../domain/value-objects/StatusSincronizacao';
 import type { SQLiteExecutor } from '../database/SQLiteExecutor';
 import { getDatabase } from '../database/database';
+import { notifyTableChanged } from '../database/schema';
 
 interface SessaoRow {
   id: string;
@@ -85,6 +86,7 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
         );
       }
     });
+    notifyTableChanged('sessoes_estudo', 'fotos_sessao');
   }
 
   async atualizarFoto(sessaoId: string, urlRemota: string): Promise<void> {
@@ -93,11 +95,13 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
       `UPDATE fotos_sessao SET url_remota = ?, upload_status = 'completed' WHERE sessao_id = ?;`,
       [urlRemota, sessaoId]
     );
+    notifyTableChanged('fotos_sessao');
   }
 
   async marcarComoSincronizada(sessaoId: string): Promise<void> {
     const db = await this.getDb();
     await db.runAsync(`UPDATE sessoes_estudo SET sync_status = 'synced' WHERE id = ?;`, [sessaoId]);
+    notifyTableChanged('sessoes_estudo');
   }
 
   async buscarPorId(id: string): Promise<SessaoEstudo | null> {
@@ -182,6 +186,7 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
        WHERE usuario_id = ?;`,
       [usuarioId]
     );
+    notifyTableChanged('sessoes_estudo');
 
     return comCoordenada.length;
   }
@@ -204,6 +209,7 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
        WHERE created_at < ? AND (latitude IS NOT NULL OR longitude IS NOT NULL);`,
       [limiteIso]
     );
+    notifyTableChanged('sessoes_estudo');
 
     return expiradas.length;
   }
@@ -217,6 +223,7 @@ export class SQLiteSessaoEstudoRepository implements ISessaoEstudoRepository {
       await db.runAsync('DELETE FROM disciplinas;');
       await db.runAsync('DELETE FROM sync_queue;');
     });
+    notifyTableChanged('fotos_sessao', 'sessoes_estudo', 'topicos', 'disciplinas', 'sync_queue');
   }
 
   private mapToEntity(row: SessaoRow): SessaoEstudo {

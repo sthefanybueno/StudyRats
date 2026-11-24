@@ -89,11 +89,14 @@ describe('Arquitetura (Clean Architecture)', () => {
     expect(achadas).toEqual([]);
   });
 
-  it('Feed (UI) consome apenas casos de uso: sem infrastructure nem DIContainer.repositories/gateways', () => {
+  it('Camada de UI (todas as telas em app/, components/feed e hooks de tela) consome apenas casos de uso: sem infrastructure nem DIContainer.repositories/gateways', () => {
     const alvos = [
+      ...listarArquivos(path.join(SRC, 'app')),
       ...listarArquivos(path.join(SRC, 'components', 'feed')),
       path.join(SRC, 'hooks', 'useFeed.ts'),
-      path.join(SRC, 'app', '(app)', 'feed.tsx'),
+      path.join(SRC, 'hooks', 'useLocation.ts'),
+      path.join(SRC, 'hooks', 'useNetworkSync.ts'),
+      path.join(SRC, 'hooks', 'useLiveQuery.ts'),
     ].filter(f => fs.existsSync(f));
 
     expect(alvos.length).toBeGreaterThan(0);

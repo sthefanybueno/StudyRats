@@ -11,4 +11,9 @@ export interface ICameraGateway {
    * Retorna a URI (caminho local) da imagem selecionada, ou null se o usuário cancelar.
    */
   selecionarDaGaleria?(): Promise<string | null>;
+
+  /**
+   * Comprime, redimensiona (1080px) e move uma foto recém-capturada (ex.: CameraView) para armazenamento permanente.
+   */
+  processarFotoCapturada?(uriTemp: string): Promise<string>;
 }

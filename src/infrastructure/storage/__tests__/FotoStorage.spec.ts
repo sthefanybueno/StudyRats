@@ -1,5 +1,6 @@
 /** Description: Specs for FotoStorage, which moves camera photos out of volatile cache into permanent app storage. */
-import { persistirFotoLocal } from '../FotoStorage';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { comprimirFoto, persistirFotoLocal } from '../FotoStorage';
 
 const mockCopy = jest.fn();
 const mockCreate = jest.fn();
@@ -84,5 +85,15 @@ describe('persistirFotoLocal', () => {
   it('deve propagar o erro quando a cópia falhar (não esconder perda de foto)', async () => {
     mockCopy.mockRejectedValueOnce(new Error('sem espaço'));
     await expect(persistirFotoLocal('file:///cache/a.jpg')).rejects.toThrow('sem espaço');
+  });
+
+  it('deve redimensionar e comprimir a foto via expo-image-manipulator antes de persistir', async () => {
+    const spy = jest.spyOn(ImageManipulator, 'manipulateAsync');
+    await comprimirFoto('file:///cache/grande.jpg');
+    expect(spy).toHaveBeenCalledWith(
+      'file:///cache/grande.jpg',
+      [{ resize: { width: 1080 } }],
+      expect.objectContaining({ compress: 0.8 })
+    );
   });
 });

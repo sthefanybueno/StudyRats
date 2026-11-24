@@ -1,14 +1,14 @@
-/** Description: This file (src/infrastructure/repositories/SecureStoreUsuarioRepository.ts) contains the implementation for its respective feature. */
-import AsyncStorage from '@react-native-async-storage/async-storage';
+/** Description: Repositório local de usuários persistido sobre SecureStoreAuthStorage (expo-secure-store com chunking e migração legada). */
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
 import { Usuario } from '../../domain/entities/Usuario';
+import { SecureStoreAuthStorage } from '../storage/SecureStoreAuthStorage';
 
 const STORAGE_KEY = 'studyrats.usuarios';
 
 export class SecureStoreUsuarioRepository implements IUsuarioRepository {
   private async carregarTodos(): Promise<Record<string, any>> {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      const raw = await SecureStoreAuthStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -16,7 +16,7 @@ export class SecureStoreUsuarioRepository implements IUsuarioRepository {
   }
 
   private async salvarTodos(map: Record<string, any>): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    await SecureStoreAuthStorage.setItem(STORAGE_KEY, JSON.stringify(map));
   }
 
   async salvar(usuario: Usuario): Promise<void> {

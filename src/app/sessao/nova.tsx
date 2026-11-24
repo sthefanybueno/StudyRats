@@ -7,6 +7,7 @@ import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { DIContainer } from '@/application/di/container';
+import { CameraModal } from '@/components/camera/CameraModal';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
@@ -46,6 +47,7 @@ export default function NovaSessaoScreen() {
   const [enderecoManual, setEnderecoManual] = useState('');
   const [fotoUri, setFotoUri] = useState<string | null>(null);
   const [carregandoFoto, setCarregandoFoto] = useState(false);
+  const [cameraModalVisivel, setCameraModalVisivel] = useState(false);
 
   // Só inicia watchPositionAsync após o usuário interagir ou quando a permissão já estiver concedida (RNF02/RNF03)
   const { coords: coordsMonitoradas } = useLocation({
@@ -69,10 +71,10 @@ export default function NovaSessaoScreen() {
   const [podeAbrirAjustesFoto, setPodeAbrirAjustesFoto] = useState(false);
   const [erroMsg, setErroMsg] = useState<string | null>(null);
 
-  // Carregar disciplinas do usuário
+  // Carregar disciplinas do usuário via Use Case
   useEffect(() => {
     if (!usuario) return;
-    DIContainer.repositories.disciplina.listarPorUsuario(usuario.id).then(list => {
+    DIContainer.listarDisciplinas.execute(usuario.id).then(list => {
       setDisciplinas(list);
       if (list.length > 0) {
         setDisciplinaSelecionada(list[0]);
@@ -107,18 +109,18 @@ export default function NovaSessaoScreen() {
     setAvisoGpsMsg(null);
     setPodeAbrirAjustesGps(false);
 
-    if (novoValor && DIContainer.gateways.location.diagnosticarPermissao) {
+    if (novoValor) {
       try {
-        const diag = await DIContainer.gateways.location.diagnosticarPermissao();
-        if (!diag.servicosAtivos) {
+        const diag = await DIContainer.diagnosticarLocalizacao.diagnosticarPermissao();
+        if (diag && !diag.servicosAtivos) {
           setAvisoGpsMsg('O GPS do aparelho está desligado. A sessão poderá ser salva sem localização.');
           setPodeAbrirAjustesGps(true);
           setMonitorarSinalGps(false);
-        } else if (!diag.permissaoConcedida && !diag.canAskAgain) {
+        } else if (diag && !diag.permissaoConcedida && !diag.canAskAgain) {
           setAvisoGpsMsg('Permissão de localização bloqueada. Habilite nas configurações do sistema.');
           setPodeAbrirAjustesGps(true);
           setMonitorarSinalGps(false);
-        } else if (diag.permissaoConcedida) {
+        } else if (diag?.permissaoConcedida) {
           setMonitorarSinalGps(true);
         }
       } catch {
@@ -180,8 +182,8 @@ export default function NovaSessaoScreen() {
     if (res.isSuccess) {
       setNovoTopicoNome('');
       setCriandoTopico(false);
-      // Recarregar disciplina atualizada
-      const discAtualizada = await DIContainer.repositories.disciplina.buscarPorId(disciplinaSelecionada.id);
+      // Recarregar disciplina atualizada via Use Case
+      const discAtualizada = await DIContainer.listarDisciplinas.buscarPorId(disciplinaSelecionada.id);
       if (discAtualizada) {
         setDisciplinaSelecionada(discAtualizada);
         const novot = discAtualizada.topicos.find(t => t.id === res.value.id);
@@ -198,7 +200,7 @@ export default function NovaSessaoScreen() {
     }
   };
 
-  // Capturar Foto via Câmera ou Galeria
+  // Capturar Foto via Câmera do Sistema ou Galeria (via CapturarEvidenciaFotoUseCase)
   const handleCapturarOuEscolherFoto = async (origem: 'camera' | 'galeria') => {
     setCarregandoFoto(true);
     setErroFotoMsg(null);
@@ -206,9 +208,9 @@ export default function NovaSessaoScreen() {
     setErroMsg(null);
     try {
       const uri =
-        origem === 'galeria' && DIContainer.gateways.camera.selecionarDaGaleria
-          ? await DIContainer.gateways.camera.selecionarDaGaleria()
-          : await DIContainer.gateways.camera.capturarFoto();
+        origem === 'galeria'
+          ? await DIContainer.capturarEvidenciaFoto.selecionarDaGaleria()
+          : await DIContainer.capturarEvidenciaFoto.capturarComCameraSistema();
       if (uri) {
         aplicarNovaFoto(uri);
       }
@@ -218,6 +220,19 @@ export default function NovaSessaoScreen() {
       if (/permanentemente/i.test(msg)) {
         setPodeAbrirAjustesFoto(true);
       }
+    } finally {
+      setCarregandoFoto(false);
+    }
+  };
+
+  const handleFotoCameraModal = async (uriTemp: string) => {
+    setCarregandoFoto(true);
+    setErroFotoMsg(null);
+    try {
+      const uriFinal = await DIContainer.capturarEvidenciaFoto.processarFotoCapturada(uriTemp);
+      aplicarNovaFoto(uriFinal);
+    } catch (e: any) {
+      setErroFotoMsg(e?.message || 'Erro ao processar foto');
     } finally {
       setCarregandoFoto(false);
     }
@@ -385,7 +400,7 @@ export default function NovaSessaoScreen() {
                     icon="camera-outline"
                     loading={carregandoFoto}
                     disabled={salvando}
-                    onPress={() => handleCapturarOuEscolherFoto('camera')}
+                    onPress={() => setCameraModalVisivel(true)}
                     style={styles.flex}
                   />
                   <Button
@@ -711,7 +726,7 @@ export default function NovaSessaoScreen() {
                     variant="secondary"
                     icon="camera"
                     loading={carregandoFoto}
-                    onPress={() => handleCapturarOuEscolherFoto('camera')}
+                    onPress={() => setCameraModalVisivel(true)}
                     style={styles.flex}
                   />
                   <Button
@@ -752,6 +767,13 @@ export default function NovaSessaoScreen() {
           </AppText>
         </Card>
       )}
+
+      <CameraModal
+        visible={cameraModalVisivel}
+        onClose={() => setCameraModalVisivel(false)}
+        onCapture={handleFotoCameraModal}
+        onFallbackSystemCamera={() => handleCapturarOuEscolherFoto('camera')}
+      />
     </Screen>
   );
 }

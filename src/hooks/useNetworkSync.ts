@@ -14,7 +14,7 @@ export function useNetworkSync() {
     try {
       isSyncingRef.current = true;
       setIsSyncing(true);
-      await DIContainer.repositories?.syncQueue?.resetarFalhas?.();
+      await DIContainer.resetarFalhasSincronizacao?.();
       await DIContainer.sincronizarFila.execute();
       setUltimoSync(new Date());
     } catch (e) {

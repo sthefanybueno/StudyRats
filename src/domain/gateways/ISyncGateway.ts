@@ -1,6 +1,49 @@
 /** Description: This file (src/domain/gateways/ISyncGateway.ts) contains the implementation for its respective feature. */
 import { Usuario } from '../entities/Usuario';
 
+export interface TopicoDeltaRemoto {
+  id: string;
+  disciplinaId: string;
+  nome: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+export interface DisciplinaDeltaRemoto {
+  id: string;
+  usuarioId: string;
+  nome: string;
+  cor: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+  topicos: TopicoDeltaRemoto[];
+}
+
+export interface SessaoDeltaRemoto {
+  id: string;
+  usuarioId: string;
+  disciplinaId: string;
+  topicoId: string;
+  duracaoMinutos: number;
+  createdAt: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracy?: number | null;
+  localAproximado?: string | null;
+  fotoPathRemoto?: string | null;
+  fotoUrlAssinada?: string | null;
+}
+
+export interface DeltaRemotoResultado {
+  usuarioId: string;
+  serverTimeIso: string;
+  disciplinas: DisciplinaDeltaRemoto[];
+  topicosSoltos: TopicoDeltaRemoto[];
+  sessoes: SessaoDeltaRemoto[];
+}
+
 export interface ISyncGateway {
   /**
    * Faz o upload de um arquivo binário (como uma foto) e retorna a URL remota hospedada.
@@ -54,4 +97,10 @@ export interface ISyncGateway {
     xpSemanal?: number;
     streakAtual?: number;
   } | null>;
+
+  /**
+   * Delta Pull Sync (offline-first): baixa alterações remotas (updated_at / created_at > sinceIso)
+   * de disciplinas, tópicos e sessões do usuário autenticado para hidratar o SQLite local.
+   */
+  baixarDeltaRemoto?(sinceIso?: string): Promise<DeltaRemotoResultado | null>;
 }

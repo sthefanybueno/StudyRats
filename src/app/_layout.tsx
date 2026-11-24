@@ -49,6 +49,7 @@ function RootNavigator() {
     }
   }, [pronto]);
 
+  // Garante redirecionamento imediato para /(auth)/login ao deslogar (sem fallback para +not-found em '/')
   useEffect(() => {
     if (!pronto) return;
 
@@ -71,6 +72,8 @@ function RootNavigator() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(app)" />
+      <Stack.Screen name="sessao/nova" />
+      <Stack.Screen name="+not-found" />
     </Stack>
   );
 }

@@ -114,5 +114,30 @@ describe('SQLiteSyncQueueRepository', () => {
     }
     expect(await repo.buscarPendentes()).toHaveLength(0);
   });
+
+  it('deve executar mutação + enfileiramento atomicamente e fazer rollback completo se falhar', async () => {
+    const callback = jest.fn();
+    repo.definirCallbackAoEnfileirar(callback);
+
+    await expect(
+      repo.executarEmTransacao(async () => {
+        await repo.enfileirar(
+          SyncQueueItem.create({ id: 'sq-rb', entidade: 'disciplinas', operacao: 'INSERT', payloadJson: '{}' })
+        );
+        throw new Error('Falha após enfileirar');
+      })
+    ).rejects.toThrow('Falha após enfileirar');
+
+    expect(await repo.buscarPendentes()).toHaveLength(0);
+    expect(callback).not.toHaveBeenCalled();
+
+    await repo.executarEmTransacao(async () => {
+      await repo.enfileirar(
+        SyncQueueItem.create({ id: 'sq-ok', entidade: 'disciplinas', operacao: 'INSERT', payloadJson: '{}' })
+      );
+    });
+    expect(await repo.buscarPendentes()).toHaveLength(1);
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
 });
 

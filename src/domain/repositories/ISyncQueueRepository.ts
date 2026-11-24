@@ -26,4 +26,19 @@ export interface ISyncQueueRepository {
    * Reabilita itens com falha na fila local para nova tentativa de sincronização.
    */
   resetarFalhas?(): Promise<void>;
+
+  /**
+   * Executa mutação de domínio + enfileiramento na Outbox dentro da mesma transação SQLite atômica.
+   */
+  executarEmTransacao?<T>(task: () => Promise<T>): Promise<T>;
+
+  /**
+   * Cursor ISO da última sincronização Delta Pull realizada para o usuário.
+   */
+  obterUltimoPullCursor?(usuarioId: string): Promise<string | null>;
+
+  /**
+   * Persiste o cursor ISO da última sincronização Delta Pull realizada para o usuário.
+   */
+  salvarUltimoPullCursor?(usuarioId: string, cursorIso: string): Promise<void>;
 }

@@ -31,9 +31,9 @@ export function useLocation(options: UseLocationOptions = {}) {
       try {
         setErro('');
         setMonitorando(true);
-        const gateway = DIContainer.gateways.location;
+        const gateway = DIContainer.diagnosticarLocalizacao;
 
-        if (gateway.monitorarPosicao) {
+        if (gateway?.monitorarPosicao) {
           const novaSub = await gateway.monitorarPosicao(
             (novasCoords) => {
               if (!desmontado) {
@@ -44,12 +44,12 @@ export function useLocation(options: UseLocationOptions = {}) {
           );
 
           if (desmontado) {
-            novaSub.remove();
+            novaSub?.remove();
             return;
           }
-          sub = novaSub;
+          sub = novaSub ?? undefined;
         } else {
-          const inicial = await gateway.obterLocalizacaoAtual();
+          const inicial = await DIContainer.diagnosticarLocalizacao.obterLocalizacaoAtual();
           if (!desmontado) {
             setCoords(inicial);
           }

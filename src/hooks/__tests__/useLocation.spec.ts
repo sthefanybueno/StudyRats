@@ -7,11 +7,9 @@ const mockObterLocalizacaoAtual = jest.fn();
 
 jest.mock('@/application/di/container', () => ({
   DIContainer: {
-    gateways: {
-      location: {
-        monitorarPosicao: (...args: any[]) => mockMonitorarPosicao(...args),
-        obterLocalizacaoAtual: (...args: any[]) => mockObterLocalizacaoAtual(...args),
-      },
+    diagnosticarLocalizacao: {
+      monitorarPosicao: (...args: any[]) => mockMonitorarPosicao(...args),
+      obterLocalizacaoAtual: (...args: any[]) => mockObterLocalizacaoAtual(...args),
     },
   },
 }));

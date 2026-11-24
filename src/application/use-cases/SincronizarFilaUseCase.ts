@@ -1,13 +1,21 @@
 /** Description: This file (src/application/use-cases/SincronizarFilaUseCase.ts) contains the implementation for its respective feature. */
+import { Disciplina } from '../../domain/entities/Disciplina';
+import { FotoSessao } from '../../domain/entities/FotoSessao';
+import { SessaoEstudo } from '../../domain/entities/SessaoEstudo';
+import { Topico } from '../../domain/entities/Topico';
+import { Coordenada } from '../../domain/value-objects/Coordenada';
+import { StatusSincronizacao } from '../../domain/value-objects/StatusSincronizacao';
 import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueRepository';
 import { ISyncGateway } from '../../domain/gateways/ISyncGateway';
 import { ISessaoEstudoRepository } from '../../domain/repositories/ISessaoEstudoRepository';
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository';
+import { IDisciplinaRepository } from '../../domain/repositories/IDisciplinaRepository';
 
 export type SincronizarFilaResponse = {
   processados: number;
   falhas: number;
   coordenadasExpurgadas?: number;
+  deltaAplicados?: number;
 };
 
 /** Prazo máximo de retenção de coordenadas brutas no histórico (90 dias - PDF 01, slides 41 e 44; PDF 02, slide 42). */
@@ -21,7 +29,8 @@ export class SincronizarFilaUseCase {
     private syncQueueRepository: ISyncQueueRepository,
     private syncGateway: ISyncGateway,
     private sessaoRepository?: ISessaoEstudoRepository,
-    private usuarioRepository?: IUsuarioRepository
+    private usuarioRepository?: IUsuarioRepository,
+    private disciplinaRepository?: IDisciplinaRepository
   ) {}
 
   async execute(): Promise<SincronizarFilaResponse> {
@@ -132,6 +141,193 @@ export class SincronizarFilaUseCase {
       }
     }
 
-    return { processados, falhas, coordenadasExpurgadas };
+    const deltaAplicados = await this.executarDeltaPull();
+
+    return { processados, falhas, coordenadasExpurgadas, deltaAplicados };
+  }
+
+  private async executarDeltaPull(): Promise<number> {
+    if (!this.syncGateway.baixarDeltaRemoto || (!this.disciplinaRepository && !this.sessaoRepository)) {
+      return 0;
+    }
+
+    try {
+      const pendentesRestantes = await this.syncQueueRepository.buscarPendentes(100);
+      const idsComPendencia = new Set<string>();
+      for (const item of pendentesRestantes) {
+        try {
+          const parsed = JSON.parse(item.payloadJson);
+          if (parsed?.id) idsComPendencia.add(parsed.id);
+        } catch {
+          // Ignora payload malformado
+        }
+      }
+
+      // Se o SQLite local ainda não tem disciplinas, força pull completo (sinceIso = undefined)
+      let sinceIso: string | undefined;
+      if (this.syncQueueRepository.obterUltimoPullCursor) {
+        // Verifica primeiro com pull sem cursor ou usando o usuário da primeira leitura
+        const deltaInicial = await this.syncGateway.baixarDeltaRemoto(undefined);
+        if (!deltaInicial) return 0;
+
+        if (this.disciplinaRepository) {
+          const locais = await this.disciplinaRepository.listarPorUsuario(deltaInicial.usuarioId);
+          const cursorSalvo = await this.syncQueueRepository.obterUltimoPullCursor(deltaInicial.usuarioId);
+          if (locais.length > 0 && cursorSalvo) {
+            sinceIso = cursorSalvo;
+          }
+        }
+
+        const delta = sinceIso ? await this.syncGateway.baixarDeltaRemoto(sinceIso) : deltaInicial;
+        if (!delta) return 0;
+
+        const aplicados = await this.aplicarDelta(delta, idsComPendencia);
+        if (this.syncQueueRepository.salvarUltimoPullCursor) {
+          await this.syncQueueRepository.salvarUltimoPullCursor(delta.usuarioId, delta.serverTimeIso);
+        }
+        return aplicados;
+      }
+
+      const delta = await this.syncGateway.baixarDeltaRemoto(undefined);
+      if (!delta) return 0;
+      return await this.aplicarDelta(delta, idsComPendencia);
+    } catch {
+      return 0;
+    }
+  }
+
+  private async aplicarDelta(
+    delta: NonNullable<Awaited<ReturnType<NonNullable<ISyncGateway['baixarDeltaRemoto']>>>>,
+    idsComPendencia: Set<string>
+  ): Promise<number> {
+    let aplicados = 0;
+
+    if (this.disciplinaRepository) {
+      for (const d of delta.disciplinas) {
+        if (idsComPendencia.has(d.id)) continue;
+        if (d.deletedAt) {
+          await this.disciplinaRepository.deletar(d.id);
+          aplicados++;
+          continue;
+        }
+
+        const existente = await this.disciplinaRepository.buscarPorId(d.id);
+        const topicosRemotosPorId = new Map(d.topicos.map((t) => [t.id, t]));
+
+        const disc = Disciplina.create({
+          id: d.id,
+          usuarioId: d.usuarioId,
+          nome: d.nome,
+          cor: d.cor,
+          createdAt: new Date(d.createdAt),
+          updatedAt: new Date(d.updatedAt),
+          syncStatus: StatusSincronizacao.synced(),
+        });
+
+        // Preserva tópicos locais inalterados caso o pull tenha sido incremental
+        if (existente) {
+          for (const tLocal of existente.topicos) {
+            if (!topicosRemotosPorId.has(tLocal.id)) {
+              disc.adicionarTopico(tLocal);
+            }
+          }
+        }
+
+        for (const t of d.topicos) {
+          if (t.deletedAt || idsComPendencia.has(t.id)) continue;
+          disc.adicionarTopico(
+            Topico.create({
+              id: t.id,
+              disciplinaId: d.id,
+              nome: t.nome,
+              createdAt: new Date(t.createdAt),
+              updatedAt: new Date(t.updatedAt),
+              syncStatus: StatusSincronizacao.synced(),
+            })
+          );
+        }
+
+        await this.disciplinaRepository.salvar(disc);
+        aplicados++;
+      }
+
+      for (const t of delta.topicosSoltos) {
+        if (idsComPendencia.has(t.id) || idsComPendencia.has(t.disciplinaId)) continue;
+        const existente = await this.disciplinaRepository.buscarPorId(t.disciplinaId);
+        if (!existente) continue;
+
+        if (t.deletedAt) {
+          existente.removerTopico(t.id);
+        } else {
+          const jaExiste = existente.topicos.some((loc) => loc.id === t.id);
+          if (jaExiste) {
+            existente.atualizarTopico(t.id, t.nome);
+          } else {
+            existente.adicionarTopico(
+              Topico.create({
+                id: t.id,
+                disciplinaId: t.disciplinaId,
+                nome: t.nome,
+                createdAt: new Date(t.createdAt),
+                updatedAt: new Date(t.updatedAt),
+                syncStatus: StatusSincronizacao.synced(),
+              })
+            );
+          }
+        }
+        await this.disciplinaRepository.salvar(existente);
+        aplicados++;
+      }
+    }
+
+    if (this.sessaoRepository) {
+      for (const s of delta.sessoes) {
+        if (idsComPendencia.has(s.id)) continue;
+        const jaLocal = await this.sessaoRepository.buscarPorId(s.id);
+        if (jaLocal) continue;
+
+        let coordenada: Coordenada | undefined;
+        if (typeof s.latitude === 'number' && typeof s.longitude === 'number') {
+          try {
+            coordenada = Coordenada.create({
+              latitude: s.latitude,
+              longitude: s.longitude,
+              accuracy: typeof s.accuracy === 'number' ? s.accuracy : undefined,
+              localAproximado: s.localAproximado ?? undefined,
+            });
+          } catch {
+            coordenada = undefined;
+          }
+        }
+
+        const sessao = SessaoEstudo.create({
+          id: s.id,
+          usuarioId: s.usuarioId,
+          disciplinaId: s.disciplinaId,
+          topicoId: s.topicoId,
+          duracaoMinutos: s.duracaoMinutos,
+          createdAt: new Date(s.createdAt),
+          syncStatus: StatusSincronizacao.synced(),
+          coordenada,
+        });
+
+        const uriFoto = s.fotoUrlAssinada || s.fotoPathRemoto;
+        if (uriFoto) {
+          sessao.anexarFoto(
+            FotoSessao.create({
+              sessaoId: s.id,
+              uriLocal: uriFoto,
+              urlRemota: s.fotoPathRemoto ?? uriFoto,
+              uploadStatus: 'completed',
+            })
+          );
+        }
+
+        await this.sessaoRepository.salvar(sessao);
+        aplicados++;
+      }
+    }
+
+    return aplicados;
   }
 }

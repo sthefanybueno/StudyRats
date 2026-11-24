@@ -54,4 +54,14 @@ export class ExpoCameraGateway implements ICameraGateway {
 
     return this.processarResultado(result);
   }
+
+  async processarFotoCapturada(uriTemp: string): Promise<string> {
+    if (!uriTemp || uriTemp.trim() === '') {
+      throw new Error('URI da foto inválida');
+    }
+    if (this.persistirFoto) {
+      return await this.persistirFoto(uriTemp);
+    }
+    return uriTemp;
+  }
 }

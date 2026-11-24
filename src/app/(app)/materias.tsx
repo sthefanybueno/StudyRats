@@ -56,7 +56,7 @@ export default function MateriasScreen() {
     if (!usuario) return;
     setCarregando(true);
     try {
-      const list = await DIContainer.repositories.disciplina.listarPorUsuario(usuario.id);
+      const list = await DIContainer.listarDisciplinas.execute(usuario.id);
       setDisciplinas(list);
 
       // Atualizar a disciplina selecionada se estiver com o modal aberto
@@ -74,6 +74,9 @@ export default function MateriasScreen() {
   useFocusEffect(
     useCallback(() => {
       carregarDisciplinas();
+      return DIContainer.inscreverMudancasTabela(['disciplinas', 'topicos'], () => {
+        void carregarDisciplinas();
+      });
     }, [carregarDisciplinas])
   );
 

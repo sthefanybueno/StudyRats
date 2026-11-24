@@ -50,7 +50,21 @@ jest.mock('expo-router', () => ({
   },
   useSegments: () => ['(app)'],
   Link: ({ children }: any) => children,
+  Stack: Object.assign(({ children }: any) => children, {
+    Screen: ({ children }: any) => children ?? null,
+    Protected: ({ guard, children }: any) => (guard ? children : null),
+  }),
 }));
+
+// Mock do expo-image-manipulator
+jest.mock(
+  'expo-image-manipulator',
+  () => ({
+    SaveFormat: { JPEG: 'jpeg', PNG: 'png', WEBP: 'webp' },
+    manipulateAsync: jest.fn(async (uri: string) => ({ uri, width: 1080, height: 1080 })),
+  }),
+  { virtual: true }
+);
 
 // Mock do expo-secure-store
 jest.mock('expo-secure-store', () => {

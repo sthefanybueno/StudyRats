@@ -4,6 +4,7 @@ import { SQLiteDisciplinaRepository } from '../../infrastructure/repositories/SQ
 import { SQLiteSessaoEstudoRepository } from '../../infrastructure/repositories/SQLiteSessaoEstudoRepository';
 import { SQLiteSyncQueueRepository } from '../../infrastructure/repositories/SQLiteSyncQueueRepository';
 import { persistirFotoLocal } from '../../infrastructure/storage/FotoStorage';
+import { subscribeTableChanges, type TabelaLocal } from '../../infrastructure/database/schema';
 import { InMemoryResumoIARepository } from '../../infrastructure/repositories/InMemoryResumoIARepository';
 
 // Gateways
@@ -22,11 +23,16 @@ import { CadastrarUsuarioUseCase } from '../use-cases/CadastrarUsuarioUseCase';
 import { AtualizarPerfilUseCase } from '../use-cases/AtualizarPerfilUseCase';
 import { CadastrarDisciplinaUseCase } from '../use-cases/CadastrarDisciplinaUseCase';
 import { DeletarDisciplinaUseCase } from '../use-cases/DeletarDisciplinaUseCase';
+import { ListarDisciplinasUseCase } from '../use-cases/ListarDisciplinasUseCase';
 import { CadastrarTopicoUseCase } from '../use-cases/CadastrarTopicoUseCase';
 import { AtualizarTopicoUseCase } from '../use-cases/AtualizarTopicoUseCase';
 import { DeletarTopicoUseCase } from '../use-cases/DeletarTopicoUseCase';
 import { GerarResumoUseCase } from '../use-cases/GerarResumoUseCase';
 import { RegistrarSessaoUseCase } from '../use-cases/RegistrarSessaoUseCase';
+import { ListarSessoesUsuarioUseCase } from '../use-cases/ListarSessoesUsuarioUseCase';
+import { ObterEstatisticasPerfilUseCase } from '../use-cases/ObterEstatisticasPerfilUseCase';
+import { CapturarEvidenciaFotoUseCase } from '../use-cases/CapturarEvidenciaFotoUseCase';
+import { DiagnosticarLocalizacaoUseCase } from '../use-cases/DiagnosticarLocalizacaoUseCase';
 import { ConsultarRankingUseCase } from '../use-cases/ConsultarRankingUseCase';
 import { SincronizarFilaUseCase } from '../use-cases/SincronizarFilaUseCase';
 import { LimparHistoricoLocalizacaoUseCase } from '../use-cases/LimparHistoricoLocalizacaoUseCase';
@@ -68,14 +74,24 @@ export const DIContainer = {
   limparHistoricoLocalizacao: new LimparHistoricoLocalizacaoUseCase(sessaoEstudoRepository, syncQueueRepository, usuarioRepository, syncGateway),
   cadastrarDisciplina: new CadastrarDisciplinaUseCase(disciplinaRepository, syncQueueRepository),
   deletarDisciplina: new DeletarDisciplinaUseCase(disciplinaRepository, syncQueueRepository),
+  listarDisciplinas: new ListarDisciplinasUseCase(disciplinaRepository),
   cadastrarTopico: new CadastrarTopicoUseCase(disciplinaRepository, syncQueueRepository),
   atualizarTopico: new AtualizarTopicoUseCase(disciplinaRepository, syncQueueRepository),
   deletarTopico: new DeletarTopicoUseCase(disciplinaRepository, syncQueueRepository),
   gerarResumo: new GerarResumoUseCase(aiGateway, resumoRepository),
   registrarSessao: new RegistrarSessaoUseCase(sessaoEstudoRepository, usuarioRepository, cameraGateway, locationGateway, syncQueueRepository),
-  consultarRanking: new ConsultarRankingUseCase(syncGateway),
+  listarSessoesUsuario: new ListarSessoesUsuarioUseCase(sessaoEstudoRepository),
+  obterEstatisticasPerfil: new ObterEstatisticasPerfilUseCase(sessaoEstudoRepository, usuarioRepository, syncQueueRepository, syncGateway),
+  capturarEvidenciaFoto: new CapturarEvidenciaFotoUseCase(cameraGateway),
+  diagnosticarLocalizacao: new DiagnosticarLocalizacaoUseCase(locationGateway),
+  consultarRanking: new ConsultarRankingUseCase(syncGateway, usuarioRepository),
   listarFeed: new ListarFeedUseCase(sessaoEstudoRepository, usuarioRepository, disciplinaRepository, feedGateway, locationGateway),
-  sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway, sessaoEstudoRepository, usuarioRepository),
+  sincronizarFila: new SincronizarFilaUseCase(syncQueueRepository, syncGateway, sessaoEstudoRepository, usuarioRepository, disciplinaRepository),
+  buscarUsuarioPorId: (id: string) => usuarioRepository.buscarPorId(id),
+  escutarMudancasAuth: (callback: (evento: string, usuario: any) => void) =>
+    authGateway.onAuthStateChange(callback),
+  resetarFalhasSincronizacao: () => syncQueueRepository.resetarFalhas(),
+  inscreverMudancasTabela: (tabelas: TabelaLocal[], callback: () => void) => subscribeTableChanges(tabelas, callback),
 
   // Gateways expostos para consumo direto pela camada de apresentação (ex.: captura de GPS na sessão e eventos de Auth)
   gateways: {

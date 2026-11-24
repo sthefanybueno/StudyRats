@@ -54,7 +54,8 @@ export function AuthProvider({ children, container = DIContainer }: AuthProvider
       .finally(() => setRestaurando(false));
 
     // Escuta mudanças de sessão (SIGNED_OUT, TOKEN_REFRESHED - PDF 03, slides 14 e 43)
-    const sub = container.gateways?.auth?.onAuthStateChange?.((evento, usuarioSessao) => {
+    const escutarAuth = container.escutarMudancasAuth ?? ((cb: any) => container.gateways?.auth?.onAuthStateChange?.(cb));
+    const sub = escutarAuth((evento, usuarioSessao) => {
       if (evento === 'SIGNED_OUT') {
         setUsuario(null);
         setPrecisaOnboarding(false);
@@ -87,14 +88,18 @@ export function AuthProvider({ children, container = DIContainer }: AuthProvider
     if (!usuario) return 'Usuário não autenticado';
     const res = await container.atualizarPerfil.execute({ usuarioId: usuario.id, ...payload });
     if (!res.isSuccess) return res.error;
-    const atualizado = await container.repositories.usuario.buscarPorId(usuario.id);
+    const atualizado = container.buscarUsuarioPorId
+      ? await container.buscarUsuarioPorId(usuario.id)
+      : await container.repositories.usuario.buscarPorId(usuario.id);
     if (atualizado) setUsuario(atualizado);
     return null;
   }, [usuario, container]);
 
   const recarregarUsuario = useCallback(async () => {
     if (!usuario) return;
-    const atualizado = await container.repositories.usuario.buscarPorId(usuario.id);
+    const atualizado = container.buscarUsuarioPorId
+      ? await container.buscarUsuarioPorId(usuario.id)
+      : await container.repositories.usuario.buscarPorId(usuario.id);
     if (atualizado) setUsuario(atualizado);
   }, [usuario, container]);
 

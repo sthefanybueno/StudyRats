@@ -1,7 +1,6 @@
 /** Description: This file (src/app/(app)/perfil.tsx) contains the implementation for its respective feature. */
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -16,7 +15,6 @@ import { Screen } from '@/components/ui/Screen';
 import { Card, Pill, ProgressBar } from '@/components/ui/Surface';
 import { TextField } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/theme';
-import { CalculoXpService } from '@/domain/services/CalculoXpService';
 import { useNetworkSync } from '@/hooks/useNetworkSync';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from "@/providers/ThemeProvider";
@@ -84,51 +82,12 @@ export default function PerfilScreen() {
   const carregarEstatísticasReais = useCallback(async () => {
     if (!usuario) return;
     try {
-      const [listSessoes, remoto, pendentes] = await Promise.all([
-        DIContainer.repositories.sessao.listarPorUsuario(usuario.id),
-        DIContainer.gateways.sync?.obterEstatisticasUsuarioRemoto?.().catch(() => null) ?? Promise.resolve(null),
-        DIContainer.repositories.syncQueue.buscarPendentes(1),
-      ]);
-      const localCount = listSessoes.length;
-      const localGpsCount = listSessoes.filter(s => !!s.coordenada).length;
-      const localMins = listSessoes.reduce((acc, s) => acc + s.duracaoMinutos, 0);
-
-      setSessoesCount(remoto ? Math.max(localCount, remoto.sessoesCount) : localCount);
-      setSessoesComGpsCount(remoto ? Math.max(localGpsCount, remoto.sessoesComGpsCount) : localGpsCount);
-      setMinutosTotais(remoto ? Math.max(localMins, remoto.minutosTotais) : localMins);
-
-      // Reconcilia o XP do perfil se não houver sessões pendentes na fila e a soma real das sessões divergir (ex.: remoção anterior de GPS)
-      if (pendentes.length === 0 && remoto?.sessoesResumo && localCount <= remoto.sessoesResumo.length) {
-        const mapaLocal = new Map(listSessoes.map(s => [s.id, s]));
-        const xpRealSessoes = remoto.sessoesResumo.reduce((acc, s) => {
-          const local = mapaLocal.get(s.id);
-          return (
-            acc +
-            CalculoXpService.calcular({
-              duracaoMinutos: s.duracaoMinutos,
-              comFoto: s.comFoto || !!local?.foto,
-              comGps: s.comGps,
-            })
-          );
-        }, 0);
-
-        const usuarioAtual = await DIContainer.repositories.usuario.buscarPorId(usuario.id);
-        const remotoDivergente = typeof remoto.xpTotal === 'number' && remoto.xpTotal !== xpRealSessoes;
-        if (usuarioAtual && (usuarioAtual.xpTotal !== xpRealSessoes || remotoDivergente)) {
-          if (usuarioAtual.xpTotal > xpRealSessoes) {
-            usuarioAtual.descontarXP(usuarioAtual.xpTotal - xpRealSessoes);
-          } else if (xpRealSessoes > usuarioAtual.xpTotal) {
-            usuarioAtual.adicionarXP(xpRealSessoes - usuarioAtual.xpTotal);
-          }
-          await DIContainer.repositories.usuario.salvar(usuarioAtual);
-          await DIContainer.gateways.sync?.enviarParaNuvem('perfis', 'UPDATE', {
-            id: usuarioAtual.id,
-            xpTotal: usuarioAtual.xpTotal,
-            xpSemanal: usuarioAtual.xpSemanal,
-            streakAtual: usuarioAtual.streakAtual,
-          }).catch(() => {});
-          await recarregarUsuario();
-        }
+      const stats = await DIContainer.obterEstatisticasPerfil.execute(usuario.id);
+      setSessoesCount(stats.sessoesCount);
+      setSessoesComGpsCount(stats.sessoesComGpsCount);
+      setMinutosTotais(stats.minutosTotais);
+      if (stats.xpReconciliado) {
+        await recarregarUsuario();
       }
     } catch (e) {
       console.error('Erro ao carregar estatísticas reais:', e);
@@ -189,21 +148,15 @@ export default function PerfilScreen() {
     setMostrarModalEditar(true);
   };
 
-  // Selecionar Foto da Galeria
+  // Selecionar Foto da Galeria (via CapturarEvidenciaFotoUseCase + compressão)
   const handleSelecionarFoto = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setFotoUrlInput(result.assets[0].uri);
+      const uri = await DIContainer.capturarEvidenciaFoto.selecionarDaGaleria();
+      if (uri) {
+        setFotoUrlInput(uri);
       }
-    } catch (err) {
-      console.error('Erro ao selecionar foto:', err);
+    } catch (err: any) {
+      setErroEdicao(err?.message || 'Erro ao selecionar foto');
     }
   };
 

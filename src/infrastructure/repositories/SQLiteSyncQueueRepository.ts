@@ -1,8 +1,10 @@
 /** Description: SQLite implementation of ISyncQueueRepository using SQLiteExecutor. */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ISyncQueueRepository } from '../../domain/repositories/ISyncQueueRepository';
 import { SyncQueueItem } from '../../domain/entities/SyncQueueItem';
 import type { SQLiteExecutor } from '../database/SQLiteExecutor';
 import { getDatabase } from '../database/database';
+import { notifyTableChanged } from '../database/schema';
 
 interface SyncQueueRow {
   id: string;
@@ -20,11 +22,42 @@ export const MAX_TENTATIVAS = 5;
 
 export class SQLiteSyncQueueRepository implements ISyncQueueRepository {
   private aoEnfileirarCallback?: () => void;
+  private transacaoAtivaDepth = 0;
+  private enfileiradoNaTransacao = false;
 
   constructor(private readonly getDb: () => Promise<SQLiteExecutor> = getDatabase) {}
 
   definirCallbackAoEnfileirar(callback: () => void): void {
     this.aoEnfileirarCallback = callback;
+  }
+
+  async executarEmTransacao<T>(task: () => Promise<T>): Promise<T> {
+    const db = await this.getDb();
+    let resultado!: T;
+    const externa = this.transacaoAtivaDepth === 0;
+    if (externa) {
+      this.enfileiradoNaTransacao = false;
+    }
+    this.transacaoAtivaDepth++;
+    try {
+      await db.withTransactionAsync(async () => {
+        resultado = await task();
+      });
+    } catch (error) {
+      if (externa) {
+        this.enfileiradoNaTransacao = false;
+      }
+      throw error;
+    } finally {
+      this.transacaoAtivaDepth--;
+    }
+
+    if (externa && this.enfileiradoNaTransacao) {
+      this.enfileiradoNaTransacao = false;
+      this.aoEnfileirarCallback?.();
+    }
+
+    return resultado;
   }
 
   async enfileirar(item: SyncQueueItem): Promise<void> {
@@ -51,7 +84,12 @@ export class SQLiteSyncQueueRepository implements ISyncQueueRepository {
         item.createdAt.toISOString(),
       ]
     );
-    this.aoEnfileirarCallback?.();
+    notifyTableChanged('sync_queue');
+    if (this.transacaoAtivaDepth > 0) {
+      this.enfileiradoNaTransacao = true;
+    } else {
+      this.aoEnfileirarCallback?.();
+    }
   }
 
   async buscarPendentes(limite: number = 10): Promise<SyncQueueItem[]> {
@@ -100,6 +138,22 @@ export class SQLiteSyncQueueRepository implements ISyncQueueRepository {
        SET tentativas = 0, status = 'pending'
        WHERE status = 'error';`
     );
+  }
+
+  async obterUltimoPullCursor(usuarioId: string): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(`studyrats.sync_cursor.${usuarioId}`);
+    } catch {
+      return null;
+    }
+  }
+
+  async salvarUltimoPullCursor(usuarioId: string, cursorIso: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(`studyrats.sync_cursor.${usuarioId}`, cursorIso);
+    } catch {
+      // Melhor-esforço: não bloqueia sincronização
+    }
   }
 }
 

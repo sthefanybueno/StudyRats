@@ -25,26 +25,33 @@ export class DeletarDisciplinaUseCase {
       }
 
       disciplina.marcarComoDeletada();
-      await this.disciplinaRepository.salvar(disciplina);
 
-      if (this.syncQueueRepository) {
-        const agoraIso = (disciplina.deletedAt ?? new Date()).toISOString();
-        await this.syncQueueRepository.enfileirar(
-          SyncQueueItem.create({
-            entidade: 'disciplinas',
-            operacao: 'UPDATE',
-            payloadJson: JSON.stringify({
-              id: disciplina.id,
-              usuarioId: disciplina.usuarioId,
-              nome: disciplina.nome,
-              cor: disciplina.cor,
-              createdAt: disciplina.createdAt.toISOString(),
-              updatedAt: agoraIso,
-              deletedAt: agoraIso,
-            }),
-          })
-        );
-      }
+      const executarEmTransacao = this.syncQueueRepository?.executarEmTransacao
+        ? <T>(fn: () => Promise<T>) => this.syncQueueRepository!.executarEmTransacao!(fn)
+        : async <T>(fn: () => Promise<T>) => fn();
+
+      await executarEmTransacao(async () => {
+        await this.disciplinaRepository.salvar(disciplina);
+
+        if (this.syncQueueRepository) {
+          const agoraIso = (disciplina.deletedAt ?? new Date()).toISOString();
+          await this.syncQueueRepository.enfileirar(
+            SyncQueueItem.create({
+              entidade: 'disciplinas',
+              operacao: 'UPDATE',
+              payloadJson: JSON.stringify({
+                id: disciplina.id,
+                usuarioId: disciplina.usuarioId,
+                nome: disciplina.nome,
+                cor: disciplina.cor,
+                createdAt: disciplina.createdAt.toISOString(),
+                updatedAt: agoraIso,
+                deletedAt: agoraIso,
+              }),
+            })
+          );
+        }
+      });
 
       return { isSuccess: true };
     } catch (error: any) {

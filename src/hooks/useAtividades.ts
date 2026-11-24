@@ -9,7 +9,9 @@ export function useAtividades(usuarioId: string, container = DIContainer) {
 
   const carregarDisciplinas = async () => {
     setCarregando(true);
-    const result = await container.repositories.disciplina.listarPorUsuario(usuarioId);
+    const result = container.listarDisciplinas
+      ? await container.listarDisciplinas.execute(usuarioId)
+      : await container.repositories.disciplina.listarPorUsuario(usuarioId);
     setDisciplinas(result);
     setCarregando(false);
   };

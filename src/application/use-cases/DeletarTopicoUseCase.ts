@@ -27,21 +27,28 @@ export class DeletarTopicoUseCase {
       }
 
       disciplina.removerTopico(request.topicoId);
-      await this.disciplinaRepository.salvar(disciplina);
 
-      if (this.syncQueueRepository) {
-        await this.syncQueueRepository.enfileirar(
-          SyncQueueItem.create({
-            entidade: 'topicos',
-            operacao: 'DELETE',
-            payloadJson: JSON.stringify({
-              id: request.topicoId,
-              disciplinaId: request.disciplinaId,
-              deletedAt: new Date().toISOString(),
-            }),
-          })
-        );
-      }
+      const executarEmTransacao = this.syncQueueRepository?.executarEmTransacao
+        ? <T>(fn: () => Promise<T>) => this.syncQueueRepository!.executarEmTransacao!(fn)
+        : async <T>(fn: () => Promise<T>) => fn();
+
+      await executarEmTransacao(async () => {
+        await this.disciplinaRepository.salvar(disciplina);
+
+        if (this.syncQueueRepository) {
+          await this.syncQueueRepository.enfileirar(
+            SyncQueueItem.create({
+              entidade: 'topicos',
+              operacao: 'DELETE',
+              payloadJson: JSON.stringify({
+                id: request.topicoId,
+                disciplinaId: request.disciplinaId,
+                deletedAt: new Date().toISOString(),
+              }),
+            })
+          );
+        }
+      });
 
       return { isSuccess: true };
     } catch (error: any) {

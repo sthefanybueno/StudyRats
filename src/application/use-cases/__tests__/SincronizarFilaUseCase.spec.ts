@@ -4,6 +4,8 @@ import { ISyncQueueRepository } from '../../../domain/repositories/ISyncQueueRep
 import { ISyncGateway } from '../../../domain/gateways/ISyncGateway';
 import { SyncQueueItem } from '../../../domain/entities/SyncQueueItem';
 import { Usuario } from '../../../domain/entities/Usuario';
+import { InMemoryDisciplinaRepository } from '../../../infrastructure/repositories/InMemoryDisciplinaRepository';
+import { InMemorySessaoEstudoRepository } from '../../../infrastructure/repositories/InMemorySessaoEstudoRepository';
 
 class MockSyncQueueRepo implements ISyncQueueRepository {
   itens: SyncQueueItem[] = [];
@@ -94,5 +96,67 @@ describe('SincronizarFilaUseCase', () => {
     expect(gateway.ultimoPayloadEnviado.fotoUrl).toBe(
       'https://cdn.supabase.co/storage/v1/object/public/avatares/u-1/avatar.png'
     );
+  });
+
+  it('deve baixar alterações via Delta Pull Sync e hidratar disciplinas, tópicos e sessões locais', async () => {
+    const repo = new MockSyncQueueRepo();
+    const discRepo = new InMemoryDisciplinaRepository();
+    const sessaoRepo = new InMemorySessaoEstudoRepository();
+    const gateway: ISyncGateway = {
+      enviarParaNuvem: jest.fn(),
+      fazerUploadFoto: jest.fn(),
+      obterRanking: jest.fn().mockResolvedValue([]),
+      baixarDeltaRemoto: jest.fn().mockResolvedValue({
+        usuarioId: 'u-1',
+        serverTimeIso: '2026-11-24T00:00:00.000Z',
+        disciplinas: [
+          {
+            id: 'd-rem',
+            usuarioId: 'u-1',
+            nome: 'Algoritmos',
+            cor: '#3B82F6',
+            createdAt: '2026-11-23T10:00:00.000Z',
+            updatedAt: '2026-11-23T10:00:00.000Z',
+            deletedAt: null,
+            topicos: [
+              {
+                id: 't-rem',
+                disciplinaId: 'd-rem',
+                nome: 'Grafos',
+                createdAt: '2026-11-23T10:00:00.000Z',
+                updatedAt: '2026-11-23T10:00:00.000Z',
+                deletedAt: null,
+              },
+            ],
+          },
+        ],
+        topicosSoltos: [],
+        sessoes: [
+          {
+            id: 's-rem',
+            usuarioId: 'u-1',
+            disciplinaId: 'd-rem',
+            topicoId: 't-rem',
+            duracaoMinutos: 40,
+            createdAt: '2026-11-23T12:00:00.000Z',
+            latitude: -21.55,
+            longitude: -45.43,
+            localAproximado: 'Centro, Varginha',
+          },
+        ],
+      }),
+    };
+
+    const useCase = new SincronizarFilaUseCase(repo, gateway, sessaoRepo, undefined, discRepo);
+    const response = await useCase.execute();
+
+    expect(response.deltaAplicados).toBe(2);
+    const disciplinas = await discRepo.listarPorUsuario('u-1');
+    expect(disciplinas).toHaveLength(1);
+    expect(disciplinas[0].nome).toBe('Algoritmos');
+    expect(disciplinas[0].topicos[0].nome).toBe('Grafos');
+    const sessoes = await sessaoRepo.listarPorUsuario('u-1');
+    expect(sessoes).toHaveLength(1);
+    expect(sessoes[0].syncStatus.value).toBe('synced');
   });
 });

@@ -34,22 +34,28 @@ export class CadastrarTopicoUseCase {
 
       disciplina.adicionarTopico(topico);
 
-      await this.disciplinaRepository.salvar(disciplina);
+      const executarEmTransacao = this.syncQueueRepository?.executarEmTransacao
+        ? <T>(fn: () => Promise<T>) => this.syncQueueRepository!.executarEmTransacao!(fn)
+        : async <T>(fn: () => Promise<T>) => fn();
 
-      if (this.syncQueueRepository) {
-        await this.syncQueueRepository.enfileirar(
-          SyncQueueItem.create({
-            entidade: 'topicos',
-            operacao: 'INSERT',
-            payloadJson: JSON.stringify({
-              id: topico.id,
-              disciplinaId: topico.disciplinaId,
-              nome: topico.nome,
-              createdAt: topico.createdAt.toISOString(),
-            }),
-          })
-        );
-      }
+      await executarEmTransacao(async () => {
+        await this.disciplinaRepository.salvar(disciplina);
+
+        if (this.syncQueueRepository) {
+          await this.syncQueueRepository.enfileirar(
+            SyncQueueItem.create({
+              entidade: 'topicos',
+              operacao: 'INSERT',
+              payloadJson: JSON.stringify({
+                id: topico.id,
+                disciplinaId: topico.disciplinaId,
+                nome: topico.nome,
+                createdAt: topico.createdAt.toISOString(),
+              }),
+            })
+          );
+        }
+      });
 
       return {
         isSuccess: true,

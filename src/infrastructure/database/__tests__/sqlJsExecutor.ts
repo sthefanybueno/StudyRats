@@ -4,6 +4,7 @@ import initSqlJs, { type BindParams, type Database } from 'sql.js';
 import type { SQLiteExecutor, SQLiteBindValue } from '../SQLiteExecutor';
 
 export class SqlJsExecutor implements SQLiteExecutor {
+  private transactionDepth = 0;
   private constructor(private readonly db: Database) {}
 
   static async create(): Promise<SqlJsExecutor> {
@@ -41,6 +42,17 @@ export class SqlJsExecutor implements SQLiteExecutor {
   }
 
   async withTransactionAsync(task: () => Promise<void>): Promise<void> {
+    if (this.transactionDepth > 0) {
+      this.transactionDepth++;
+      try {
+        await task();
+      } finally {
+        this.transactionDepth--;
+      }
+      return;
+    }
+
+    this.transactionDepth++;
     this.db.run('BEGIN');
     try {
       await task();
@@ -48,6 +60,8 @@ export class SqlJsExecutor implements SQLiteExecutor {
     } catch (error) {
       this.db.run('ROLLBACK');
       throw error;
+    } finally {
+      this.transactionDepth--;
     }
   }
 }
