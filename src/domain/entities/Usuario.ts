@@ -68,6 +68,13 @@ export class Usuario {
     this.props.xpSemanal = Math.max(0, this.xpSemanal - xp);
   }
 
+  public atualizarXpSemanal(novoXpSemanal: number): void {
+    if (!Number.isFinite(novoXpSemanal) || novoXpSemanal < 0) {
+      throw new Error('O XP semanal não pode ser negativo');
+    }
+    this.props.xpSemanal = Math.floor(novoXpSemanal);
+  }
+
   public incrementarStreak(): void {
     this.props.streakAtual = this.streakAtual + 1;
   }

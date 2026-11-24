@@ -46,7 +46,8 @@
           "cameraPermission": "O StudyRats usa a câmera para registrar a foto do seu caderno de estudo."
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

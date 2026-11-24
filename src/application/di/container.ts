@@ -16,6 +16,7 @@ import { ListarFeedUseCase } from '../use-cases/ListarFeedUseCase';
 import { MockAIGateway } from '../../infrastructure/gateways/MockAIGateway';
 import { ExpoCameraGateway } from '../../infrastructure/gateways/ExpoCameraGateway';
 import { ExpoLocationGateway } from '../../infrastructure/gateways/ExpoLocationGateway';
+import { ExpoNotificationGateway } from '../../infrastructure/gateways/ExpoNotificationGateway';
 
 // Use Cases
 import { AutenticarUsuarioUseCase } from '../use-cases/AutenticarUsuarioUseCase';
@@ -54,6 +55,7 @@ const feedGateway = new SupabaseFeedGateway();
 const aiGateway = new MockAIGateway();
 const cameraGateway = new ExpoCameraGateway(persistirFotoLocal);
 const locationGateway = new ExpoLocationGateway();
+const notificationGateway = new ExpoNotificationGateway();
 
 // 2. Instanciar Use Cases injetando as dependências
 export const DIContainer = {
@@ -92,12 +94,16 @@ export const DIContainer = {
     authGateway.onAuthStateChange(callback),
   resetarFalhasSincronizacao: () => syncQueueRepository.resetarFalhas(),
   inscreverMudancasTabela: (tabelas: TabelaLocal[], callback: () => void) => subscribeTableChanges(tabelas, callback),
+  agendarLembreteStreak: (streakAtual: number) =>
+    notificationGateway.agendarLembreteDiarioStreak({ streakAtual }),
+  cancelarLembreteStreak: () => notificationGateway.cancelarLembreteDiarioStreak(),
 
   // Gateways expostos para consumo direto pela camada de apresentação (ex.: captura de GPS na sessão e eventos de Auth)
   gateways: {
     auth: authGateway,
     camera: cameraGateway,
     location: locationGateway,
+    notifications: notificationGateway,
     sync: syncGateway,
   },
 

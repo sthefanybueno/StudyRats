@@ -94,3 +94,22 @@ jest.mock(
   }),
   { virtual: true }
 );
+
+// Mock do expo-notifications para ambiente de teste hermético
+jest.mock(
+  'expo-notifications',
+  () => ({
+    AndroidImportance: { LOW: 2, DEFAULT: 3, HIGH: 4 },
+    AndroidNotificationPriority: { LOW: 'low', DEFAULT: 'default', HIGH: 'high' },
+    AndroidNotificationVisibility: { PUBLIC: 1 },
+    SchedulableTriggerInputTypes: { TIME_INTERVAL: 'timeInterval', DAILY: 'daily' },
+    setNotificationHandler: jest.fn(),
+    setNotificationChannelAsync: jest.fn(async () => {}),
+    getPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted', canAskAgain: true })),
+    requestPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted', canAskAgain: true })),
+    scheduleNotificationAsync: jest.fn(async () => 'mock-notif-id'),
+    dismissNotificationAsync: jest.fn(async () => {}),
+    cancelScheduledNotificationAsync: jest.fn(async () => {}),
+  }),
+  { virtual: true }
+);

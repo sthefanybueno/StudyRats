@@ -155,11 +155,21 @@ create policy topicos_owner on public.topicos for all to authenticated
   using (exists (select 1 from public.disciplinas d where d.id = disciplina_id and d.usuario_id = (select auth.uid())))
   with check (exists (select 1 from public.disciplinas d where d.id = disciplina_id and d.usuario_id = (select auth.uid())));
 
--- fotos_sessao: somente o dono da sessão gerencia e lê os metadados da própria foto privada
+-- fotos_sessao: qualquer usuário autenticado lê metadados para o Feed; somente o dono da sessão insere, altera ou exclui
 drop policy if exists fotos_sessao_owner on public.fotos_sessao;
-create policy fotos_sessao_owner on public.fotos_sessao for all to authenticated
+drop policy if exists fotos_sessao_select on public.fotos_sessao;
+create policy fotos_sessao_select on public.fotos_sessao for select to authenticated
+  using (true);
+drop policy if exists fotos_sessao_insert on public.fotos_sessao;
+create policy fotos_sessao_insert on public.fotos_sessao for insert to authenticated
+  with check (exists (select 1 from public.sessoes_estudo s where s.id = sessao_id and s.usuario_id = (select auth.uid())));
+drop policy if exists fotos_sessao_update on public.fotos_sessao;
+create policy fotos_sessao_update on public.fotos_sessao for update to authenticated
   using (exists (select 1 from public.sessoes_estudo s where s.id = sessao_id and s.usuario_id = (select auth.uid())))
   with check (exists (select 1 from public.sessoes_estudo s where s.id = sessao_id and s.usuario_id = (select auth.uid())));
+drop policy if exists fotos_sessao_delete on public.fotos_sessao;
+create policy fotos_sessao_delete on public.fotos_sessao for delete to authenticated
+  using (exists (select 1 from public.sessoes_estudo s where s.id = sessao_id and s.usuario_id = (select auth.uid())));
 
 -- Índices nas chaves de filtro das policies RLS para desempenho (PDF 03, slide 21)
 create index if not exists idx_sessoes_estudo_usuario_id on public.sessoes_estudo (usuario_id, created_at desc);
@@ -183,7 +193,7 @@ create policy fotos_update on storage.objects for update to authenticated
   using (bucket_id = 'fotos_sessao' and (storage.foldername(name))[1] = (select auth.uid())::text);
 drop policy if exists fotos_select on storage.objects;
 create policy fotos_select on storage.objects for select to authenticated
-  using (bucket_id = 'fotos_sessao' and (storage.foldername(name))[1] = (select auth.uid())::text);
+  using (bucket_id = 'fotos_sessao');
 drop policy if exists fotos_delete on storage.objects;
 create policy fotos_delete on storage.objects for delete to authenticated
   using (bucket_id = 'fotos_sessao' and (storage.foldername(name))[1] = (select auth.uid())::text);
@@ -336,3 +346,42 @@ $$;
 grant execute on function public.buscar_sessoes_proximas(double precision, double precision, double precision) to authenticated;
 grant execute on function public.limpar_minhas_coordenadas() to authenticated;
 grant execute on function public.expurgar_coordenadas_antigas(integer) to authenticated;
+
+-- 5) Reset semanal automático do Ranking (toda segunda-feira às 00:00 UTC)
+create or replace function public.resetar_xp_semanal()
+returns integer
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_afetados integer;
+begin
+  update public.perfis
+  set xp_semanal = 0,
+      updated_at = now()
+  where xp_semanal > 0;
+
+  get diagnostics v_afetados = row_count;
+  return v_afetados;
+end;
+$$;
+
+-- Apenas o agendador interno do Postgres (pg_cron) pode invocar o reset
+revoke all on function public.resetar_xp_semanal() from public, anon, authenticated;
+
+do $$
+begin
+  create extension if not exists pg_cron with schema extensions;
+  if exists (select 1 from cron.job where jobname = 'reset-xp-semanal-studyrats') then
+    perform cron.unschedule('reset-xp-semanal-studyrats');
+  end if;
+  perform cron.schedule(
+    'reset-xp-semanal-studyrats',
+    '0 0 * * 1',
+    'select public.resetar_xp_semanal();'
+  );
+exception
+  when others then
+    raise notice 'pg_cron indisponível ou sem permissão neste ambiente: %', sqlerrm;
+end;
+$$;
